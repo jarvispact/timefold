@@ -1,0 +1,12 @@
+{
+    "extends": "../../tsconfig",
+    "compilerOptions": {
+        "declaration": true,
+        "declarationDir": "./dist",
+        "outDir": "./dist",
+        "noEmit": false,
+        "sourceMap": true
+    },
+    "include": ["./src"],
+    "exclude": ["node_modules", "./src/**/*.test.ts"]
+}

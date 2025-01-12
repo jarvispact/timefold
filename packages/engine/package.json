@@ -1,0 +1,25 @@
+{
+  "name": "@timefold/engine",
+  "version": "0.0.1",
+  "description": "engine code for timefold",
+  "type": "module",
+  "sideEffects": false,
+  "main": "./dist/engine.umd.js",
+  "module": "./dist/engine.js",
+  "types": "./dist/engine.d.ts",
+  "publishConfig": {
+    "access": "public"
+  },
+  "exports": {
+    ".": {
+      "import": "./dist/engine.js",
+      "require": "./dist/engine.umd.js"
+    }
+  },
+  "author": "jarvispact <jarvispact@gmail.com>",
+  "license": "MIT",
+  "scripts": {
+    "build": "rm -rf ./dist && vite build && tsc",
+    "publish-to-npm": "npm publish"
+  }
+}

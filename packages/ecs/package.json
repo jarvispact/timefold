@@ -1,0 +1,27 @@
+{
+  "name": "@timefold/ecs",
+  "version": "0.0.1",
+  "description": "the ecs implementation for timefold",
+  "type": "module",
+  "sideEffects": false,
+  "main": "./dist/ecs.umd.js",
+  "module": "./dist/ecs.js",
+  "types": "./dist/ecs.d.ts",
+  "publishConfig": {
+    "access": "public"
+  },
+  "exports": {
+    ".": {
+      "import": "./dist/ecs.js",
+      "require": "./dist/ecs.umd.js"
+    }
+  },
+  "author": "jarvispact <jarvispact@gmail.com>",
+  "license": "MIT",
+  "scripts": {
+    "test": "vitest --typecheck",
+    "test:run": "vitest run",
+    "build": "rm -rf ./dist && vite build && tsc",
+    "publish-to-npm": "npm publish"
+  }
+}

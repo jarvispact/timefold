@@ -1,0 +1,27 @@
+{
+  "name": "@timefold/webgpu",
+  "version": "0.0.1",
+  "description": "webgpu utils for timefold",
+  "type": "module",
+  "sideEffects": false,
+  "main": "./dist/webgpu.umd.js",
+  "module": "./dist/webgpu.js",
+  "types": "./dist/webgpu.d.ts",
+  "publishConfig": {
+    "access": "public"
+  },
+  "exports": {
+    ".": {
+      "import": "./dist/webgpu.js",
+      "require": "./dist/webgpu.umd.js"
+    }
+  },
+  "author": "jarvispact <jarvispact@gmail.com>",
+  "license": "MIT",
+  "scripts": {
+    "test": "vitest --typecheck",
+    "test:run": "vitest run --typecheck",
+    "build": "rm -rf ./dist && vite build && tsc",
+    "publish-to-npm": "npm publish"
+  }
+}

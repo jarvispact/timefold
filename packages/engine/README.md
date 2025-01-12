@@ -1,0 +1,2 @@
+# @timefold/engine
+Leverages the modules `@timefold/ecs`, `@timefold/math`, `@timefold/obj`, `@timefold/webgpu` to provide some nice abstractions and pre-defined components for a quick start on your project.

@@ -1,0 +1,25 @@
+{
+  "name": "@timefold/math",
+  "version": "0.0.1",
+  "description": "matrix, vector and math implementation for timefold",
+  "type": "module",
+  "sideEffects": false,
+  "main": "./dist/math.umd.js",
+  "module": "./dist/math.js",
+  "types": "./dist/math.d.ts",
+  "publishConfig": {
+    "access": "public"
+  },
+  "exports": {
+    ".": {
+      "import": "./dist/math.js",
+      "require": "./dist/math.umd.js"
+    }
+  },
+  "author": "jarvispact <jarvispact@gmail.com>",
+  "license": "MIT",
+  "scripts": {
+    "build": "rm -rf ./dist && vite build && tsc",
+    "publish-to-npm": "npm publish"
+  }
+}

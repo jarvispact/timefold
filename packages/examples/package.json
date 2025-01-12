@@ -1,0 +1,24 @@
+{
+  "name": "@timefold/examples",
+  "private": true,
+  "version": "0.0.1",
+  "type": "module",
+  "scripts": {
+    "dev:ecs-hello-world": "sed 's/{example-folder}/ecs-hello-world/g' index.html.template > index.html && vite --port 9093",
+    "build:ecs-hello-world": "sed 's/{example-folder}/ecs-hello-world/g' index.html.template > index.html && vite build",
+
+    "dev:ecs-queries": "sed 's/{example-folder}/ecs-queries/g' index.html.template > index.html && vite --port 9093",
+    "build:ecs-queries": "sed 's/{example-folder}/ecs-queries/g' index.html.template > index.html && vite build",
+
+    "dev:webgpu-hello-world": "sed 's/{example-folder}/webgpu-hello-world/g' index.html.template > index.html && vite --port 9093",
+    "build:webgpu-hello-world": "sed 's/{example-folder}/webgpu-hello-world/g' index.html.template > index.html && vite build",
+
+    "dev:obj-loader": "sed 's/{example-folder}/obj-loader/g' index.html.template > index.html && vite --port 9093",
+    "build:obj-loader": "sed 's/{example-folder}/obj-loader/g' index.html.template > index.html && vite build",
+
+    "dev:engine": "sed 's/{example-folder}/engine/g' index.html.template > index.html && vite --port 9093",
+    "build:engine": "sed 's/{example-folder}/engine/g' index.html.template > index.html && vite build",
+
+    "preview": "vite preview --port 9191"
+  }
+}
