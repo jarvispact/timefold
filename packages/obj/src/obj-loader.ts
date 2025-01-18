@@ -10,3 +10,5 @@ export const createLoader = <Options extends Partial<ParserOptions>>(options: Op
         },
     };
 };
+
+export const load = (objUrl: string) => createLoader().load(objUrl);

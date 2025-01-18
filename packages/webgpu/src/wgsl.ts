@@ -4,6 +4,7 @@ import { WgslType } from './lookup-table';
 import { ArrayElement } from './wgsl-array';
 import { Type as _Type, type as _type, CreateResult as TypeCreateResult } from './wgsl-type';
 import { Array as _Array, array as _array, CreateResult as ArrayCreateResult } from './wgsl-array';
+// import { Builtin as _Builtin, builtin as _builtin, BuiltinName } from './wgsl-builtin';
 import {
     Struct as _Struct,
     struct as _struct,
@@ -38,3 +39,9 @@ export type InferStructResult<T extends _Struct<string, any>, Mode extends Gener
     T extends _Struct<string, infer Definition> ? StructCreateResult<Definition, Mode>['views'] : never;
 
 export const struct = _struct;
+
+// builtin
+
+// export type Builtin<Name extends BuiltinName> = _Builtin<Name>;
+
+// export const builtin = _builtin;

@@ -1,5 +1,19 @@
 import { Mode, ModeMap } from './internal-utils';
 
+export type MtlMaterial = {
+    name: string;
+    ambientColor: [number, number, number];
+    diffuseColor: [number, number, number];
+    specularColor: [number, number, number];
+    specularExponent: number;
+    ambientMapPath: string | undefined;
+    diffuseMapPath: string | undefined;
+    specularMapPath: string | undefined;
+    normalMapPath: string | undefined;
+};
+
+export type MtlParserResult = { materials: MtlMaterial[] };
+
 export type InterleavedInfo = {
     stride: number;
     positionOffset: number;

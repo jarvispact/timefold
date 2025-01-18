@@ -1,6 +1,6 @@
 import { Uniform, WebgpuUtils, Wgsl } from '@timefold/webgpu';
 import { Vec3, Mat4x4, MathUtils } from '@timefold/math';
-import { cubeVertices, stride } from './cube';
+import { cubeVertices } from './cube';
 
 const dpr = window.devicePixelRatio || 1;
 const canvas = document.getElementById('canvas') as HTMLCanvasElement;
@@ -33,11 +33,14 @@ const EntityUniformGroup = Uniform.group(1, {
     }),
 });
 
+const Vertex = WebgpuUtils.createVertexBufferLayout('interleaved', {
+    position: { format: 'float32x3', offset: 0 },
+    normal: { format: 'float32x3', offset: 3 },
+    uv: { format: 'float32x2', offset: 5 },
+});
+
 const shaderCode = /* wgsl */ `
-struct Vertex {
-  @location(0) position: vec3f,
-  @location(1) normal: vec3f,
-}
+${Vertex.wgsl}
  
 struct VSOutput {
   @builtin(position) position: vec4f,
@@ -69,22 +72,14 @@ const run = async () => {
     const { device, context, format } = await WebgpuUtils.createDeviceAndContext({ canvas });
     const module = device.createShaderModule({ code: shaderCode });
 
-    const { layout, createBindGroups } = WebgpuUtils.createPipelineLayout({
+    const Pipeline = WebgpuUtils.createPipelineLayout({
         device,
         uniformGroups: [SceneUniformGroup, EntityUniformGroup],
     });
 
-    const sceneBindgroup = createBindGroups(0, { scene: WebgpuUtils.createBufferDescriptor() });
-    const entityBindgroup = createBindGroups(1, { entity: WebgpuUtils.createBufferDescriptor() });
-
-    const result = WebgpuUtils.createVertexBuffers(device, 'interleaved', {
-        stride,
-        data: cubeVertices,
-        attributes: {
-            position: { format: 'float32x3', offset: 0 },
-            normal: { format: 'float32x3', offset: 3 },
-        },
-    });
+    const sceneBindgroup = Pipeline.createBindGroups(0, { scene: WebgpuUtils.createBufferDescriptor() });
+    const entityBindgroup = Pipeline.createBindGroups(1, { entity: WebgpuUtils.createBufferDescriptor() });
+    const { buffer, count, slot } = Vertex.createBuffer(device, cubeVertices);
 
     const renderPassDescriptor: WebgpuUtils.RenderPassDescriptor = {
         label: 'canvas renderPass',
@@ -92,10 +87,9 @@ const run = async () => {
     };
 
     const pipeline = device.createRenderPipeline({
-        label: 'pipeline',
-        layout,
+        layout: Pipeline.layout,
         primitive: { cullMode: 'back' },
-        vertex: { module: module, buffers: result.layout },
+        vertex: { module: module, buffers: Vertex.layout },
         fragment: { module: module, targets: [{ format }] },
     });
 
@@ -119,9 +113,9 @@ const run = async () => {
         const pass = encoder.beginRenderPass(renderPassDescriptor);
 
         pass.setPipeline(pipeline);
-        pass.setVertexBuffer(result.slot, result.buffer);
+        pass.setVertexBuffer(slot, buffer);
 
-        pass.setBindGroup(0, sceneBindgroup.bindGroup);
+        pass.setBindGroup(sceneBindgroup.group, sceneBindgroup.bindGroup);
         device.queue.writeBuffer(sceneBindgroup.buffers.scene, 0, scene.buffer);
 
         Mat4x4.identity(entity.views.model_matrix);
@@ -129,9 +123,9 @@ const run = async () => {
         Mat4x4.rotateY(entity.views.model_matrix, time * 0.001);
         Mat4x4.modelToNormal(entity.views.normal_matrix, entity.views.model_matrix);
 
-        pass.setBindGroup(1, entityBindgroup.bindGroup);
+        pass.setBindGroup(entityBindgroup.group, entityBindgroup.bindGroup);
         device.queue.writeBuffer(entityBindgroup.buffers.entity, 0, entity.buffer);
-        pass.draw(result.vertexCount);
+        pass.draw(count);
 
         pass.end();
         device.queue.submit([encoder.finish()]);

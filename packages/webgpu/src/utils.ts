@@ -1,4 +1,5 @@
 import { RemoveNever, TupleIndices } from './internal-utils';
+import { WgslType } from './lookup-table';
 import * as Uniform from './uniform';
 
 // ===========================================================
@@ -19,6 +20,31 @@ export const createColorAttachmentFromView = (
     options?: Partial<Omit<GPURenderPassColorAttachment, 'view'>>,
 ): GPURenderPassColorAttachment => {
     return { ...defaultColorAttachmentOptions, ...options, view };
+};
+
+const defaultDepthAttachmentOptions = {
+    depthClearValue: 1.0,
+    depthLoadOp: 'clear',
+    depthStoreOp: 'store',
+} satisfies Omit<GPURenderPassDepthStencilAttachment, 'view'>;
+
+export const createDepthAttachmentFromView = (
+    device: GPUDevice,
+    width: number,
+    height: number,
+    options?: Omit<GPURenderPassDepthStencilAttachment, 'view'>,
+): GPURenderPassDepthStencilAttachment => {
+    const depthTexture = device.createTexture({
+        size: [width, height],
+        format: 'depth24plus',
+        usage: GPUTextureUsage.RENDER_ATTACHMENT,
+    });
+
+    return {
+        view: depthTexture.createView(),
+        ...defaultDepthAttachmentOptions,
+        ...options,
+    };
 };
 
 // ===========================================================
@@ -73,37 +99,49 @@ type GenericTypedArrayConstructor =
     | Float32ArrayConstructor;
 
 const formatMap = {
-    sint8: { View: Int8Array, stride: 1 },
-    sint8x2: { View: Int8Array, stride: 2 },
-    sint8x4: { View: Int8Array, stride: 4 },
+    sint8x2: { View: Int8Array, stride: 2, wgslType: 'vec2<i32>' },
+    sint8x4: { View: Int8Array, stride: 4, wgslType: 'vec4<i32>' },
 
-    uint8: { View: Uint8Array, stride: 1 },
-    uint8x2: { View: Uint8Array, stride: 2 },
-    uint8x4: { View: Uint8Array, stride: 4 },
+    uint8x2: { View: Uint8Array, stride: 2, wgslType: 'vec2<u32>' },
+    uint8x4: { View: Uint8Array, stride: 4, wgslType: 'vec4<u32>' },
 
-    sint16: { View: Int16Array, stride: 1 },
-    sint16x2: { View: Int16Array, stride: 2 },
-    sint16x4: { View: Int16Array, stride: 4 },
+    sint16x2: { View: Int16Array, stride: 2, wgslType: 'vec2<i32>' },
+    sint16x4: { View: Int16Array, stride: 4, wgslType: 'vec4<i32>' },
 
-    uint16: { View: Uint16Array, stride: 1 },
-    uint16x2: { View: Uint16Array, stride: 2 },
-    uint16x4: { View: Uint16Array, stride: 4 },
+    uint16x2: { View: Uint16Array, stride: 2, wgslType: 'vec2<u32>' },
+    uint16x4: { View: Uint16Array, stride: 4, wgslType: 'vec4<u32>' },
 
-    sint32: { View: Int32Array, stride: 1 },
-    sint32x2: { View: Int32Array, stride: 2 },
-    sint32x3: { View: Int32Array, stride: 3 },
-    sint32x4: { View: Int32Array, stride: 4 },
+    sint32: { View: Int32Array, stride: 1, wgslType: 'i32' },
+    sint32x2: { View: Int32Array, stride: 2, wgslType: 'vec2<i32>' },
+    sint32x3: { View: Int32Array, stride: 3, wgslType: 'vec3<i32>' },
+    sint32x4: { View: Int32Array, stride: 4, wgslType: 'vec4<i32>' },
 
-    uint32: { View: Uint32Array, stride: 1 },
-    uint32x2: { View: Uint32Array, stride: 2 },
-    uint32x3: { View: Uint32Array, stride: 3 },
-    uint32x4: { View: Uint32Array, stride: 4 },
+    uint32: { View: Uint32Array, stride: 1, wgslType: 'u32' },
+    uint32x2: { View: Uint32Array, stride: 2, wgslType: 'vec2<u32>' },
+    uint32x3: { View: Uint32Array, stride: 3, wgslType: 'vec3<u32>' },
+    uint32x4: { View: Uint32Array, stride: 4, wgslType: 'vec4<u32>' },
 
-    float32: { View: Float32Array, stride: 1 },
-    float32x2: { View: Float32Array, stride: 2 },
-    float32x3: { View: Float32Array, stride: 3 },
-    float32x4: { View: Float32Array, stride: 4 },
-} satisfies Partial<Record<GPUVertexFormat, { View: GenericTypedArrayConstructor; stride: number }>>;
+    float32: { View: Float32Array, stride: 1, wgslType: 'f32' },
+    float32x2: { View: Float32Array, stride: 2, wgslType: 'vec2<f32>' },
+    float32x3: { View: Float32Array, stride: 3, wgslType: 'vec3<f32>' },
+    float32x4: { View: Float32Array, stride: 4, wgslType: 'vec4<f32>' },
+
+    snorm8x2: { View: Int8Array, stride: 2, wgslType: 'vec2<f32>' },
+    snorm8x4: { View: Int8Array, stride: 4, wgslType: 'vec4<f32>' },
+
+    snorm16x2: { View: Int16Array, stride: 2, wgslType: 'vec2<f32>' },
+    snorm16x4: { View: Int16Array, stride: 4, wgslType: 'vec4<f32>' },
+
+    unorm8x2: { View: Uint8Array, stride: 2, wgslType: 'vec2<f32>' },
+    unorm8x4: { View: Uint8Array, stride: 4, wgslType: 'vec4<f32>' },
+
+    unorm16x2: { View: Uint16Array, stride: 2, wgslType: 'vec2<f32>' },
+    unorm16x4: { View: Uint16Array, stride: 4, wgslType: 'vec4<f32>' },
+
+    'unorm10-10-10-2': { View: Uint32Array, stride: 4, wgslType: 'vec4<f32>' },
+} satisfies Partial<
+    Record<GPUVertexFormat, { View: GenericTypedArrayConstructor; stride: number; wgslType: WgslType }>
+>;
 
 type FormatMap = typeof formatMap;
 type SupportedFormat = keyof FormatMap;
@@ -113,155 +151,144 @@ type InterleavedMode = 'interleaved';
 type NonInterleavedMode = 'non-interleaved';
 type CreateVertexBufferMode = InterleavedMode | NonInterleavedMode;
 
-type Attribute<Mode extends CreateVertexBufferMode> = {
-    [Format in SupportedFormat]: {
-        format: Format;
-    } & (Mode extends InterleavedMode ? { offset: number } : { data: InstanceType<FormatMap[Format]['View']> });
-}[SupportedFormat];
-
-type PositionAttribute<Mode extends CreateVertexBufferMode> = {
-    [Format in SupportedPositionFormat]: {
-        format: Format;
-    } & (Mode extends InterleavedMode ? { offset: number } : { data: InstanceType<FormatMap[Format]['View']> });
-}[SupportedPositionFormat];
-
-type GenericAttributes<Mode extends CreateVertexBufferMode> = {
-    position: PositionAttribute<Mode>;
-} & Record<string, Attribute<Mode>>;
-
-type CreateVertexBuffersArgs<
-    Mode extends CreateVertexBufferMode,
-    Data extends InstanceType<GenericTypedArrayConstructor> | ArrayBufferLike,
-> = Mode extends InterleavedMode
-    ? Data extends InstanceType<GenericTypedArrayConstructor>
-        ? {
-              data: InstanceType<GenericTypedArrayConstructor>;
-              stride: number;
-              attributes: GenericAttributes<InterleavedMode>;
-          }
-        : {
-              data: ArrayBufferLike;
-              stride: number;
-              attributes: GenericAttributes<InterleavedMode>;
-              vertexCount: number;
-          }
-    : { attributes: GenericAttributes<NonInterleavedMode> };
-
-type CreateVertexBuffersResult<
-    Mode extends CreateVertexBufferMode,
-    Attributes extends GenericAttributes<CreateVertexBufferMode>,
-> = Mode extends InterleavedMode
-    ? { layout: GPUVertexBufferLayout[]; slot: number; buffer: GPUBuffer; vertexCount: number }
+type CreateVertexBufferLayoutDefinition<Mode extends CreateVertexBufferMode> = Mode extends InterleavedMode
+    ? {
+          position: { format: SupportedPositionFormat; offset: number };
+      } & Record<string, { format: SupportedFormat; offset: number }>
     : {
-          layout: GPUVertexBufferLayout[];
-          buffers: {
-              [Key in keyof Attributes]: { slot: number; buffer: GPUBuffer };
-          };
-          vertexCount: number;
-      };
+          position: { format: SupportedPositionFormat };
+      } & Record<string, { format: SupportedFormat }>;
 
-const isTypedArrayData = (
-    args:
-        | {
-              data: InstanceType<GenericTypedArrayConstructor>;
-              stride: number;
-          }
-        | {
-              data: ArrayBufferLike;
-              stride: number;
-              vertexCount: number;
-          },
-): args is {
-    data: InstanceType<GenericTypedArrayConstructor>;
-    stride: number;
-} => 'buffer' in args.data;
+type InterleavedCreateBuffer = (
+    device: GPUDevice,
+    data: Float32Array,
+) => { slot: number; buffer: GPUBuffer; count: number };
 
-export const createVertexBuffers = <
-    Mode extends CreateVertexBufferMode,
-    Data extends InstanceType<GenericTypedArrayConstructor> | ArrayBufferLike,
-    Args extends CreateVertexBuffersArgs<Mode, Data>,
+type NonInterleavedCreateBuffer<Definition extends CreateVertexBufferLayoutDefinition<NonInterleavedMode>> = <
+    Name extends keyof Definition,
 >(
     device: GPUDevice,
+    name: Name,
+    data: InstanceType<FormatMap[Definition[Name]['format']]['View']>,
+) => { slot: number; buffer: GPUBuffer; count: number };
+
+type ResultForMode<
+    Mode extends CreateVertexBufferMode,
+    Definition extends CreateVertexBufferLayoutDefinition<Mode>,
+> = Mode extends InterleavedMode
+    ? {
+          layout: GPUVertexBufferLayout[];
+          wgsl: string;
+          createBuffer: InterleavedCreateBuffer;
+      }
+    : {
+          layout: GPUVertexBufferLayout[];
+          wgsl: string;
+          createBuffer: NonInterleavedCreateBuffer<Definition>;
+      };
+
+export const createVertexBufferLayout = <
+    Mode extends CreateVertexBufferMode,
+    Definition extends CreateVertexBufferLayoutDefinition<Mode>,
+>(
     mode: Mode,
-    args: Args,
-): CreateVertexBuffersResult<Mode, Args['attributes']> => {
+    definition: Definition,
+): ResultForMode<Mode, Definition> => {
+    const vertexDefinitionKeys = Object.keys(definition);
+
+    const locationByName: Record<string, number> = {};
+
+    const vertexProperties = vertexDefinitionKeys
+        .map((key, idx) => {
+            locationByName[key] = idx;
+            const attr = definition[key];
+            return `  @location(${idx}) ${key}: ${formatMap[attr.format].wgslType},`;
+        })
+        .join('\n');
+
+    const wgsl = `struct Vertex {\n${vertexProperties}\n}`;
+
     if (mode === 'non-interleaved') {
-        const posAttr = args.attributes.position as PositionAttribute<'non-interleaved'>;
-        const posStride = formatMap[posAttr.format].stride;
-        const len = posAttr.data.length;
-        const vertexCount = len / posStride;
-        const attributeKeys = Object.keys(args.attributes);
-        let shaderLocation = 0;
-        const layout: GPUVertexBufferLayout[] = attributeKeys.map((key) => {
-            const attr = args.attributes[key] as Attribute<'non-interleaved'>;
-            const stride = formatMap[attr.format].stride;
+        const layout: GPUVertexBufferLayout[] = vertexDefinitionKeys.map((key) => {
+            const attr = definition[key];
+            const { stride, View } = formatMap[attr.format];
             return {
-                arrayStride: stride * attr.data.BYTES_PER_ELEMENT,
+                arrayStride: stride * View.BYTES_PER_ELEMENT,
                 stepMode: 'vertex',
-                attributes: [{ format: attr.format, shaderLocation: shaderLocation++, offset: 0 }],
+                attributes: [{ format: attr.format, shaderLocation: locationByName[key], offset: 0 }],
             };
         });
 
-        let slot = 0;
-        const buffers = attributeKeys.reduce<Record<string, { slot: number; buffer: GPUBuffer }>>((accum, key) => {
-            const attr = args.attributes[key] as Attribute<'non-interleaved'>;
-
+        const createBuffer: NonInterleavedCreateBuffer<Definition> = (device, name, data) => {
             const buffer = device.createBuffer({
-                label: 'vertex buffer vertices',
-                size: attr.data.byteLength,
+                label: `${name.toString()} vertex buffer`,
+                size: data.byteLength,
                 usage: GPUBufferUsage.VERTEX | GPUBufferUsage.COPY_DST,
             });
 
-            device.queue.writeBuffer(buffer, 0, attr.data);
+            device.queue.writeBuffer(buffer, 0, data);
 
-            accum[key] = { slot: slot++, buffer };
-            return accum;
-        }, {});
+            return {
+                // slot is actually the index into the layout (GPUVertexBufferLayout[])
+                // but in our case it always matches the shader location as well
+                slot: locationByName[name.toString()],
+                buffer,
+                count: data.length / formatMap[definition.position.format].stride,
+            };
+        };
 
         return {
             layout,
-            buffers,
-            vertexCount,
-        } as CreateVertexBuffersResult<Mode, Args['attributes']>;
+            wgsl,
+            createBuffer,
+        } as ResultForMode<Mode, Definition>;
     }
 
-    const _args = args as CreateVertexBuffersArgs<
-        InterleavedMode,
-        InstanceType<GenericTypedArrayConstructor> | ArrayBufferLike
-    >;
+    let arrayStride = 0;
+    let totalStride = 0;
 
-    let shaderLocation = 0;
+    const attributes = vertexDefinitionKeys.map((key) => {
+        const attr = definition[key] as { format: SupportedFormat; offset: number };
+        const { stride, View } = formatMap[attr.format];
+        arrayStride += stride * View.BYTES_PER_ELEMENT;
+        totalStride += attr.offset;
+
+        return {
+            format: attr.format,
+            shaderLocation: locationByName[key],
+            offset: attr.offset * View.BYTES_PER_ELEMENT,
+        };
+    });
+
     const layout: GPUVertexBufferLayout[] = [
         {
-            arrayStride: _args.stride * Float32Array.BYTES_PER_ELEMENT,
+            arrayStride,
             stepMode: 'vertex',
-            attributes: Object.keys(args.attributes).map((key) => {
-                const attr = args.attributes[key] as Attribute<'interleaved'>;
-                return {
-                    format: attr.format,
-                    shaderLocation: shaderLocation++,
-                    offset: attr.offset * formatMap[attr.format].View.BYTES_PER_ELEMENT,
-                };
-            }),
+            attributes,
         },
     ];
 
-    const buffer = device.createBuffer({
-        label: 'vertex buffer vertices',
-        size: _args.data.byteLength,
-        usage: GPUBufferUsage.VERTEX | GPUBufferUsage.COPY_DST,
-    });
+    const createBuffer: InterleavedCreateBuffer = (device, data) => {
+        const buffer = device.createBuffer({
+            label: 'interleaved vertex buffer',
+            size: data.byteLength,
+            usage: GPUBufferUsage.VERTEX | GPUBufferUsage.COPY_DST,
+        });
 
-    device.queue.writeBuffer(buffer, 0, _args.data);
+        device.queue.writeBuffer(buffer, 0, data);
 
-    const vertexCount = isTypedArrayData(_args) ? _args.data.length / _args.stride : _args.vertexCount;
+        return {
+            slot: 0,
+            buffer,
+            count: data.length / totalStride,
+        };
+    };
 
     return {
         layout,
-        slot: 0,
-        buffer,
-        vertexCount,
-    } as CreateVertexBuffersResult<Mode, Args['attributes']>;
+        wgsl,
+        createBuffer,
+    } as ResultForMode<Mode, Definition>;
 };
 
 // ===========================================================
@@ -288,18 +315,18 @@ export const createIndexBuffer = <Format extends GPUIndexFormat>(
     device: GPUDevice,
     args: CreateIndexBufferArgs<Format>,
 ) => {
-    const indexBuffer = device.createBuffer({
+    const buffer = device.createBuffer({
         size: args.data.byteLength,
         usage: GPUBufferUsage.INDEX | GPUBufferUsage.COPY_DST,
     });
 
-    const indexCount = isTypedIndexArrayData(args) ? args.data.length : args.indexCount;
+    const count = isTypedIndexArrayData(args) ? args.data.length : args.indexCount;
 
-    device.queue.writeBuffer(indexBuffer, 0, args.data);
+    device.queue.writeBuffer(buffer, 0, args.data);
 
     return {
-        indexBuffer,
-        indexCount,
+        buffer,
+        count,
         format: args.format,
     };
 };
@@ -473,7 +500,7 @@ export const createPipelineLayout = <
             entries: bindgroupEntries,
         });
 
-        return { bindGroup, buffers: buffers as BuffersByBindingKey<Groups[Group]> };
+        return { group, bindGroup, buffers: buffers as BuffersByBindingKey<Groups[Group]> };
     };
 
     return { layout, createBindGroups };
