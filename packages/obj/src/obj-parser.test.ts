@@ -186,14 +186,20 @@ describe('obj-parser', () => {
             const result = parse('');
 
             expectTypeOf(result).toMatchTypeOf<{
-                objects: {
-                    name: string;
-                    primitives: {
+                objects: Record<
+                    string,
+                    {
                         name: string;
-                        vertices: Float32Array;
-                        indices: Uint32Array;
-                    }[];
-                }[];
+                        primitives: Record<
+                            string,
+                            {
+                                name: string;
+                                vertices: Float32Array;
+                                indices: Uint32Array;
+                            }
+                        >;
+                    }
+                >;
             }>();
         });
 
@@ -202,14 +208,20 @@ describe('obj-parser', () => {
             const result = parse('');
 
             expectTypeOf(result).toMatchTypeOf<{
-                objects: {
-                    name: string;
-                    primitives: {
+                objects: Record<
+                    string,
+                    {
                         name: string;
-                        vertices: Float32Array;
-                        indices: Uint32Array;
-                    }[];
-                }[];
+                        primitives: Record<
+                            string,
+                            {
+                                name: string;
+                                vertices: Float32Array;
+                                indices: Uint32Array;
+                            }
+                        >;
+                    }
+                >;
             }>();
         });
 
@@ -218,14 +230,20 @@ describe('obj-parser', () => {
             const result = parse('');
 
             expectTypeOf(result).toMatchTypeOf<{
-                objects: {
-                    name: string;
-                    primitives: {
+                objects: Record<
+                    string,
+                    {
                         name: string;
-                        vertices: Float32Array;
-                        indices: Uint32Array;
-                    }[];
-                }[];
+                        primitives: Record<
+                            string,
+                            {
+                                name: string;
+                                vertices: Float32Array;
+                                indices: Uint32Array;
+                            }
+                        >;
+                    }
+                >;
             }>();
         });
 
@@ -234,13 +252,19 @@ describe('obj-parser', () => {
             const result = parse('');
 
             expectTypeOf(result).toMatchTypeOf<{
-                objects: {
-                    name: string;
-                    primitives: {
+                objects: Record<
+                    string,
+                    {
                         name: string;
-                        vertices: number[];
-                    }[];
-                }[];
+                        primitives: Record<
+                            string,
+                            {
+                                name: string;
+                                vertices: number[];
+                            }
+                        >;
+                    }
+                >;
             }>();
         });
 
@@ -249,14 +273,20 @@ describe('obj-parser', () => {
             const result = parse('');
 
             expectTypeOf(result).toMatchTypeOf<{
-                objects: {
-                    name: string;
-                    primitives: {
+                objects: Record<
+                    string,
+                    {
                         name: string;
-                        vertices: number[];
-                        indices: number[];
-                    }[];
-                }[];
+                        primitives: Record<
+                            string,
+                            {
+                                name: string;
+                                vertices: number[];
+                                indices: number[];
+                            }
+                        >;
+                    }
+                >;
             }>();
         });
 
@@ -265,13 +295,19 @@ describe('obj-parser', () => {
             const result = parse('');
 
             expectTypeOf(result).toMatchTypeOf<{
-                objects: {
-                    name: string;
-                    primitives: {
+                objects: Record<
+                    string,
+                    {
                         name: string;
-                        vertices: Float32Array;
-                    }[];
-                }[];
+                        primitives: Record<
+                            string,
+                            {
+                                name: string;
+                                vertices: Float32Array;
+                            }
+                        >;
+                    }
+                >;
             }>();
         });
 
@@ -280,14 +316,20 @@ describe('obj-parser', () => {
             const result = parse('');
 
             expectTypeOf(result).toMatchTypeOf<{
-                objects: {
-                    name: string;
-                    primitives: {
+                objects: Record<
+                    string,
+                    {
                         name: string;
-                        vertices: Float32Array;
-                        indices: Uint32Array;
-                    }[];
-                }[];
+                        primitives: Record<
+                            string,
+                            {
+                                name: string;
+                                vertices: Float32Array;
+                                indices: Uint32Array;
+                            }
+                        >;
+                    }
+                >;
             }>();
         });
 
@@ -296,15 +338,21 @@ describe('obj-parser', () => {
             const result = parse('');
 
             expectTypeOf(result).toMatchTypeOf<{
-                objects: {
-                    name: string;
-                    primitives: {
+                objects: Record<
+                    string,
+                    {
                         name: string;
-                        positions: number[];
-                        uvs: number[];
-                        normals: number[];
-                    }[];
-                }[];
+                        primitives: Record<
+                            string,
+                            {
+                                name: string;
+                                positions: number[];
+                                uvs: number[];
+                                normals: number[];
+                            }
+                        >;
+                    }
+                >;
             }>();
         });
 
@@ -313,16 +361,22 @@ describe('obj-parser', () => {
             const result = parse('');
 
             expectTypeOf(result).toMatchTypeOf<{
-                objects: {
-                    name: string;
-                    primitives: {
+                objects: Record<
+                    string,
+                    {
                         name: string;
-                        positions: number[];
-                        uvs: number[];
-                        normals: number[];
-                        indices: number[];
-                    }[];
-                }[];
+                        primitives: Record<
+                            string,
+                            {
+                                name: string;
+                                positions: number[];
+                                uvs: number[];
+                                normals: number[];
+                                indices: number[];
+                            }
+                        >;
+                    }
+                >;
             }>();
         });
 
@@ -331,15 +385,21 @@ describe('obj-parser', () => {
             const result = parse('');
 
             expectTypeOf(result).toMatchTypeOf<{
-                objects: {
-                    name: string;
-                    primitives: {
+                objects: Record<
+                    string,
+                    {
                         name: string;
-                        positions: Float32Array;
-                        uvs: Float32Array;
-                        normals: Float32Array;
-                    }[];
-                }[];
+                        primitives: Record<
+                            string,
+                            {
+                                name: string;
+                                positions: Float32Array;
+                                uvs: Float32Array;
+                                normals: Float32Array;
+                            }
+                        >;
+                    }
+                >;
             }>();
         });
 
@@ -348,16 +408,22 @@ describe('obj-parser', () => {
             const result = parse('');
 
             expectTypeOf(result).toMatchTypeOf<{
-                objects: {
-                    name: string;
-                    primitives: {
+                objects: Record<
+                    string,
+                    {
                         name: string;
-                        positions: Float32Array;
-                        uvs: Float32Array;
-                        normals: Float32Array;
-                        indices: Uint32Array;
-                    }[];
-                }[];
+                        primitives: Record<
+                            string,
+                            {
+                                name: string;
+                                positions: Float32Array;
+                                uvs: Float32Array;
+                                normals: Float32Array;
+                                indices: Uint32Array;
+                            }
+                        >;
+                    }
+                >;
             }>();
         });
     });
@@ -367,7 +433,7 @@ describe('obj-parser', () => {
             const parse = createParser({ mode: 'interleaved-number-array' });
             const { objects, info } = parse(positionUvNormalPlane);
 
-            expect(objects[0].primitives[0]).toEqual({
+            expect(objects.Plane.primitives.default).toEqual({
                 name: 'default',
                 vertices: [
                     -1, 0, 1, 0, 0, -0, 1, -0, 1, 0, 1, 1, 0, -0, 1, -0, 1, 0, -1, 1, 1, -0, 1, -0, -1, 0, 1, 0, 0, -0,
@@ -387,7 +453,7 @@ describe('obj-parser', () => {
             const parse = createParser({ mode: 'interleaved-number-array' });
             const { objects, info } = parse(positionUvPlane);
 
-            expect(objects[0].primitives[0]).toEqual({
+            expect(objects.Plane.primitives.default).toEqual({
                 name: 'default',
                 vertices: [
                     -1, 0, 1, 0, 0, 1, 0, 1, 1, 0, 1, 0, -1, 1, 1, -1, 0, 1, 0, 0, 1, 0, -1, 1, 1, -1, 0, -1, 0, 1,
@@ -406,7 +472,7 @@ describe('obj-parser', () => {
             const parse = createParser({ mode: 'interleaved-number-array' });
             const { objects, info } = parse(positionNormalPlane);
 
-            expect(objects[0].primitives[0]).toEqual({
+            expect(objects.Plane.primitives.default).toEqual({
                 name: 'default',
                 vertices: [
                     -1, 0, 1, -0, 1, -0, 1, 0, 1, -0, 1, -0, 1, 0, -1, -0, 1, -0, -1, 0, 1, -0, 1, -0, 1, 0, -1, -0, 1,
@@ -426,7 +492,7 @@ describe('obj-parser', () => {
             const parse = createParser({ mode: 'interleaved-number-array' });
             const { objects, info } = parse(positionPlane);
 
-            expect(objects[0].primitives[0]).toEqual({
+            expect(objects.Plane.primitives.default).toEqual({
                 name: 'default',
                 vertices: [-1, 0, 1, 1, 0, 1, 1, 0, -1, -1, 0, 1, 1, 0, -1, -1, 0, -1],
             });
@@ -445,7 +511,7 @@ describe('obj-parser', () => {
             const parse = createParser({ mode: 'interleaved-typed-array' });
             const { objects, info } = parse(positionUvNormalPlane);
 
-            expect(objects[0].primitives[0]).toEqual({
+            expect(objects.Plane.primitives.default).toEqual({
                 name: 'default',
                 vertices: new Float32Array([
                     -1, 0, 1, 0, 0, -0, 1, -0, 1, 0, 1, 1, 0, -0, 1, -0, 1, 0, -1, 1, 1, -0, 1, -0, -1, 0, 1, 0, 0, -0,
@@ -465,7 +531,7 @@ describe('obj-parser', () => {
             const parse = createParser({ mode: 'interleaved-typed-array' });
             const { objects, info } = parse(positionUvPlane);
 
-            expect(objects[0].primitives[0]).toEqual({
+            expect(objects.Plane.primitives.default).toEqual({
                 name: 'default',
                 vertices: new Float32Array([
                     -1, 0, 1, 0, 0, 1, 0, 1, 1, 0, 1, 0, -1, 1, 1, -1, 0, 1, 0, 0, 1, 0, -1, 1, 1, -1, 0, -1, 0, 1,
@@ -484,7 +550,7 @@ describe('obj-parser', () => {
             const parse = createParser({ mode: 'interleaved-typed-array' });
             const { objects, info } = parse(positionNormalPlane);
 
-            expect(objects[0].primitives[0]).toEqual({
+            expect(objects.Plane.primitives.default).toEqual({
                 name: 'default',
                 vertices: new Float32Array([
                     -1, 0, 1, -0, 1, -0, 1, 0, 1, -0, 1, -0, 1, 0, -1, -0, 1, -0, -1, 0, 1, -0, 1, -0, 1, 0, -1, -0, 1,
@@ -504,7 +570,7 @@ describe('obj-parser', () => {
             const parse = createParser({ mode: 'interleaved-typed-array' });
             const { objects, info } = parse(positionPlane);
 
-            expect(objects[0].primitives[0]).toEqual({
+            expect(objects.Plane.primitives.default).toEqual({
                 name: 'default',
                 vertices: new Float32Array([-1, 0, 1, 1, 0, 1, 1, 0, -1, -1, 0, 1, 1, 0, -1, -1, 0, -1]),
             });
@@ -523,7 +589,7 @@ describe('obj-parser', () => {
             const parse = createParser({ mode: 'interleaved-number-array-indexed' });
             const { objects, info } = parse(positionUvNormalPlane);
 
-            expect(objects[0].primitives[0]).toEqual({
+            expect(objects.Plane.primitives.default).toEqual({
                 name: 'default',
                 vertices: [
                     -1, 0, 1, 0, 0, -0, 1, -0, 1, 0, 1, 1, 0, -0, 1, -0, 1, 0, -1, 1, 1, -0, 1, -0, -1, 0, 1, 0, 0, -0,
@@ -544,7 +610,7 @@ describe('obj-parser', () => {
             const parse = createParser({ mode: 'interleaved-number-array-indexed' });
             const { objects, info } = parse(positionUvPlane);
 
-            expect(objects[0].primitives[0]).toEqual({
+            expect(objects.Plane.primitives.default).toEqual({
                 name: 'default',
                 vertices: [-1, 0, 1, 0, 0, 1, 0, 1, 1, 0, 1, 0, -1, 1, 1, -1, 0, 1, 0, 0, -1, 0, -1, 0, 1],
                 indices: [0, 1, 2, 3, 2, 4],
@@ -562,7 +628,7 @@ describe('obj-parser', () => {
             const parse = createParser({ mode: 'interleaved-number-array-indexed' });
             const { objects, info } = parse(positionNormalPlane);
 
-            expect(objects[0].primitives[0]).toEqual({
+            expect(objects.Plane.primitives.default).toEqual({
                 name: 'default',
                 vertices: [
                     -1, 0, 1, -0, 1, -0, 1, 0, 1, -0, 1, -0, 1, 0, -1, -0, 1, -0, -1, 0, 1, -0, 1, -0, -1, 0, -1, -0, 1,
@@ -583,7 +649,7 @@ describe('obj-parser', () => {
             const parse = createParser({ mode: 'interleaved-number-array-indexed' });
             const { objects, info } = parse(positionPlane);
 
-            expect(objects[0].primitives[0]).toEqual({
+            expect(objects.Plane.primitives.default).toEqual({
                 name: 'default',
                 vertices: [-1, 0, 1, 1, 0, 1, 1, 0, -1, -1, 0, 1, -1, 0, -1],
                 indices: [0, 1, 2, 3, 2, 4],
@@ -603,7 +669,7 @@ describe('obj-parser', () => {
             const parse = createParser({ mode: 'interleaved-typed-array-indexed' });
             const { objects, info } = parse(positionUvNormalPlane);
 
-            expect(objects[0].primitives[0]).toEqual({
+            expect(objects.Plane.primitives.default).toEqual({
                 name: 'default',
                 vertices: new Float32Array([
                     -1, 0, 1, 0, 0, -0, 1, -0, 1, 0, 1, 1, 0, -0, 1, -0, 1, 0, -1, 1, 1, -0, 1, -0, -1, 0, 1, 0, 0, -0,
@@ -624,7 +690,7 @@ describe('obj-parser', () => {
             const parse = createParser({ mode: 'interleaved-typed-array-indexed' });
             const { objects, info } = parse(positionUvPlane);
 
-            expect(objects[0].primitives[0]).toEqual({
+            expect(objects.Plane.primitives.default).toEqual({
                 name: 'default',
                 vertices: new Float32Array([
                     -1, 0, 1, 0, 0, 1, 0, 1, 1, 0, 1, 0, -1, 1, 1, -1, 0, 1, 0, 0, -1, 0, -1, 0, 1,
@@ -644,7 +710,7 @@ describe('obj-parser', () => {
             const parse = createParser({ mode: 'interleaved-typed-array-indexed' });
             const { objects, info } = parse(positionNormalPlane);
 
-            expect(objects[0].primitives[0]).toEqual({
+            expect(objects.Plane.primitives.default).toEqual({
                 name: 'default',
                 vertices: new Float32Array([
                     -1, 0, 1, -0, 1, -0, 1, 0, 1, -0, 1, -0, 1, 0, -1, -0, 1, -0, -1, 0, 1, -0, 1, -0, -1, 0, -1, -0, 1,
@@ -665,7 +731,7 @@ describe('obj-parser', () => {
             const parse = createParser({ mode: 'interleaved-typed-array-indexed' });
             const { objects, info } = parse(positionPlane);
 
-            expect(objects[0].primitives[0]).toEqual({
+            expect(objects.Plane.primitives.default).toEqual({
                 name: 'default',
                 vertices: new Float32Array([-1, 0, 1, 1, 0, 1, 1, 0, -1, -1, 0, 1, -1, 0, -1]),
                 indices: new Uint32Array([0, 1, 2, 3, 2, 4]),
@@ -685,7 +751,7 @@ describe('obj-parser', () => {
             const parse = createParser({ mode: 'non-interleaved-number-array' });
             const { objects } = parse(positionUvNormalPlane);
 
-            expect(objects[0].primitives[0]).toEqual({
+            expect(objects.Plane.primitives.default).toEqual({
                 name: 'default',
                 positions: [-1, 0, 1, 1, 0, 1, 1, 0, -1, -1, 0, 1, 1, 0, -1, -1, 0, -1],
                 uvs: [0, 0, 1, 0, 1, 1, 0, 0, 1, 1, 0, 1],
@@ -697,7 +763,7 @@ describe('obj-parser', () => {
             const parse = createParser({ mode: 'non-interleaved-number-array' });
             const { objects } = parse(positionUvPlane);
 
-            expect(objects[0].primitives[0]).toEqual({
+            expect(objects.Plane.primitives.default).toEqual({
                 name: 'default',
                 positions: [-1, 0, 1, 1, 0, 1, 1, 0, -1, -1, 0, 1, 1, 0, -1, -1, 0, -1],
                 uvs: [0, 0, 1, 0, 1, 1, 0, 0, 1, 1, 0, 1],
@@ -709,7 +775,7 @@ describe('obj-parser', () => {
             const parse = createParser({ mode: 'non-interleaved-number-array' });
             const { objects } = parse(positionNormalPlane);
 
-            expect(objects[0].primitives[0]).toEqual({
+            expect(objects.Plane.primitives.default).toEqual({
                 name: 'default',
                 positions: [-1, 0, 1, 1, 0, 1, 1, 0, -1, -1, 0, 1, 1, 0, -1, -1, 0, -1],
                 uvs: [],
@@ -721,7 +787,7 @@ describe('obj-parser', () => {
             const parse = createParser({ mode: 'non-interleaved-number-array' });
             const { objects } = parse(positionPlane);
 
-            expect(objects[0].primitives[0]).toEqual({
+            expect(objects.Plane.primitives.default).toEqual({
                 name: 'default',
                 positions: [-1, 0, 1, 1, 0, 1, 1, 0, -1, -1, 0, 1, 1, 0, -1, -1, 0, -1],
                 uvs: [],
@@ -735,7 +801,7 @@ describe('obj-parser', () => {
             const parse = createParser({ mode: 'non-interleaved-typed-array' });
             const { objects } = parse(positionUvNormalPlane);
 
-            expect(objects[0].primitives[0]).toEqual({
+            expect(objects.Plane.primitives.default).toEqual({
                 name: 'default',
                 positions: new Float32Array([-1, 0, 1, 1, 0, 1, 1, 0, -1, -1, 0, 1, 1, 0, -1, -1, 0, -1]),
                 uvs: new Float32Array([0, 0, 1, 0, 1, 1, 0, 0, 1, 1, 0, 1]),
@@ -747,7 +813,7 @@ describe('obj-parser', () => {
             const parse = createParser({ mode: 'non-interleaved-typed-array' });
             const { objects } = parse(positionUvPlane);
 
-            expect(objects[0].primitives[0]).toEqual({
+            expect(objects.Plane.primitives.default).toEqual({
                 name: 'default',
                 positions: new Float32Array([-1, 0, 1, 1, 0, 1, 1, 0, -1, -1, 0, 1, 1, 0, -1, -1, 0, -1]),
                 uvs: new Float32Array([0, 0, 1, 0, 1, 1, 0, 0, 1, 1, 0, 1]),
@@ -759,7 +825,7 @@ describe('obj-parser', () => {
             const parse = createParser({ mode: 'non-interleaved-typed-array' });
             const { objects } = parse(positionNormalPlane);
 
-            expect(objects[0].primitives[0]).toEqual({
+            expect(objects.Plane.primitives.default).toEqual({
                 name: 'default',
                 positions: new Float32Array([-1, 0, 1, 1, 0, 1, 1, 0, -1, -1, 0, 1, 1, 0, -1, -1, 0, -1]),
                 uvs: new Float32Array([]),
@@ -771,7 +837,7 @@ describe('obj-parser', () => {
             const parse = createParser({ mode: 'non-interleaved-typed-array' });
             const { objects } = parse(positionPlane);
 
-            expect(objects[0].primitives[0]).toEqual({
+            expect(objects.Plane.primitives.default).toEqual({
                 name: 'default',
                 positions: new Float32Array([-1, 0, 1, 1, 0, 1, 1, 0, -1, -1, 0, 1, 1, 0, -1, -1, 0, -1]),
                 uvs: new Float32Array([]),
@@ -785,7 +851,7 @@ describe('obj-parser', () => {
             const parse = createParser({ mode: 'non-interleaved-number-array-indexed' });
             const { objects } = parse(positionUvNormalPlane);
 
-            expect(objects[0].primitives[0]).toEqual({
+            expect(objects.Plane.primitives.default).toEqual({
                 name: 'default',
                 positions: [-1, 0, 1, 1, 0, 1, 1, 0, -1, -1, 0, 1, -1, 0, -1],
                 uvs: [0, 0, 1, 0, 1, 1, 0, 0, 0, 1],
@@ -798,7 +864,7 @@ describe('obj-parser', () => {
             const parse = createParser({ mode: 'non-interleaved-number-array-indexed' });
             const { objects } = parse(positionUvPlane);
 
-            expect(objects[0].primitives[0]).toEqual({
+            expect(objects.Plane.primitives.default).toEqual({
                 name: 'default',
                 positions: [-1, 0, 1, 1, 0, 1, 1, 0, -1, -1, 0, 1, -1, 0, -1],
                 uvs: [0, 0, 1, 0, 1, 1, 0, 0, 0, 1],
@@ -811,7 +877,7 @@ describe('obj-parser', () => {
             const parse = createParser({ mode: 'non-interleaved-number-array-indexed' });
             const { objects } = parse(positionNormalPlane);
 
-            expect(objects[0].primitives[0]).toEqual({
+            expect(objects.Plane.primitives.default).toEqual({
                 name: 'default',
                 positions: [-1, 0, 1, 1, 0, 1, 1, 0, -1, -1, 0, 1, -1, 0, -1],
                 uvs: [],
@@ -824,7 +890,7 @@ describe('obj-parser', () => {
             const parse = createParser({ mode: 'non-interleaved-number-array-indexed' });
             const { objects } = parse(positionPlane);
 
-            expect(objects[0].primitives[0]).toEqual({
+            expect(objects.Plane.primitives.default).toEqual({
                 name: 'default',
                 positions: [-1, 0, 1, 1, 0, 1, 1, 0, -1, -1, 0, 1, -1, 0, -1],
                 uvs: [],
@@ -839,7 +905,7 @@ describe('obj-parser', () => {
             const parse = createParser({ mode: 'non-interleaved-typed-array-indexed' });
             const { objects } = parse(positionUvNormalPlane);
 
-            expect(objects[0].primitives[0]).toEqual({
+            expect(objects.Plane.primitives.default).toEqual({
                 name: 'default',
                 positions: new Float32Array([-1, 0, 1, 1, 0, 1, 1, 0, -1, -1, 0, 1, -1, 0, -1]),
                 uvs: new Float32Array([0, 0, 1, 0, 1, 1, 0, 0, 0, 1]),
@@ -852,7 +918,7 @@ describe('obj-parser', () => {
             const parse = createParser({ mode: 'non-interleaved-typed-array-indexed' });
             const { objects } = parse(positionUvPlane);
 
-            expect(objects[0].primitives[0]).toEqual({
+            expect(objects.Plane.primitives.default).toEqual({
                 name: 'default',
                 positions: new Float32Array([-1, 0, 1, 1, 0, 1, 1, 0, -1, -1, 0, 1, -1, 0, -1]),
                 uvs: new Float32Array([0, 0, 1, 0, 1, 1, 0, 0, 0, 1]),
@@ -865,7 +931,7 @@ describe('obj-parser', () => {
             const parse = createParser({ mode: 'non-interleaved-typed-array-indexed' });
             const { objects } = parse(positionNormalPlane);
 
-            expect(objects[0].primitives[0]).toEqual({
+            expect(objects.Plane.primitives.default).toEqual({
                 name: 'default',
                 positions: new Float32Array([-1, 0, 1, 1, 0, 1, 1, 0, -1, -1, 0, 1, -1, 0, -1]),
                 uvs: new Float32Array([]),
@@ -878,7 +944,7 @@ describe('obj-parser', () => {
             const parse = createParser({ mode: 'non-interleaved-typed-array-indexed' });
             const { objects } = parse(positionPlane);
 
-            expect(objects[0].primitives[0]).toEqual({
+            expect(objects.Plane.primitives.default).toEqual({
                 name: 'default',
                 positions: new Float32Array([-1, 0, 1, 1, 0, 1, 1, 0, -1, -1, 0, 1, -1, 0, -1]),
                 uvs: new Float32Array([]),
@@ -892,31 +958,31 @@ describe('obj-parser', () => {
         it('should set the correct name for the primitive', () => {
             const parse = createParser({ mode: 'non-interleaved-number-array' });
             const { objects } = parse(planeWithUseMtl);
-            expect(objects[0].primitives[0].name).toEqual('Material');
+            expect(objects.Plane.primitives.Material.name).toEqual('Material');
         });
 
         it('should parse it into 2 primitives with the correct material', () => {
             const parse = createParser({ mode: 'non-interleaved-number-array' });
             const { objects } = parse(multiplePrimitives);
-            expect(objects).toEqual([
-                {
+            expect(objects).toEqual({
+                Plane: {
                     name: 'Plane',
-                    primitives: [
-                        {
+                    primitives: {
+                        'Material.001': {
                             name: 'Material.001',
                             positions: [-1, 0, -1, 1, 0, -1, 1, 0, -3, -1, 0, -1, 1, 0, -3, -1, 0, -3],
                             uvs: [0, 0, 1, 0, 1, 1, 0, 0, 1, 1, 0, 1],
                             normals: [-0, 1, -0, -0, 1, -0, -0, 1, -0, -0, 1, -0, -0, 1, -0, -0, 1, -0],
                         },
-                        {
+                        'Material.002': {
                             name: 'Material.002',
                             positions: [-1, 0, 3, 1, 0, 3, 1, 0, 1, -1, 0, 3, 1, 0, 1, -1, 0, 1],
                             uvs: [0, 0, 1, 0, 1, 1, 0, 0, 1, 1, 0, 1],
                             normals: [-0, 1, -0, -0, 1, -0, -0, 1, -0, -0, 1, -0, -0, 1, -0, -0, 1, -0],
                         },
-                    ],
+                    },
                 },
-            ]);
+            });
         });
     });
 
@@ -924,52 +990,52 @@ describe('obj-parser', () => {
         it('should parse multiple objects correctly', () => {
             const parse = createParser({ mode: 'non-interleaved-number-array' });
             const { objects } = parse(multiplePlanes);
-            expect(objects).toEqual([
-                {
+            expect(objects).toEqual({
+                'Plane.000': {
                     name: 'Plane.000',
-                    primitives: [
-                        {
+                    primitives: {
+                        default: {
                             name: 'default',
                             positions: [-1, 0, -1, 1, 0, -1, 1, 0, -3, -1, 0, -1, 1, 0, -3, -1, 0, -3],
                             uvs: [0, 0, 1, 0, 1, 1, 0, 0, 1, 1, 0, 1],
                             normals: [-0, 1, -0, -0, 1, -0, -0, 1, -0, -0, 1, -0, -0, 1, -0, -0, 1, -0],
                         },
-                    ],
+                    },
                 },
-                {
+                'Plane.001': {
                     name: 'Plane.001',
-                    primitives: [
-                        {
+                    primitives: {
+                        default: {
                             name: 'default',
                             positions: [-1, 0, 3, 1, 0, 3, 1, 0, 1, -1, 0, 3, 1, 0, 1, -1, 0, 1],
                             uvs: [0, 0, 1, 0, 1, 1, 0, 0, 1, 1, 0, 1],
                             normals: [-0, 1, -0, -0, 1, -0, -0, 1, -0, -0, 1, -0, -0, 1, -0, -0, 1, -0],
                         },
-                    ],
+                    },
                 },
-                {
+                'Plane.002': {
                     name: 'Plane.002',
-                    primitives: [
-                        {
+                    primitives: {
+                        default: {
                             name: 'default',
                             positions: [1, 0, 1, 3, 0, 1, 3, 0, -1, 1, 0, 1, 3, 0, -1, 1, 0, -1],
                             uvs: [0, 0, 1, 0, 1, 1, 0, 0, 1, 1, 0, 1],
                             normals: [-0, 1, -0, -0, 1, -0, -0, 1, -0, -0, 1, -0, -0, 1, -0, -0, 1, -0],
                         },
-                    ],
+                    },
                 },
-                {
+                'Plane.003': {
                     name: 'Plane.003',
-                    primitives: [
-                        {
+                    primitives: {
+                        default: {
                             name: 'default',
                             positions: [-3, 0, 1, -1, 0, 1, -1, 0, -1, -3, 0, 1, -1, 0, -1, -3, 0, -1],
                             uvs: [0, 0, 1, 0, 1, 1, 0, 0, 1, 1, 0, 1],
                             normals: [-0, 1, -0, -0, 1, -0, -0, 1, -0, -0, 1, -0, -0, 1, -0, -0, 1, -0],
                         },
-                    ],
+                    },
                 },
-            ]);
+            });
         });
     });
 
@@ -977,7 +1043,7 @@ describe('obj-parser', () => {
         it('should parse objects with "g" instead of "o"', () => {
             const parse = createParser({ mode: 'non-interleaved-number-array', splitObjectMode: 'group' });
             const { objects } = parse(groups);
-            expect(objects[0].primitives[0]).toEqual({
+            expect(objects['Plane_Plane'].primitives.default).toEqual({
                 name: 'default',
                 positions: [-1, 0, 1, 1, 0, 1, 1, 0, -1, -1, 0, 1, 1, 0, -1, -1, 0, -1],
                 uvs: [0, 0, 1, 0, 1, 1, 0, 0, 1, 1, 0, 1],

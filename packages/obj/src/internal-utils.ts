@@ -282,7 +282,7 @@ const handleNonInterleavedFace = ({ trimmedLine, primitive, positions, uvs, norm
 const identity = <Value>(value: Value) => value;
 
 type ResultType<Primitive extends InterleavedObjPrimitive | NonInterleavedObjPrimitive> = {
-    objects: ObjObject<Primitive>[];
+    objects: Record<string, ObjObject<Primitive>>;
 };
 
 export const modeMap = {

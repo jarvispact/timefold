@@ -12,7 +12,7 @@ export type MtlMaterial = {
     normalMapPath: string | undefined;
 };
 
-export type MtlParserResult = { materials: MtlMaterial[] };
+export type MtlParserResult = { materials: Record<string, MtlMaterial> };
 
 export type InterleavedInfo = {
     stride: number;
@@ -58,7 +58,7 @@ type GenericPrimitive =
 
 export type ObjObject<Primitive extends GenericPrimitive = GenericPrimitive> = {
     name: string;
-    primitives: Primitive[];
+    primitives: Record<string, Primitive>;
 };
 
 export type ParserOptions = {

@@ -30,9 +30,9 @@ export const createParser = <Options extends Partial<ParserOptions>>(options?: O
         const uvs: number[] = [];
         const normals: number[] = [];
 
-        const objects: { name: string; primitives: unknown[] }[] = [];
-        let currentObjectIndex = 0;
-        let currentPrimitiveIndex = 0;
+        const objects: Record<string, { name: string; primitives: Record<string, unknown> }> = {};
+        let currentObjectName = 'default';
+        let currentPrimitiveName = 'default';
 
         let info: InterleavedInfo | undefined = undefined;
 
@@ -43,9 +43,9 @@ export const createParser = <Options extends Partial<ParserOptions>>(options?: O
 
             if (trimmedLine.startsWith(`${splitObjectMap[opts.splitObjectMode]} `)) {
                 const name = trimmedLine.substring(2);
-                objects.push({ name, primitives: [] });
-                currentObjectIndex = objects.length - 1;
-                currentPrimitiveIndex = 0;
+                objects[name] = { name, primitives: {} };
+                currentObjectName = name;
+                currentPrimitiveName = 'default';
             }
 
             if (trimmedLine.startsWith('v ')) {
@@ -65,8 +65,8 @@ export const createParser = <Options extends Partial<ParserOptions>>(options?: O
 
             if (trimmedLine.startsWith('usemtl ')) {
                 const name = trimmedLine.substring(7);
-                objects[currentObjectIndex].primitives.push(modeMap[opts.mode].createPrimitive(name));
-                currentPrimitiveIndex = objects[currentObjectIndex].primitives.length - 1;
+                objects[currentObjectName].primitives[name] = modeMap[opts.mode].createPrimitive(name);
+                currentPrimitiveName = name;
             }
 
             if (trimmedLine.startsWith('f ')) {
@@ -76,14 +76,14 @@ export const createParser = <Options extends Partial<ParserOptions>>(options?: O
                 }
 
                 // Export does not contain usemtl line - create a default primitive
-                if (!objects[currentObjectIndex].primitives[currentPrimitiveIndex]) {
-                    objects[currentObjectIndex].primitives.push(modeMap[opts.mode].createPrimitive('default'));
-                    currentPrimitiveIndex = objects[currentObjectIndex].primitives.length - 1;
+                if (!objects[currentObjectName].primitives[currentPrimitiveName]) {
+                    objects[currentObjectName].primitives.default = modeMap[opts.mode].createPrimitive('default');
+                    currentPrimitiveName = 'default';
                 }
 
                 modeMap[opts.mode].handleFace({
                     trimmedLine,
-                    primitive: objects[currentObjectIndex].primitives[currentPrimitiveIndex],
+                    primitive: objects[currentObjectName].primitives[currentPrimitiveName],
                     positions,
                     uvs,
                     normals,
@@ -92,13 +92,21 @@ export const createParser = <Options extends Partial<ParserOptions>>(options?: O
             }
         }
 
-        for (let oi = 0; oi < objects.length; oi++) {
-            const object = objects[oi];
-            for (let pi = 0; pi < object.primitives.length; pi++) {
-                const primitive = object.primitives[pi];
+        const objectKeys = Object.keys(objects);
+
+        for (let oi = 0; oi < objectKeys.length; oi++) {
+            const objectKey = objectKeys[oi];
+            const object = objects[objectKey];
+            const primitiveKeys = Object.keys(object.primitives);
+            for (let pi = 0; pi < primitiveKeys.length; pi++) {
+                const primitiveKey = primitiveKeys[pi];
+                const primitive = object.primitives[primitiveKey];
                 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
                 // @ts-ignore
-                objects[oi].primitives[pi] = modeMap[opts.mode].convertPrimitive(primitive, info as InterleavedInfo);
+                objects[objectKey].primitives[primitiveKey] = modeMap[opts.mode].convertPrimitive(
+                    primitive,
+                    info as InterleavedInfo,
+                );
             }
         }
 

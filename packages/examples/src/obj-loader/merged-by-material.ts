@@ -83,12 +83,16 @@ const run = async () => {
         Loader.load('./obj-loader-demo.obj'),
     ]);
 
+    console.log({ materials, objects });
+
     const byMaterial: Record<string, { material: MtlMaterial; primitive: InterleavedObjPrimitive<number[]> }> = {};
 
-    for (const obj of objects) {
-        for (const primitive of obj.primitives) {
+    for (const objKey of Object.keys(objects)) {
+        const obj = objects[objKey];
+        for (const primitiveKey of Object.keys(obj.primitives)) {
+            const primitive = obj.primitives[primitiveKey];
             const entry = byMaterial[primitive.name];
-            const material = materials.find((m) => m.name === primitive.name) as MtlMaterial;
+            const material = materials[primitive.name];
             // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
             if (!entry) {
                 byMaterial[primitive.name] = { material, primitive };
@@ -166,11 +170,7 @@ const run = async () => {
             data: primitive.indices,
         });
 
-        const color = (materials.find((m) => m.name === material.name)?.diffuseColor ?? Vec3.one()) as [
-            number,
-            number,
-            number,
-        ];
+        const color = materials[material.name].diffuseColor;
 
         const bindGroup = Pipeline.createBindGroups(1, { entity: WebgpuUtils.createBufferDescriptor() });
 

@@ -74,7 +74,7 @@ const run = async () => {
         ObjLoader.load('./obj-loader-demo.obj'),
     ]);
 
-    console.log({ objects });
+    console.log({ materials, objects });
 
     const { device, context, format } = await WebgpuUtils.createDeviceAndContext({ canvas });
     const module = device.createShaderModule({ code: shaderCode });
@@ -121,8 +121,10 @@ const run = async () => {
         buffer: GPUBuffer;
     }[] = [];
 
-    for (const object of objects) {
-        for (const primitive of object.primitives) {
+    for (const objectKey of Object.keys(objects)) {
+        const object = objects[objectKey];
+        for (const primitiveKey of Object.keys(object.primitives)) {
+            const primitive = object.primitives[primitiveKey];
             const vertexBuffer = Vertex.createBuffer(device, primitive.vertices);
 
             const indexBuffer = WebgpuUtils.createIndexBuffer(device, {
@@ -130,11 +132,7 @@ const run = async () => {
                 data: primitive.indices,
             });
 
-            const color = (materials.find((m) => m.name === primitive.name)?.diffuseColor ?? Vec3.one()) as [
-                number,
-                number,
-                number,
-            ];
+            const color = materials[primitive.name].diffuseColor;
 
             const bindGroup = Layout.createBindGroups(1, { entity: WebgpuUtils.createBufferDescriptor() });
 

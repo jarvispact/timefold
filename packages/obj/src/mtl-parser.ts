@@ -4,8 +4,8 @@ export const createParser = () => {
     return (mtlFileSource: string): MtlParserResult => {
         const lines = mtlFileSource.trim().split('\n');
 
-        const materials: MtlMaterial[] = [];
-        let materialIdx = 0;
+        const materials: Record<string, MtlMaterial> = {};
+        let currentMaterialName = 'default';
 
         for (let i = 0; i < lines.length; i++) {
             const trimmedLine = lines[i].trim();
@@ -26,7 +26,7 @@ export const createParser = () => {
             if (newMtl) {
                 const name = trimmedLine.substring(6).trim();
 
-                materials.push({
+                materials[name] = {
                     name,
                     ambientColor: [0, 0, 0],
                     diffuseColor: [0, 0, 0],
@@ -36,55 +36,55 @@ export const createParser = () => {
                     diffuseMapPath: undefined,
                     specularMapPath: undefined,
                     normalMapPath: undefined,
-                });
+                };
 
-                materialIdx = materials.length - 1;
+                currentMaterialName = name;
             }
 
             if (ambientColor) {
                 const [r, g, b] = trimmedLine.substring(2).trim().split(' ').map(Number.parseFloat);
-                materials[materialIdx].ambientColor[0] = r;
-                materials[materialIdx].ambientColor[1] = g;
-                materials[materialIdx].ambientColor[2] = b;
+                materials[currentMaterialName].ambientColor[0] = r;
+                materials[currentMaterialName].ambientColor[1] = g;
+                materials[currentMaterialName].ambientColor[2] = b;
             }
 
             if (diffuseColor) {
                 const [r, g, b] = trimmedLine.substring(2).trim().split(' ').map(Number.parseFloat);
-                materials[materialIdx].diffuseColor[0] = r;
-                materials[materialIdx].diffuseColor[1] = g;
-                materials[materialIdx].diffuseColor[2] = b;
+                materials[currentMaterialName].diffuseColor[0] = r;
+                materials[currentMaterialName].diffuseColor[1] = g;
+                materials[currentMaterialName].diffuseColor[2] = b;
             }
 
             if (specularColor) {
                 const [r, g, b] = trimmedLine.substring(2).trim().split(' ').map(Number.parseFloat);
-                materials[materialIdx].specularColor[0] = r;
-                materials[materialIdx].specularColor[1] = g;
-                materials[materialIdx].specularColor[2] = b;
+                materials[currentMaterialName].specularColor[0] = r;
+                materials[currentMaterialName].specularColor[1] = g;
+                materials[currentMaterialName].specularColor[2] = b;
             }
 
             if (specularExponent) {
                 const specularExponent = Number.parseFloat(trimmedLine.substring(2).trim());
-                materials[materialIdx].specularExponent = specularExponent;
+                materials[currentMaterialName].specularExponent = specularExponent;
             }
 
             if (ambientMapPath) {
                 const path = trimmedLine.substring(6).trim();
-                materials[materialIdx].ambientMapPath = path;
+                materials[currentMaterialName].ambientMapPath = path;
             }
 
             if (diffuseMapPath) {
                 const path = trimmedLine.substring(6).trim();
-                materials[materialIdx].diffuseMapPath = path;
+                materials[currentMaterialName].diffuseMapPath = path;
             }
 
             if (specularMapPath) {
                 const path = trimmedLine.substring(6).trim();
-                materials[materialIdx].specularMapPath = path;
+                materials[currentMaterialName].specularMapPath = path;
             }
 
             if (normalMapPath) {
                 const path = trimmedLine.substring(8).trim();
-                materials[materialIdx].normalMapPath = path;
+                materials[currentMaterialName].normalMapPath = path;
             }
         }
 

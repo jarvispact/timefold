@@ -1,1 +1,1 @@
-import './merged-by-material';
+import './normal';
