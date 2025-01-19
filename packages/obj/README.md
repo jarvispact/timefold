@@ -1,6 +1,14 @@
 # @timefold/obj
 Fast and efficient, zero dependency `.obj` and `.mtl` loader and parser.
 
+## Overview
+
+- 🔥 Fast and efficient.
+- 🪶 The whole package is only 2.3 kB (minified and gzipped).
+- 🌳 Tree-shakeable. Only pay for what you need.
+- 🚀 Awesome DX and type safety. Everything is inferred automatically.
+- 🔨 Lots of options and conversions. Flexible and optimized for WebGL and WebGPU
+
 ## Installation
 
 - `npm i @timefold/obj`
