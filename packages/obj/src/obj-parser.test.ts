@@ -191,7 +191,7 @@ describe('obj-parser', () => {
                     primitives: {
                         name: string;
                         vertices: Float32Array;
-                        indices: Uint16Array | Uint32Array;
+                        indices: Uint32Array;
                     }[];
                 }[];
             }>();
@@ -207,7 +207,7 @@ describe('obj-parser', () => {
                     primitives: {
                         name: string;
                         vertices: Float32Array;
-                        indices: Uint16Array | Uint32Array;
+                        indices: Uint32Array;
                     }[];
                 }[];
             }>();
@@ -223,7 +223,7 @@ describe('obj-parser', () => {
                     primitives: {
                         name: string;
                         vertices: Float32Array;
-                        indices: Uint16Array | Uint32Array;
+                        indices: Uint32Array;
                     }[];
                 }[];
             }>();
@@ -285,7 +285,7 @@ describe('obj-parser', () => {
                     primitives: {
                         name: string;
                         vertices: Float32Array;
-                        indices: Uint16Array | Uint32Array;
+                        indices: Uint32Array;
                     }[];
                 }[];
             }>();
@@ -355,7 +355,7 @@ describe('obj-parser', () => {
                         positions: Float32Array;
                         uvs: Float32Array;
                         normals: Float32Array;
-                        indices: Uint16Array | Uint32Array;
+                        indices: Uint32Array;
                     }[];
                 }[];
             }>();
@@ -609,7 +609,7 @@ describe('obj-parser', () => {
                     -1, 0, 1, 0, 0, -0, 1, -0, 1, 0, 1, 1, 0, -0, 1, -0, 1, 0, -1, 1, 1, -0, 1, -0, -1, 0, 1, 0, 0, -0,
                     1, -0, -1, 0, -1, 0, 1, -0, 1, -0,
                 ]),
-                indices: new Uint16Array([0, 1, 2, 3, 2, 4]),
+                indices: new Uint32Array([0, 1, 2, 3, 2, 4]),
             });
 
             expect(info).toEqual({
@@ -629,7 +629,7 @@ describe('obj-parser', () => {
                 vertices: new Float32Array([
                     -1, 0, 1, 0, 0, 1, 0, 1, 1, 0, 1, 0, -1, 1, 1, -1, 0, 1, 0, 0, -1, 0, -1, 0, 1,
                 ]),
-                indices: new Uint16Array([0, 1, 2, 3, 2, 4]),
+                indices: new Uint32Array([0, 1, 2, 3, 2, 4]),
             });
 
             expect(info).toEqual({
@@ -650,7 +650,7 @@ describe('obj-parser', () => {
                     -1, 0, 1, -0, 1, -0, 1, 0, 1, -0, 1, -0, 1, 0, -1, -0, 1, -0, -1, 0, 1, -0, 1, -0, -1, 0, -1, -0, 1,
                     -0,
                 ]),
-                indices: new Uint16Array([0, 1, 2, 3, 2, 4]),
+                indices: new Uint32Array([0, 1, 2, 3, 2, 4]),
             });
 
             expect(info).toEqual({
@@ -668,7 +668,7 @@ describe('obj-parser', () => {
             expect(objects[0].primitives[0]).toEqual({
                 name: 'default',
                 vertices: new Float32Array([-1, 0, 1, 1, 0, 1, 1, 0, -1, -1, 0, 1, -1, 0, -1]),
-                indices: new Uint16Array([0, 1, 2, 3, 2, 4]),
+                indices: new Uint32Array([0, 1, 2, 3, 2, 4]),
             });
 
             expect(info).toEqual({
@@ -844,7 +844,7 @@ describe('obj-parser', () => {
                 positions: new Float32Array([-1, 0, 1, 1, 0, 1, 1, 0, -1, -1, 0, 1, -1, 0, -1]),
                 uvs: new Float32Array([0, 0, 1, 0, 1, 1, 0, 0, 0, 1]),
                 normals: new Float32Array([-0, 1, -0, -0, 1, -0, -0, 1, -0, -0, 1, -0, -0, 1, -0]),
-                indices: new Uint16Array([0, 1, 2, 3, 2, 4]),
+                indices: new Uint32Array([0, 1, 2, 3, 2, 4]),
             });
         });
 
@@ -857,7 +857,7 @@ describe('obj-parser', () => {
                 positions: new Float32Array([-1, 0, 1, 1, 0, 1, 1, 0, -1, -1, 0, 1, -1, 0, -1]),
                 uvs: new Float32Array([0, 0, 1, 0, 1, 1, 0, 0, 0, 1]),
                 normals: new Float32Array([]),
-                indices: new Uint16Array([0, 1, 2, 3, 2, 4]),
+                indices: new Uint32Array([0, 1, 2, 3, 2, 4]),
             });
         });
 
@@ -870,7 +870,7 @@ describe('obj-parser', () => {
                 positions: new Float32Array([-1, 0, 1, 1, 0, 1, 1, 0, -1, -1, 0, 1, -1, 0, -1]),
                 uvs: new Float32Array([]),
                 normals: new Float32Array([-0, 1, -0, -0, 1, -0, -0, 1, -0, -0, 1, -0, -0, 1, -0]),
-                indices: new Uint16Array([0, 1, 2, 3, 2, 4]),
+                indices: new Uint32Array([0, 1, 2, 3, 2, 4]),
             });
         });
 
@@ -883,7 +883,7 @@ describe('obj-parser', () => {
                 positions: new Float32Array([-1, 0, 1, 1, 0, 1, 1, 0, -1, -1, 0, 1, -1, 0, -1]),
                 uvs: new Float32Array([]),
                 normals: new Float32Array([]),
-                indices: new Uint16Array([0, 1, 2, 3, 2, 4]),
+                indices: new Uint32Array([0, 1, 2, 3, 2, 4]),
             });
         });
     });

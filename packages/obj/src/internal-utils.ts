@@ -33,10 +33,11 @@ const getMapKey = (
     nz: number | undefined,
 ) => `${px}/${py}/${pz}/${nx}/${ny}/${nz}/${u}/${v}`;
 
-const getTypedArrayForIndices = (indices: number[] | Uint16Array | Uint32Array) => {
-    if (indices.length <= 65535) return new Uint16Array(indices);
-    return new Uint32Array(indices);
-};
+// https://github.com/gpuweb/gpuweb/issues/4966
+// const getTypedArrayForIndices = (indices: number[] | Uint32Array) => {
+//     if (indices.length <= 65535) return new Uint16Array(indices);
+//     return new Uint32Array(indices);
+// };
 
 const createInterleavedPrimitive = (name: string): InterleavedObjPrimitive<number[]> => {
     return {
@@ -54,31 +55,37 @@ const createNonInterleavedPrimitive = (name: string): NonInterleavedObjPrimitive
     };
 };
 
-const convertInterleavedToTypedArray = (
-    primitive: InterleavedObjPrimitive<number[]> | InterleavedObjPrimitiveIndexed<number[], number[]>,
-): InterleavedObjPrimitive<Float32Array> | InterleavedObjPrimitiveIndexed<Float32Array, Uint16Array | Uint32Array> => {
+export const convertInterleavedToTypedArray = <
+    Primitive extends InterleavedObjPrimitive<number[]> | InterleavedObjPrimitiveIndexed<number[], number[]>,
+>(
+    primitive: Primitive,
+): Primitive extends InterleavedObjPrimitiveIndexed<number[], number[]>
+    ? InterleavedObjPrimitiveIndexed<Float32Array, Uint32Array>
+    : InterleavedObjPrimitive<Float32Array> => {
     return {
         name: primitive.name,
         vertices: new Float32Array(primitive.vertices),
-        ...('indices' in primitive ? { indices: getTypedArrayForIndices(primitive.indices) } : {}),
-    };
+        ...('indices' in primitive ? { indices: new Uint32Array(primitive.indices) } : {}),
+    } as never;
 };
 
-const convertNonInterleavedToTypedArray = (
-    primitive: NonInterleavedObjPrimitive<number[]> | NonInterleavedObjPrimitiveIndexed<number[], number[]>,
-):
-    | NonInterleavedObjPrimitive<Float32Array>
-    | NonInterleavedObjPrimitiveIndexed<Float32Array, Uint16Array | Uint32Array> => {
+export const convertNonInterleavedToTypedArray = <
+    Primitive extends NonInterleavedObjPrimitive<number[]> | NonInterleavedObjPrimitiveIndexed<number[], number[]>,
+>(
+    primitive: Primitive,
+): Primitive extends NonInterleavedObjPrimitiveIndexed<number[], number[]>
+    ? NonInterleavedObjPrimitiveIndexed<Float32Array, Uint32Array>
+    : NonInterleavedObjPrimitive<Float32Array> => {
     return {
         name: primitive.name,
         positions: new Float32Array(primitive.positions),
         uvs: new Float32Array(primitive.uvs),
         normals: new Float32Array(primitive.normals),
-        ...('indices' in primitive ? { indices: getTypedArrayForIndices(primitive.indices) } : {}),
-    };
+        ...('indices' in primitive ? { indices: new Uint32Array(primitive.indices) } : {}),
+    } as never;
 };
 
-const convertInterleavedToIndexed = (
+export const convertInterleavedToIndexed = (
     primitive: InterleavedObjPrimitive<number[]>,
     info: InterleavedInfo,
 ): InterleavedObjPrimitiveIndexed<number[], number[]> => {
@@ -128,7 +135,7 @@ const convertInterleavedToIndexed = (
     };
 };
 
-const convertNonInterleavedToIndexed = (
+export const convertNonInterleavedToIndexed = (
     primitive: NonInterleavedObjPrimitive<number[]>,
 ): NonInterleavedObjPrimitiveIndexed<number[], number[]> => {
     const map: Record<string, number> = {};
@@ -306,9 +313,9 @@ export const modeMap = {
         handleFace: handleInterleavedFace,
         convertPrimitive: (primitive: InterleavedObjPrimitive<number[]>, info: InterleavedInfo) =>
             convertInterleavedToTypedArray(convertInterleavedToIndexed(primitive, info)),
-        ResultType: null as unknown as ResultType<
-            InterleavedObjPrimitiveIndexed<Float32Array, Uint16Array | Uint32Array>
-        > & { info: InterleavedInfo },
+        ResultType: null as unknown as ResultType<InterleavedObjPrimitiveIndexed<Float32Array, Uint32Array>> & {
+            info: InterleavedInfo;
+        },
     },
 
     'non-interleaved-number-array': {
@@ -334,9 +341,7 @@ export const modeMap = {
         handleFace: handleNonInterleavedFace,
         convertPrimitive: (primitive: NonInterleavedObjPrimitive<number[]>) =>
             convertNonInterleavedToTypedArray(convertNonInterleavedToIndexed(primitive)),
-        ResultType: null as unknown as ResultType<
-            NonInterleavedObjPrimitiveIndexed<Float32Array, Uint16Array | Uint32Array>
-        >,
+        ResultType: null as unknown as ResultType<NonInterleavedObjPrimitiveIndexed<Float32Array, Uint32Array>>,
     },
 };
 

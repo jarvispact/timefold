@@ -22,7 +22,7 @@ export type InterleavedInfo = {
 };
 
 type GenericVertices = number[] | Float32Array;
-type GenericIndices = number[] | Uint16Array | Uint32Array;
+type GenericIndices = number[] | Uint32Array;
 
 export type InterleavedObjPrimitive<Vertices extends GenericVertices = GenericVertices> = {
     name: string;

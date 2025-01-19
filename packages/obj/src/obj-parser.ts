@@ -1,4 +1,11 @@
-import { modeMap, parseInfo } from './internal-utils';
+import {
+    convertInterleavedToIndexed as _convertInterleavedToIndexed,
+    convertNonInterleavedToIndexed as _convertNonInterleavedToIndexed,
+    convertInterleavedToTypedArray as _convertInterleavedToTypedArray,
+    convertNonInterleavedToTypedArray as _convertNonInterleavedToTypedArray,
+    modeMap,
+    parseInfo,
+} from './internal-utils';
 import { ObjParserResult, InterleavedInfo, ParserOptions } from './types';
 
 const splitObjectMap = {
@@ -88,7 +95,9 @@ export const createParser = <Options extends Partial<ParserOptions>>(options?: O
         for (let oi = 0; oi < objects.length; oi++) {
             const object = objects[oi];
             for (let pi = 0; pi < object.primitives.length; pi++) {
-                const primitive = object.primitives[pi] as never;
+                const primitive = object.primitives[pi];
+                // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+                // @ts-ignore
                 objects[oi].primitives[pi] = modeMap[opts.mode].convertPrimitive(primitive, info as InterleavedInfo);
             }
         }
@@ -98,3 +107,8 @@ export const createParser = <Options extends Partial<ParserOptions>>(options?: O
 
     return parse;
 };
+
+export const convertInterleavedToIndexed = _convertInterleavedToIndexed;
+export const convertNonInterleavedToIndexed = _convertNonInterleavedToIndexed;
+export const convertInterleavedToTypedArray = _convertInterleavedToTypedArray;
+export const convertNonInterleavedToTypedArray = _convertNonInterleavedToTypedArray;
