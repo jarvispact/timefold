@@ -1,8 +1,8 @@
 import { MtlMaterial, MtlParserResult } from './types';
 
 export const createParser = () => {
-    return (mtlFileSource: string): MtlParserResult => {
-        const lines = mtlFileSource.trim().split('\n');
+    return (source: string): MtlParserResult => {
+        const lines = source.trim().split('\n');
 
         const materials: Record<string, MtlMaterial> = {};
         let currentMaterialName = 'default';
@@ -91,3 +91,5 @@ export const createParser = () => {
         return { materials };
     };
 };
+
+export const parse = (source: string) => createParser()(source);

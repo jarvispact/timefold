@@ -170,7 +170,7 @@ type NonInterleavedCreateBuffer<Definition extends CreateVertexBufferLayoutDefin
     device: GPUDevice,
     name: Name,
     data: InstanceType<FormatMap[Definition[Name]['format']]['View']>,
-) => { slot: number; buffer: GPUBuffer; count: number };
+) => { slot: number; buffer: GPUBuffer } & (Name extends 'position' ? { count: number } : NonNullable<unknown>);
 
 type ResultForMode<
     Mode extends CreateVertexBufferMode,
@@ -219,7 +219,8 @@ export const createVertexBufferLayout = <
             };
         });
 
-        const createBuffer: NonInterleavedCreateBuffer<Definition> = (device, name, data) => {
+        // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-parameters
+        const createBuffer = <Name extends keyof Definition>(device: GPUDevice, name: Name, data: Float32Array) => {
             const buffer = device.createBuffer({
                 label: `${name.toString()} vertex buffer`,
                 size: data.byteLength,
@@ -233,7 +234,7 @@ export const createVertexBufferLayout = <
                 // but in our case it always matches the shader location as well
                 slot: locationByName[name.toString()],
                 buffer,
-                count: data.length / formatMap[definition.position.format].stride,
+                ...(name === 'position' ? { count: data.length / formatMap[definition.position.format].stride } : {}),
             };
         };
 

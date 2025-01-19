@@ -116,6 +116,8 @@ export const createParser = <Options extends Partial<ParserOptions>>(options?: O
     return parse;
 };
 
+export const parse = (source: string) => createParser()(source);
+
 export const convertInterleavedToIndexed = _convertInterleavedToIndexed;
 export const convertNonInterleavedToIndexed = _convertNonInterleavedToIndexed;
 export const convertInterleavedToTypedArray = _convertInterleavedToTypedArray;

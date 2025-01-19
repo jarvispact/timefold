@@ -15,7 +15,7 @@
     "lint": "eslint . --report-unused-disable-directives --max-warnings 0",
     "test": "npm run test:run --workspaces --if-present",
     "build": "npm run build --workspaces --if-present",
-    "publish-to-npm": "npm run build && npm run publish-to-npm --workspaces --if-present"
+    "publish-to-npm": "npm run build --workspaces --if-present && npm run publish-to-npm --workspaces --if-present"
   },
   "keywords": [
     "game",

@@ -1,5 +1,5 @@
 # @timefold/obj
-Fast and efficient, zero dependency `.obj` loader and parser.
+Fast and efficient, zero dependency `.obj` and `.mtl` loader and parser.
 
 ## Installation
 
@@ -8,34 +8,52 @@ Fast and efficient, zero dependency `.obj` loader and parser.
 ## Quick start
 
 ```ts
-import { ObjLoader, ObjParser } from '@timefold/obj';
+import { ObjLoader, ObjParser, MtlLoader, MtlParser } from '@timefold/obj';
 
-const loadObj = ObjLoader.createLoader();
-const result = await loadObj('/assets/file.obj'); // fetch and parse a .obj file
+// fetch and parse a .obj file
+const objResult1 = await ObjLoader.load('/assets/file.obj');
+// or parse from a string
+const objResult2 = ObjParser.parse('...');
 
-const parse = ObjParser.createParser();
-const objFileContent = '...';
-const result = parse(objFileContent); // parse from a .obj string
+// ---
+
+// fetch and parse a .mtl file
+const mtlResult1 = await MtlLoader.load('/assets/file.mtl');
+// or parse from a string
+const mtlResult2 = MtlParser.parse('...');
 ```
 
 ## Options
 
-There are some options available that will influence the behaviour and result of loader and parser.
+You can also create a instance of the loader or parser yourself and pass some options:
 
 ```ts
-// Same options can be passed to `ObjParser.createParser`
-const loadObj = ObjLoader.createLoader({
+import { ObjLoader, ObjParser } from '@timefold/obj';
+
+const Loader = ObjLoader.createLoader({
     mode: 'interleaved-typed-array-indexed',
     splitObjectMode: 'object',
     flipUvX: false,
     flipUvY: false,
 });
+
+const objResult1 = await Loader.load('/assets/file.obj');
+
+// ---
+
+const parse = ObjParser.createParser({
+    mode: 'interleaved-typed-array-indexed',
+    splitObjectMode: 'object',
+    flipUvX: false,
+    flipUvY: false,
+});
+
+const objResult2 = parse('...');
 ```
 
-The full type of available options:
+Here is the full type of available options:
 
 ```ts
-// The return type is inferred automatically based on the `mode` option.
 type Mode = 
     | "interleaved-number-array"
     | "interleaved-typed-array"
@@ -54,18 +72,37 @@ type ParserOptions = {
 };
 ```
 
-## Return type based on `mode` option
+The result will depend on the `mode` and looks like that
 
+```ts
+// This will be automatically inferred for you from the `mode` option
+type Primitive =
+    | InterleavedObjPrimitive
+    | InterleavedObjPrimitiveIndexed
+    | NonInterleavedObjPrimitive
+    | NonInterleavedObjPrimitiveIndexed;
 
-| Mode                                   | Primitive type                                                                                               |
-|----------------------------------------|--------------------------------------------------------------------------------------------------------------|
-| "interleaved-number-array"             | `{ vertices: number[] }`                                                                                     |
-| "interleaved-typed-array"              | `{ vertices: Float32Array }`                                                                                 |
-| "interleaved-number-array-indexed"     | `{ vertices: number[], indices: number[] }`                                                                  |
-| "interleaved-typed-array-indexed"      | `{ vertices: Float32Array, indices: Uint16Array \| Uint32Array }`                                            |
-| "non-interleaved-number-array"         | `{ positions: number[], uvs: number[], normals: number[] }`                                                  |
-| "non-interleaved-typed-array"          | `{ positions: Float32Array, uvs: Float32Array, normals: Float32Array }`                                      |
-| "non-interleaved-number-array-indexed" | `{ positions: number[], uvs: number[], normals: number[], indices: number[] }`                               |
-| "non-interleaved-typed-array-indexed"  | `{ positions: Float32Array, uvs: Float32Array, normals: Float32Array, indices: Uint16Array \| Uint32Array }` |
+type ObjResult = {
+    objects: Record<string, {
+        name: string;
+        primitives: Record<string, Primitive>;
+    }>;
+};
+```
 
-For `interleaved` results, the following additional info will be available on the result: `stride`, `positionOffset`, `uvOffset` and `normalOffset`.
+## API
+
+Types are abbreviated for a short and concise overview.
+
+- `obj`
+    - `ObjLoader.load(path: string) => ObjResult`
+    - `ObjParser.parse(source: string) => ObjResult`
+    - `ObjLoader.createLoader(options?: Options) => Loader`
+    - `ObjParser.createParser(options?: Options) => ParseFn`
+    - `ObjParser.convertInterleavedToIndexed(primitive: Primitive) => ConvertedPrimitive`
+    - `ObjParser.convertNonInterleavedToIndexed(primitive: Primitive) => ConvertedPrimitive`
+    - `ObjParser.convertInterleavedToTypedArray(primitive: Primitive) => ConvertedPrimitive`
+    - `ObjParser.convertNonInterleavedToTypedArray(primitive: Primitive) => ConvertedPrimitive`
+- `mtl`
+    - `MtlLoader.load(path: string) => MtlResult`
+    - `MtlParser.parse(source: string) => MtlResult`
