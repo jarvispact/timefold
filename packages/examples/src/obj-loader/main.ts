@@ -3,7 +3,7 @@ import { examples } from './menu';
 let lastDestroy: (() => void) | undefined = undefined;
 
 // start the default right away
-void import('./interleaved-typed-array-indexed').then(async ({ run, destroy }) => {
+void import(/* @vite-ignore */ './interleaved-typed-array-indexed').then(async ({ run, destroy }) => {
     lastDestroy = destroy;
     await run();
 });
@@ -13,7 +13,10 @@ examples.forEach((example) => {
     const btn = document.getElementById(example) as HTMLButtonElement;
     btn.onclick = async () => {
         lastDestroy?.();
-        const { run, destroy } = (await import(`./${example}`)) as { run: () => Promise<void>; destroy: () => void };
+        const { run, destroy } = (await import(/* @vite-ignore */ `./${example}`)) as {
+            run: () => Promise<void>;
+            destroy: () => void;
+        };
         lastDestroy = destroy;
         await run();
     };

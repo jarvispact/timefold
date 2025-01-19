@@ -3,6 +3,8 @@ Fast and efficient, zero dependency `.obj` and `.mtl` loader and parser.
 
 ## Overview
 
+See it in action on this [codesandbox](https://codesandbox.io/p/sandbox/372ky8).
+
 - 🔥 Fast and efficient.
 - 🪶 The whole package is only 2.3 kB (minified and gzipped).
 - 🌳 Tree-shakeable. Only pay for what you need.
@@ -102,15 +104,18 @@ type ObjResult = {
 
 Types are abbreviated for a short and concise overview.
 
-- `obj`
-    - `ObjLoader.load(path: string) => ObjResult`
-    - `ObjParser.parse(source: string) => ObjResult`
-    - `ObjLoader.createLoader(options?: Options) => Loader`
-    - `ObjParser.createParser(options?: Options) => ParseFn`
-    - `ObjParser.convertInterleavedToIndexed(primitive: Primitive) => ConvertedPrimitive`
-    - `ObjParser.convertNonInterleavedToIndexed(primitive: Primitive) => ConvertedPrimitive`
-    - `ObjParser.convertInterleavedToTypedArray(primitive: Primitive) => ConvertedPrimitive`
-    - `ObjParser.convertNonInterleavedToTypedArray(primitive: Primitive) => ConvertedPrimitive`
-- `mtl`
-    - `MtlLoader.load(path: string) => MtlResult`
-    - `MtlParser.parse(source: string) => MtlResult`
+```ts
+// obj
+ObjLoader.load(path: string) => ObjResult
+ObjParser.parse(source: string) => ObjResult
+ObjLoader.createLoader(options?: Options) => Loader
+ObjParser.createParser(options?: Options) => ParseFn
+ObjParser.convertInterleavedToIndexed(primitive: Primitive) => ConvertedPrimitive
+ObjParser.convertNonInterleavedToIndexed(primitive: Primitive) => ConvertedPrimitive
+ObjParser.convertInterleavedToTypedArray(primitive: Primitive) => ConvertedPrimitive
+ObjParser.convertNonInterleavedToTypedArray(primitive: Primitive) => ConvertedPrimitive
+
+// mtl
+MtlLoader.load(path: string) => MtlResult
+MtlParser.parse(source: string) => MtlResult
+```
