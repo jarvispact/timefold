@@ -3,6 +3,8 @@ import { ArrayElement, isArray } from './wgsl-array';
 import { GenericStructDefinition, isStruct } from './wgsl-struct';
 import { isType } from './wgsl-type';
 
+// uniforms
+
 export type ViewForViewConstructor<T extends ArrayBufferLike> = {
     i32: Int32Array<T>;
     u32: Uint32Array<T>;
@@ -173,3 +175,82 @@ export const createViewsForConfig = <Views extends Record<string, unknown> | unk
     }
     return views;
 };
+
+// vertex
+
+export type GenericTypedArrayConstructor =
+    | Int8ArrayConstructor
+    | Uint8ArrayConstructor
+    | Int16ArrayConstructor
+    | Uint16ArrayConstructor
+    | Int32ArrayConstructor
+    | Uint32ArrayConstructor
+    | Float32ArrayConstructor;
+
+export const formatMap = {
+    sint8x2: { View: Int8Array, stride: 2, wgslType: 'vec2<i32>' },
+    sint8x4: { View: Int8Array, stride: 4, wgslType: 'vec4<i32>' },
+
+    uint8x2: { View: Uint8Array, stride: 2, wgslType: 'vec2<u32>' },
+    uint8x4: { View: Uint8Array, stride: 4, wgslType: 'vec4<u32>' },
+
+    sint16x2: { View: Int16Array, stride: 2, wgslType: 'vec2<i32>' },
+    sint16x4: { View: Int16Array, stride: 4, wgslType: 'vec4<i32>' },
+
+    uint16x2: { View: Uint16Array, stride: 2, wgslType: 'vec2<u32>' },
+    uint16x4: { View: Uint16Array, stride: 4, wgslType: 'vec4<u32>' },
+
+    sint32: { View: Int32Array, stride: 1, wgslType: 'i32' },
+    sint32x2: { View: Int32Array, stride: 2, wgslType: 'vec2<i32>' },
+    sint32x3: { View: Int32Array, stride: 3, wgslType: 'vec3<i32>' },
+    sint32x4: { View: Int32Array, stride: 4, wgslType: 'vec4<i32>' },
+
+    uint32: { View: Uint32Array, stride: 1, wgslType: 'u32' },
+    uint32x2: { View: Uint32Array, stride: 2, wgslType: 'vec2<u32>' },
+    uint32x3: { View: Uint32Array, stride: 3, wgslType: 'vec3<u32>' },
+    uint32x4: { View: Uint32Array, stride: 4, wgslType: 'vec4<u32>' },
+
+    float32: { View: Float32Array, stride: 1, wgslType: 'f32' },
+    float32x2: { View: Float32Array, stride: 2, wgslType: 'vec2<f32>' },
+    float32x3: { View: Float32Array, stride: 3, wgslType: 'vec3<f32>' },
+    float32x4: { View: Float32Array, stride: 4, wgslType: 'vec4<f32>' },
+
+    snorm8x2: { View: Int8Array, stride: 2, wgslType: 'vec2<f32>' },
+    snorm8x4: { View: Int8Array, stride: 4, wgslType: 'vec4<f32>' },
+
+    snorm16x2: { View: Int16Array, stride: 2, wgslType: 'vec2<f32>' },
+    snorm16x4: { View: Int16Array, stride: 4, wgslType: 'vec4<f32>' },
+
+    unorm8x2: { View: Uint8Array, stride: 2, wgslType: 'vec2<f32>' },
+    unorm8x4: { View: Uint8Array, stride: 4, wgslType: 'vec4<f32>' },
+
+    unorm16x2: { View: Uint16Array, stride: 2, wgslType: 'vec2<f32>' },
+    unorm16x4: { View: Uint16Array, stride: 4, wgslType: 'vec4<f32>' },
+
+    'unorm10-10-10-2': { View: Uint32Array, stride: 4, wgslType: 'vec4<f32>' },
+} satisfies Partial<
+    Record<GPUVertexFormat, { View: GenericTypedArrayConstructor; stride: number; wgslType: WgslType }>
+>;
+
+export type FormatMap = typeof formatMap;
+export type SupportedFormat = keyof FormatMap;
+export type SupportedPositionFormat = 'float32x2' | 'float32x3' | 'float32x4';
+
+export type InterleavedMode = 'interleaved';
+export type NonInterleavedMode = 'non-interleaved';
+export type CreateVertexBufferMode = InterleavedMode | NonInterleavedMode;
+
+// index
+
+export type IndexFormatToTypedArray = {
+    uint16: Uint16ArrayConstructor;
+    uint32: Uint32ArrayConstructor;
+};
+
+type GenericTypedArrayConstructorForIndices = IndexFormatToTypedArray[keyof IndexFormatToTypedArray];
+
+export const isTypedIndexArrayData = (
+    args:
+        | { data: InstanceType<GenericTypedArrayConstructorForIndices> }
+        | { data: ArrayBufferLike; indexCount: number },
+): args is { data: InstanceType<GenericTypedArrayConstructorForIndices> } => 'buffer' in args.data;

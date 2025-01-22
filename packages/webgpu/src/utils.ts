@@ -1,5 +1,17 @@
-import { RemoveNever, TupleIndices } from './internal-utils';
-import { WgslType } from './lookup-table';
+import {
+    CreateVertexBufferMode,
+    formatMap,
+    FormatMap,
+    GenericTypedArrayConstructor,
+    IndexFormatToTypedArray,
+    InterleavedMode,
+    isTypedIndexArrayData,
+    NonInterleavedMode,
+    RemoveNever,
+    SupportedFormat,
+    SupportedPositionFormat,
+    TupleIndices,
+} from './internal-utils';
 import * as Uniform from './uniform';
 
 // ===========================================================
@@ -55,14 +67,22 @@ const defaultAdapterOptions: GPURequestAdapterOptions = {
     forceFallbackAdapter: false,
 };
 
-type CreateDeviceAndContextOptions = {
+export type CreateDeviceAndContextOptions = {
     canvas: HTMLCanvasElement | OffscreenCanvas;
     adapter?: GPURequestAdapterOptions;
     device?: GPUDeviceDescriptor;
     contextConfig?: Omit<GPUCanvasConfiguration, 'device'>;
 };
 
-export const createDeviceAndContext = async (options: CreateDeviceAndContextOptions) => {
+export type CreateDeviceAndContextResult = {
+    device: GPUDevice;
+    context: GPUCanvasContext;
+    format: GPUTextureFormat;
+};
+
+export const createDeviceAndContext = async (
+    options: CreateDeviceAndContextOptions,
+): Promise<CreateDeviceAndContextResult> => {
     const adapterOptions = { ...defaultAdapterOptions, ...options.adapter };
     const adapter = await navigator.gpu.requestAdapter(adapterOptions);
     if (!adapter) {
@@ -89,69 +109,7 @@ export const createDeviceAndContext = async (options: CreateDeviceAndContextOpti
 // ===========================================================
 // vertex buffers
 
-type GenericTypedArrayConstructor =
-    | Int8ArrayConstructor
-    | Uint8ArrayConstructor
-    | Int16ArrayConstructor
-    | Uint16ArrayConstructor
-    | Int32ArrayConstructor
-    | Uint32ArrayConstructor
-    | Float32ArrayConstructor;
-
-const formatMap = {
-    sint8x2: { View: Int8Array, stride: 2, wgslType: 'vec2<i32>' },
-    sint8x4: { View: Int8Array, stride: 4, wgslType: 'vec4<i32>' },
-
-    uint8x2: { View: Uint8Array, stride: 2, wgslType: 'vec2<u32>' },
-    uint8x4: { View: Uint8Array, stride: 4, wgslType: 'vec4<u32>' },
-
-    sint16x2: { View: Int16Array, stride: 2, wgslType: 'vec2<i32>' },
-    sint16x4: { View: Int16Array, stride: 4, wgslType: 'vec4<i32>' },
-
-    uint16x2: { View: Uint16Array, stride: 2, wgslType: 'vec2<u32>' },
-    uint16x4: { View: Uint16Array, stride: 4, wgslType: 'vec4<u32>' },
-
-    sint32: { View: Int32Array, stride: 1, wgslType: 'i32' },
-    sint32x2: { View: Int32Array, stride: 2, wgslType: 'vec2<i32>' },
-    sint32x3: { View: Int32Array, stride: 3, wgslType: 'vec3<i32>' },
-    sint32x4: { View: Int32Array, stride: 4, wgslType: 'vec4<i32>' },
-
-    uint32: { View: Uint32Array, stride: 1, wgslType: 'u32' },
-    uint32x2: { View: Uint32Array, stride: 2, wgslType: 'vec2<u32>' },
-    uint32x3: { View: Uint32Array, stride: 3, wgslType: 'vec3<u32>' },
-    uint32x4: { View: Uint32Array, stride: 4, wgslType: 'vec4<u32>' },
-
-    float32: { View: Float32Array, stride: 1, wgslType: 'f32' },
-    float32x2: { View: Float32Array, stride: 2, wgslType: 'vec2<f32>' },
-    float32x3: { View: Float32Array, stride: 3, wgslType: 'vec3<f32>' },
-    float32x4: { View: Float32Array, stride: 4, wgslType: 'vec4<f32>' },
-
-    snorm8x2: { View: Int8Array, stride: 2, wgslType: 'vec2<f32>' },
-    snorm8x4: { View: Int8Array, stride: 4, wgslType: 'vec4<f32>' },
-
-    snorm16x2: { View: Int16Array, stride: 2, wgslType: 'vec2<f32>' },
-    snorm16x4: { View: Int16Array, stride: 4, wgslType: 'vec4<f32>' },
-
-    unorm8x2: { View: Uint8Array, stride: 2, wgslType: 'vec2<f32>' },
-    unorm8x4: { View: Uint8Array, stride: 4, wgslType: 'vec4<f32>' },
-
-    unorm16x2: { View: Uint16Array, stride: 2, wgslType: 'vec2<f32>' },
-    unorm16x4: { View: Uint16Array, stride: 4, wgslType: 'vec4<f32>' },
-
-    'unorm10-10-10-2': { View: Uint32Array, stride: 4, wgslType: 'vec4<f32>' },
-} satisfies Partial<
-    Record<GPUVertexFormat, { View: GenericTypedArrayConstructor; stride: number; wgslType: WgslType }>
->;
-
-type FormatMap = typeof formatMap;
-type SupportedFormat = keyof FormatMap;
-type SupportedPositionFormat = 'float32x2' | 'float32x3' | 'float32x4';
-
-type InterleavedMode = 'interleaved';
-type NonInterleavedMode = 'non-interleaved';
-type CreateVertexBufferMode = InterleavedMode | NonInterleavedMode;
-
-type CreateVertexBufferLayoutDefinition<Mode extends CreateVertexBufferMode> = Mode extends InterleavedMode
+export type CreateVertexBufferLayoutDefinition<Mode extends CreateVertexBufferMode> = Mode extends InterleavedMode
     ? {
           position: { format: SupportedPositionFormat; offset: number };
       } & Record<string, { format: SupportedFormat; offset: number }>
@@ -172,7 +130,7 @@ type NonInterleavedCreateBuffer<Definition extends CreateVertexBufferLayoutDefin
     data: InstanceType<FormatMap[Definition[Name]['format']]['View']>,
 ) => { slot: number; buffer: GPUBuffer } & (Name extends 'position' ? { count: number } : NonNullable<unknown>);
 
-type ResultForMode<
+export type CreateVertexBufferLayoutResult<
     Mode extends CreateVertexBufferMode,
     Definition extends CreateVertexBufferLayoutDefinition<Mode>,
 > = Mode extends InterleavedMode
@@ -193,7 +151,7 @@ export const createVertexBufferLayout = <
 >(
     mode: Mode,
     definition: Definition,
-): ResultForMode<Mode, Definition> => {
+): CreateVertexBufferLayoutResult<Mode, Definition> => {
     const vertexDefinitionKeys = Object.keys(definition);
 
     const locationByName: Record<string, number> = {};
@@ -220,7 +178,11 @@ export const createVertexBufferLayout = <
         });
 
         // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-parameters
-        const createBuffer = <Name extends keyof Definition>(device: GPUDevice, name: Name, data: Float32Array) => {
+        const createBuffer = <Name extends keyof Definition>(
+            device: GPUDevice,
+            name: Name,
+            data: InstanceType<GenericTypedArrayConstructor>,
+        ) => {
             const buffer = device.createBuffer({
                 label: `${name.toString()} vertex buffer`,
                 size: data.byteLength,
@@ -242,7 +204,7 @@ export const createVertexBufferLayout = <
             layout,
             wgsl,
             createBuffer,
-        } as ResultForMode<Mode, Definition>;
+        } as CreateVertexBufferLayoutResult<Mode, Definition>;
     }
 
     let arrayStride = 0;
@@ -289,33 +251,26 @@ export const createVertexBufferLayout = <
         layout,
         wgsl,
         createBuffer,
-    } as ResultForMode<Mode, Definition>;
+    } as CreateVertexBufferLayoutResult<Mode, Definition>;
 };
 
 // ===========================================================
 // index buffer
 
-type IndexFormatToTypedArray = {
-    uint16: Uint16ArrayConstructor;
-    uint32: Uint32ArrayConstructor;
-};
-
-type GenericTypedArrayConstructorForIndices = IndexFormatToTypedArray[keyof IndexFormatToTypedArray];
-
-const isTypedIndexArrayData = (
-    args:
-        | { data: InstanceType<GenericTypedArrayConstructorForIndices> }
-        | { data: ArrayBufferLike; indexCount: number },
-): args is { data: InstanceType<GenericTypedArrayConstructorForIndices> } => 'buffer' in args.data;
-
-type CreateIndexBufferArgs<Format extends GPUIndexFormat> = {
+export type CreateIndexBufferArgs<Format extends GPUIndexFormat> = {
     format: Format;
 } & ({ data: InstanceType<IndexFormatToTypedArray[Format]> } | { data: ArrayBufferLike; indexCount: number });
+
+export type CreateIndexBufferResult<Format extends GPUIndexFormat = GPUIndexFormat> = {
+    buffer: GPUBuffer;
+    count: number;
+    format: Format;
+};
 
 export const createIndexBuffer = <Format extends GPUIndexFormat>(
     device: GPUDevice,
     args: CreateIndexBufferArgs<Format>,
-) => {
+): CreateIndexBufferResult<Format> => {
     const buffer = device.createBuffer({
         size: args.data.byteLength,
         usage: GPUBufferUsage.INDEX | GPUBufferUsage.COPY_DST,
@@ -334,10 +289,6 @@ export const createIndexBuffer = <Format extends GPUIndexFormat>(
 
 // ===========================================================
 // uniform bindings
-
-type BuffersByBindingKey<Group extends Uniform.Group<number, Record<string, Uniform.GenericBinding>>> = RemoveNever<{
-    [BindingKey in keyof Group['bindings']]: Group['bindings'][BindingKey]['type'] extends 'buffer' ? GPUBuffer : never;
-}>;
 
 export const createSampler = (device: GPUDevice, options: GPUSamplerDescriptor = {}): GPUSampler => {
     return device.createSampler(options);
@@ -416,15 +367,39 @@ type BindingsForGroup<Group extends Uniform.Group<number, Record<string, Uniform
 // ===========================================================
 // pipeline layout
 
+type BuffersByBindingKey<Group extends Uniform.Group<number, Record<string, Uniform.GenericBinding>>> = RemoveNever<{
+    [BindingKey in keyof Group['bindings']]: Group['bindings'][BindingKey]['type'] extends 'buffer' ? GPUBuffer : never;
+}>;
+
+export type CreatePipelineLayoutArgs<Groups extends Uniform.Group<number, Record<string, Uniform.GenericBinding>>[]> = {
+    device: GPUDevice;
+    uniformGroups: Groups;
+};
+
+export type CreateBindGroupsResult<
+    Groups extends Uniform.Group<number, Record<string, Uniform.GenericBinding>>[],
+    Group extends TupleIndices<Groups>,
+> = {
+    group: Group;
+    bindGroup: GPUBindGroup;
+    buffers: BuffersByBindingKey<Groups[Group]>;
+};
+
+export type CreatePipelineLayoutResult<Groups extends Uniform.Group<number, Record<string, Uniform.GenericBinding>>[]> =
+    {
+        layout: GPUPipelineLayout;
+        createBindGroups: <Group extends TupleIndices<Groups>>(
+            group: Group,
+            bindings: BindingsForGroup<Groups[Group]>,
+        ) => CreateBindGroupsResult<Groups, Group>;
+    };
+
 export const createPipelineLayout = <
     const Groups extends Uniform.Group<number, Record<string, Uniform.GenericBinding>>[],
 >({
     device,
     uniformGroups,
-}: {
-    device: GPUDevice;
-    uniformGroups: Groups;
-}) => {
+}: CreatePipelineLayoutArgs<Groups>): CreatePipelineLayoutResult<Groups> => {
     const bindGroupLayouts: GPUBindGroupLayout[] = [];
 
     for (let i = 0; i < uniformGroups.length; i++) {

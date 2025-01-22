@@ -3,7 +3,6 @@ import { WebgpuUtils } from '@timefold/webgpu';
 import { CommonEntity, printObjStats, setupEntity, setupScene, updateEntity, VertexNonInterleaved } from './common';
 
 let animationFrameHandle: number | undefined = undefined;
-
 const mode = 'non-interleaved-typed-array-indexed';
 const Loader = ObjLoader.createLoader({ mode });
 
@@ -35,11 +34,10 @@ export const run = async () => {
         const object = objects[objectKey];
         for (const primitiveKey of Object.keys(object.primitives)) {
             const primitive = object.primitives[primitiveKey];
-            const positionsBuffer = VertexNonInterleaved.createBuffer(device, 'position', primitive.positions);
-            const uvsBuffer = VertexNonInterleaved.createBuffer(device, 'uv', primitive.uvs);
-            const normalsBuffer = VertexNonInterleaved.createBuffer(device, 'normal', primitive.normals);
-
-            const index = WebgpuUtils.createIndexBuffer(device, {
+            const P = VertexNonInterleaved.createBuffer(device, 'position', primitive.positions);
+            const U = VertexNonInterleaved.createBuffer(device, 'uv', primitive.uvs);
+            const N = VertexNonInterleaved.createBuffer(device, 'normal', primitive.normals);
+            const I = WebgpuUtils.createIndexBuffer(device, {
                 format: 'uint32',
                 data: primitive.indices,
             });
@@ -49,15 +47,15 @@ export const run = async () => {
 
             entities.push({
                 ...commonEntity,
-                positionSlot: positionsBuffer.slot,
-                positionBuffer: positionsBuffer.buffer,
-                uvSlot: uvsBuffer.slot,
-                uvBuffer: uvsBuffer.buffer,
-                normalSlot: normalsBuffer.slot,
-                normalBuffer: normalsBuffer.buffer,
-                indexBuffer: index.buffer,
-                indexCount: index.count,
-                indexFormat: 'uint32',
+                positionSlot: P.slot,
+                positionBuffer: P.buffer,
+                uvSlot: U.slot,
+                uvBuffer: U.buffer,
+                normalSlot: N.slot,
+                normalBuffer: N.buffer,
+                indexBuffer: I.buffer,
+                indexCount: I.count,
+                indexFormat: I.format,
             });
         }
     }

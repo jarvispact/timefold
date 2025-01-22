@@ -2,7 +2,6 @@ import { MtlLoader, ObjLoader } from '@timefold/obj';
 import { CommonEntity, printObjStats, setupEntity, setupScene, updateEntity, VertexNonInterleaved } from './common';
 
 let animationFrameHandle: number | undefined = undefined;
-
 const mode = 'non-interleaved-number-array';
 const Loader = ObjLoader.createLoader({ mode });
 
@@ -32,32 +31,21 @@ export const run = async () => {
         const object = objects[objectKey];
         for (const primitiveKey of Object.keys(object.primitives)) {
             const primitive = object.primitives[primitiveKey];
-
-            const positionsBuffer = VertexNonInterleaved.createBuffer(
-                device,
-                'position',
-                new Float32Array(primitive.positions),
-            );
-            const uvsBuffer = VertexNonInterleaved.createBuffer(device, 'uv', new Float32Array(primitive.uvs));
-
-            const normalsBuffer = VertexNonInterleaved.createBuffer(
-                device,
-                'normal',
-                new Float32Array(primitive.normals),
-            );
-
+            const P = VertexNonInterleaved.createBuffer(device, 'position', new Float32Array(primitive.positions));
+            const U = VertexNonInterleaved.createBuffer(device, 'uv', new Float32Array(primitive.uvs));
+            const N = VertexNonInterleaved.createBuffer(device, 'normal', new Float32Array(primitive.normals));
             const color = materials[primitive.name].diffuseColor;
             const commonEntity = setupEntity(color, Layout);
 
             entities.push({
                 ...commonEntity,
-                positionSlot: positionsBuffer.slot,
-                positionBuffer: positionsBuffer.buffer,
-                vertexCount: positionsBuffer.count,
-                uvSlot: uvsBuffer.slot,
-                uvBuffer: uvsBuffer.buffer,
-                normalSlot: normalsBuffer.slot,
-                normalBuffer: normalsBuffer.buffer,
+                positionSlot: P.slot,
+                positionBuffer: P.buffer,
+                vertexCount: P.count,
+                uvSlot: U.slot,
+                uvBuffer: U.buffer,
+                normalSlot: N.slot,
+                normalBuffer: N.buffer,
             });
         }
     }

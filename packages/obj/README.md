@@ -3,13 +3,13 @@ Fast and efficient, zero dependency `.obj` and `.mtl` loader and parser.
 
 ## Overview
 
-See it in action on this [codesandbox](https://codesandbox.io/p/sandbox/372ky8).
+See it in action in this [stackblitz example](https://stackblitz.com/edit/timefold-obj-loader-example?file=src%2Fmain.ts) (⚠️ Renderer requires WebGPU).
 
 - 🔥 Fast and efficient.
-- 🪶 The whole package is only 2.3 kB (minified and gzipped).
-- 🌳 Tree-shakeable. Only pay for what you need.
-- 🚀 Awesome DX and type safety. Everything is inferred automatically.
-- 🔨 Lots of options and conversions. Flexible and optimized for WebGL and WebGPU
+- 🔺 Use it in WebGL and WebGPU.
+- 🪶 Only 2.3 kB (minified and gzipped).
+- 🚀 Awesome DX and type safety.
+- 🔨 Supports interleaved, non-interleaved and indexed results.
 
 ## Installation
 

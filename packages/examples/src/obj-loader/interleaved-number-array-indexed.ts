@@ -3,7 +3,6 @@ import { CommonEntity, printObjStats, setupEntity, setupScene, updateEntity, Ver
 import { WebgpuUtils } from '@timefold/webgpu';
 
 let animationFrameHandle: number | undefined = undefined;
-
 const mode = 'interleaved-number-array-indexed';
 const Loader = ObjLoader.createLoader({ mode });
 

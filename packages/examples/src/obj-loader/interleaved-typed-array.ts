@@ -2,7 +2,6 @@ import { MtlLoader, ObjLoader } from '@timefold/obj';
 import { CommonEntity, printObjStats, setupEntity, setupScene, updateEntity, VertexInterleaved } from './common';
 
 let animationFrameHandle: number | undefined = undefined;
-
 const mode = 'interleaved-typed-array';
 const Loader = ObjLoader.createLoader({ mode });
 
@@ -18,7 +17,11 @@ export const run = async () => {
     const { device, context, Layout, pipeline, renderPassDescriptor, sceneBindgroup, scene } =
         await setupScene(VertexInterleaved);
 
-    const entities: (CommonEntity & { vertexSlot: number; vertexBuffer: GPUBuffer; vertexCount: number })[] = [];
+    const entities: (CommonEntity & {
+        vertexSlot: number;
+        vertexBuffer: GPUBuffer;
+        vertexCount: number;
+    })[] = [];
 
     for (const objectKey of Object.keys(objects)) {
         const object = objects[objectKey];
