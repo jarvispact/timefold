@@ -1,4 +1,4 @@
-import { Component, Entity, System, World } from '@timefold/ecs';
+import { Component, System, World } from '@timefold/ecs';
 import { Vec2 } from '@timefold/math';
 
 type PositionComponent = Component.Type<'Position', Vec2.Type>;
@@ -6,11 +6,11 @@ type VelocityComponent = Component.Type<'Velocity', Vec2.Type>;
 type MoveableComponent = Component.Type<'Moveable'>;
 type WorldComponent = PositionComponent | VelocityComponent | MoveableComponent;
 
-const createEntity = (id: string, vel: Vec2.Type, isMoveable: boolean) => {
+const createComponents = (vel: Vec2.Type, isMoveable: boolean) => {
     const position = Component.create('Position', Vec2.create(0, 0));
     const velocity = Component.create('Velocity', vel);
     const moveable = Component.create('Moveable');
-    return isMoveable ? Entity.create(id, [position, velocity, moveable]) : Entity.create(id, [position, velocity]);
+    return isMoveable ? [position, velocity, moveable] : [position, velocity];
 };
 
 const world = World.create<WorldComponent>();
@@ -23,9 +23,9 @@ const query = world.createQuery(
 const MyStartupSystem = System.create({
     stage: 'startup',
     fn: () => {
-        world.spawnEntity(createEntity('0', Vec2.create(1, 0), true));
-        world.spawnEntity(createEntity('1', Vec2.create(0, 0), false));
-        world.spawnEntity(createEntity('2', Vec2.create(0, 2), true));
+        world.spawnEntity('0', createComponents(Vec2.create(1, 0), true));
+        world.spawnEntity('1', createComponents(Vec2.create(0, 0), false));
+        world.spawnEntity('2', createComponents(Vec2.create(0, 2), true));
     },
 });
 
