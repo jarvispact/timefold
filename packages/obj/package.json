@@ -1,6 +1,6 @@
 {
   "name": "@timefold/obj",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "description": "obj loader and parser for timefold",
   "type": "module",
   "sideEffects": false,
