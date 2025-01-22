@@ -160,7 +160,7 @@ export const createVertexBufferLayout = <
         .map((key, idx) => {
             locationByName[key] = idx;
             const attr = definition[key];
-            return `  @location(${idx}) ${key}: ${formatMap[attr.format].wgslType},`;
+            return `  @location(${idx}) ${key}: ${formatMap[attr.format].wgsl},`;
         })
         .join('\n');
 
