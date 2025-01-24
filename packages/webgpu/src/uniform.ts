@@ -15,26 +15,50 @@ export type Sampler<Binding extends number> = {
     layout: { binding: Binding } & BindingOptions & { sampler: GPUSamplerBindingLayout };
 };
 
+const defaultSamplerArgs: BindingOptions & { sampler: GPUSamplerBindingLayout } = {
+    visibility: GPUShaderStage.FRAGMENT,
+    sampler: {},
+};
+
 export const sampler = <Binding extends number>(
     binding: Binding,
-    args: BindingOptions & { sampler: GPUSamplerBindingLayout },
-): Sampler<Binding> => ({
-    type: 'sampler',
-    layout: { binding, ...args },
-});
+    args?: BindingOptions & { sampler: GPUSamplerBindingLayout },
+): Sampler<Binding> => {
+    const _args = {
+        visibility: args?.visibility ?? defaultSamplerArgs.visibility,
+        sampler: { ...defaultSamplerArgs.sampler, ...args?.sampler },
+    };
+
+    return {
+        type: 'sampler',
+        layout: { binding, ..._args },
+    };
+};
 
 export type Texture<Binding extends number> = {
     type: 'texture';
     layout: { binding: Binding } & BindingOptions & { texture: GPUTextureBindingLayout };
 };
 
+const defaultTextureArgs: BindingOptions & { texture: GPUTextureBindingLayout } = {
+    visibility: GPUShaderStage.FRAGMENT,
+    texture: {},
+};
+
 export const texture = <Binding extends number>(
     binding: Binding,
-    args: BindingOptions & { texture: GPUTextureBindingLayout },
-): Texture<Binding> => ({
-    type: 'texture',
-    layout: { binding, ...args },
-});
+    args?: BindingOptions & { texture: GPUTextureBindingLayout },
+): Texture<Binding> => {
+    const _args = {
+        visibility: args?.visibility ?? defaultTextureArgs.visibility,
+        texture: { ...defaultTextureArgs.texture, ...args?.texture },
+    };
+
+    return {
+        type: 'texture',
+        layout: { binding, ..._args },
+    };
+};
 
 type GenericUniformType = Type<WgslType> | Array<ArrayElement, any> | Struct<string, any>;
 
@@ -44,15 +68,27 @@ export type Buffer<Binding extends number, Type extends GenericUniformType> = {
     layout: { binding: Binding } & BindingOptions & { buffer: GPUBufferBindingLayout };
 };
 
+const defaultBufferArgs: BindingOptions & { buffer: GPUBufferBindingLayout } = {
+    visibility: GPUShaderStage.VERTEX | GPUShaderStage.FRAGMENT,
+    buffer: { type: 'uniform' },
+};
+
 export const buffer = <Binding extends number, Type extends GenericUniformType>(
     binding: Binding,
     type: Type,
-    args: BindingOptions & { buffer: GPUBufferBindingLayout },
-): Buffer<Binding, Type> => ({
-    type: 'buffer',
-    uniformType: type,
-    layout: { binding, ...args },
-});
+    args?: BindingOptions & { buffer: GPUBufferBindingLayout },
+): Buffer<Binding, Type> => {
+    const _args = {
+        visibility: args?.visibility ?? defaultBufferArgs.visibility,
+        buffer: { ...defaultBufferArgs.buffer, ...args?.buffer },
+    };
+
+    return {
+        type: 'buffer',
+        uniformType: type,
+        layout: { binding, ..._args },
+    };
+};
 
 export type GenericBinding = Sampler<number> | Texture<number> | Buffer<number, GenericUniformType>;
 

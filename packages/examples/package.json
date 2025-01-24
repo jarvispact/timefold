@@ -19,6 +19,15 @@
     "dev:engine": "sed 's/{example-folder}/engine/g' index.html.template > index.html && vite --port 9093",
     "build:engine": "sed 's/{example-folder}/engine/g' index.html.template > index.html && vite build",
 
+    "dev:webgpu-triangle": "sed 's/{example-folder}/webgpu-triangle/g' index.html.template > index.html && vite --port 9093",
+    "build:webgpu-triangle": "sed 's/{example-folder}/webgpu-triangle/g' index.html.template > index.html && vite build",
+
+    "dev:webgpu-triangles": "sed 's/{example-folder}/webgpu-triangles/g' index.html.template > index.html && vite --port 9093",
+    "build:webgpu-triangles": "sed 's/{example-folder}/webgpu-triangles/g' index.html.template > index.html && vite build",
+
+    "dev:webgpu-textured-triangles": "sed 's/{example-folder}/webgpu-textured-triangles/g' index.html.template > index.html && vite --port 9093",
+    "build:webgpu-textured-triangles": "sed 's/{example-folder}/webgpu-textured-triangles/g' index.html.template > index.html && vite build",
+
     "preview": "vite preview --port 9191"
   }
 }

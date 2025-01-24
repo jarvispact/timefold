@@ -1,20 +1,3 @@
-# @timefold/webgpu
-Fast and efficient, utilities to work with wgsl and webgpu.
-
-## Overview
-
-- 🔺 Define your structs and uniforms in Typescript.
-- 🔥 Utilities to interface with WebGPU in a typesafe way.
-- 🌳 Tree shaking - Only pay for what you need.
-- 🚀 Awesome DX and type safety
-
-## Installation
-
-- `npm i @timefold/webgpu`
-
-## Quick start
-
-```ts
 import { Uniform, Wgsl, WebgpuUtils } from '@timefold/webgpu';
 
 // Step 1:
@@ -143,5 +126,3 @@ pass.draw(vertex.count);
 
 pass.end();
 device.queue.submit([encoder.finish()]);
-
-```

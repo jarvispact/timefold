@@ -214,7 +214,7 @@ export const createVertexBufferLayout = <
         const attr = definition[key] as { format: SupportedFormat; offset: number };
         const { stride, View } = formatMap[attr.format];
         arrayStride += stride * View.BYTES_PER_ELEMENT;
-        totalStride += attr.offset;
+        totalStride += stride;
 
         return {
             format: attr.format,
