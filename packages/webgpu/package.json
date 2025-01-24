@@ -1,6 +1,6 @@
 {
   "name": "@timefold/webgpu",
-  "version": "0.0.2",
+  "version": "0.0.3",
   "description": "webgpu utils for timefold",
   "type": "module",
   "sideEffects": false,
