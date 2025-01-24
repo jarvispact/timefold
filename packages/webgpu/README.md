@@ -3,8 +3,10 @@ Fast and efficient, utilities to work with wgsl and webgpu.
 
 ## Overview
 
+See it in action in this [stackblitz example](https://stackblitz.com/edit/timefold-webgpu-example?file=src%2Fmain.ts)
+
 - 🔺 Define your structs and uniforms in Typescript.
-- 🔥 Utilities to interface with WebGPU in a typesafe way.
+- 🔨 Utilities to interface with WebGPU in a typesafe way.
 - 🌳 Tree shaking - Only pay for what you need.
 - 🚀 Awesome DX and type safety
 
