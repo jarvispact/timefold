@@ -29,11 +29,14 @@ const defaultOptions: Options = {
 class EcsWorld<
     WorldComponent extends Component.Type,
     WorldEvent extends Event.Generic = Event.EcsEvent<WorldComponent[]>,
+    WorldResources extends Record<string, unknown> = Record<string, unknown>,
 > {
     deltaTime: number = 0;
     time: number = 0;
 
     private options: Options;
+
+    private resources: WorldResources = {} as WorldResources;
 
     private subscribers: Record<Event.EcsEvent<Component.Type[]>['type'], Subscriber[]> = {
         'ecs/spawn-entity': [],
@@ -58,6 +61,14 @@ class EcsWorld<
     constructor(opts?: Partial<Options>) {
         const options: Options = { ...defaultOptions, ...opts };
         this.options = options;
+    }
+
+    getResource<Id extends keyof WorldResources>(id: Id) {
+        return this.resources[id];
+    }
+
+    setResource<Id extends keyof WorldResources>(id: Id, resource: WorldResources[Id]) {
+        this.resources[id] = resource;
     }
 
     private internalOn<EventType extends Event.EcsEvent<Component.Type[]>['type']>(
@@ -144,6 +155,21 @@ class EcsWorld<
 
         this.componentsByEntityId[entityId] = undefined;
         return true;
+    }
+
+    spawnBundle({
+        id,
+        bundle,
+        components = [],
+    }: {
+        id: string;
+        bundle:
+            | WorldComponent[]
+            | ((world: EcsWorld<WorldComponent, Event.EcsEvent<WorldComponent[]>, WorldResources>) => WorldComponent[]);
+        components?: WorldComponent[];
+    }) {
+        const bundleComponents = typeof bundle === 'function' ? bundle(this as never) : bundle;
+        return this.spawnEntity(id, [...bundleComponents, ...components]);
     }
 
     getComponent<T extends WorldComponent['type']>(entityId: EntityId, type: T) {
@@ -446,11 +472,13 @@ class EcsWorld<
 export type World<
     WorldComponent extends Component.Type,
     WorldEvent extends Event.Generic = Event.EcsEvent<WorldComponent[]>,
-> = EcsWorld<WorldComponent, WorldEvent>;
+    Resources extends Record<string, unknown> = Record<string, unknown>,
+> = EcsWorld<WorldComponent, WorldEvent, Resources>;
 
 export const create = <
     WorldComponent extends Component.Type,
     WorldEvent extends Event.Generic = Event.EcsEvent<WorldComponent[]>,
+    Resources extends Record<string, unknown> = Record<string, unknown>,
 >(
     options?: Partial<Options>,
-): EcsWorld<WorldComponent, WorldEvent> => new EcsWorld(options);
+): EcsWorld<WorldComponent, WorldEvent, Resources> => new EcsWorld(options);
