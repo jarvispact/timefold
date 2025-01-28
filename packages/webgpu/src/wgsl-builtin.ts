@@ -1,5 +1,6 @@
 import { type } from './wgsl-type';
 
+// TODO: currently not exported!!!
 // TODO: array of f32 is allowed for vertex structs
 // TODO: bool not yet supported
 

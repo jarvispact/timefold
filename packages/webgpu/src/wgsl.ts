@@ -4,7 +4,6 @@ import { WgslType } from './lookup-table';
 import { ArrayElement } from './wgsl-array';
 import { Type as _Type, type as _type, CreateResult as TypeCreateResult } from './wgsl-type';
 import { Array as _Array, array as _array, CreateResult as ArrayCreateResult } from './wgsl-array';
-// import { Builtin as _Builtin, builtin as _builtin, BuiltinName } from './wgsl-builtin';
 import {
     Struct as _Struct,
     struct as _struct,
@@ -18,7 +17,7 @@ import { GenericMode } from './internal-utils';
 export type Type<T extends WgslType> = _Type<T>;
 
 export type InferTypeResult<T extends _Type<WgslType>, Mode extends GenericMode = 'array-buffer'> =
-    T extends _Type<infer WT> ? TypeCreateResult<Mode, WT>['view'] : never;
+    T extends _Type<infer WT> ? TypeCreateResult<Mode, WT> : never;
 
 export const type = _type;
 
@@ -27,7 +26,7 @@ export const type = _type;
 export type Array<Element extends ArrayElement, Size extends number> = _Array<Element, Size>;
 
 export type InferArrayResult<T extends _Array<ArrayElement, any>, Mode extends GenericMode = 'array-buffer'> =
-    T extends _Array<infer Element, infer Size> ? ArrayCreateResult<Element, Size, Mode>['views'] : never;
+    T extends _Array<infer Element, infer Size> ? ArrayCreateResult<Element, Size, Mode> : never;
 
 export const array = _array;
 
@@ -36,12 +35,6 @@ export const array = _array;
 export type Struct<Name extends string, Definition extends GenericStructDefinition> = _Struct<Name, Definition>;
 
 export type InferStructResult<T extends _Struct<string, any>, Mode extends GenericMode = 'array-buffer'> =
-    T extends _Struct<string, infer Definition> ? StructCreateResult<Definition, Mode>['views'] : never;
+    T extends _Struct<string, infer Definition> ? StructCreateResult<Definition, Mode> : never;
 
 export const struct = _struct;
-
-// builtin
-
-// export type Builtin<Name extends BuiltinName> = _Builtin<Name>;
-
-// export const builtin = _builtin;
