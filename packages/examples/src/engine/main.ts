@@ -7,7 +7,7 @@ import {
     UpdateCameraFromTransformPlugin,
     DirLight,
     CameraBundle,
-    PhongBundle,
+    PhongEntityBundle,
     Data,
     Structs,
 } from '@timefold/engine';
@@ -29,7 +29,7 @@ const run = async () => {
             world.spawnBundle({
                 id: 'camera',
                 bundle: CameraBundle.create({
-                    transform: Transform.createAndLookAt(Vec3.create(0, 2, 5), Vec3.zero()),
+                    transform: Transform.createAndLookAt({ translation: Vec3.create(0, 2, 5), target: Vec3.zero() }),
                     camera: PerspectiveCamera.create({ aspect: canvas.width / canvas.height }),
                 }),
             });
@@ -57,7 +57,7 @@ const run = async () => {
 
             world.spawnBundle({
                 id: 'entity1',
-                bundle: PhongBundle.create({
+                bundle: PhongEntityBundle.create({
                     data: Data.create(new SharedArrayBuffer(Structs.PhongEntity.bufferSize)),
                     transform: Transform.createFromTRS({ translation: [-1, 0, 0] }),
                     material: PhongMaterial.create({ diffuseColor: [0.965, 0.447, 0.502] }),
@@ -67,7 +67,7 @@ const run = async () => {
 
             world.spawnBundle({
                 id: 'entity2',
-                bundle: PhongBundle.create({
+                bundle: PhongEntityBundle.create({
                     transform: Transform.createFromTRS({ translation: [1, 0, 0] }),
                     material: PhongMaterial.create({ diffuseColor: [0.208, 0.361, 0.49] }),
                 }),

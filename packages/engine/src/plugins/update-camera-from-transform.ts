@@ -1,12 +1,12 @@
 import { Plugin, System } from '@timefold/ecs';
-import { EngineWorld } from '../types';
 import { PerspectiveCamera } from '../components';
+import { EngineWorld } from '../types';
 
 export const UpdateCameraFromTransformPlugin = Plugin.create<EngineWorld>({
     fn: (world) => {
         const query = world.createQuery(
             {
-                tuple: [{ has: '@timefold/Transform' }, { has: '@timefold/PerspectiveCamera' }],
+                tuple: [{ has: '@tf/Transform' }, { has: '@tf/PerspectiveCamera' }],
             },
             { map: ([transform, camera]) => ({ modelMatrix: transform.data.modelMatrix, camera }) },
         );

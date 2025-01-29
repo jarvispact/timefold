@@ -1,22 +1,10 @@
 import { Component } from '@timefold/ecs';
 import { Mat4x4, MathUtils } from '@timefold/math';
+import { PerspectiveCameraComponent, PerspectiveCameraType } from './types';
 
-export const type = '@timefold/PerspectiveCamera';
-export type PerspectiveCameraType = typeof type;
+export const type: PerspectiveCameraType = '@tf/PerspectiveCamera';
 
-export type PerspectiveCameraData = {
-    aspect: number;
-    fovy: number;
-    near: number;
-    far: number | undefined;
-    viewMatrix: Mat4x4.Type;
-    projectionMatrix: Mat4x4.Type;
-    viewProjectionMatrix: Mat4x4.Type;
-};
-
-export type PerspectiveCameraComponent = Component.Type<PerspectiveCameraType, PerspectiveCameraData>;
-
-export type CreateArgs = {
+type CreateArgs = {
     aspect: number;
     fovy?: number;
     near?: number;
@@ -48,7 +36,7 @@ export const create = (args: CreateArgs): PerspectiveCameraComponent => {
     });
 };
 
-export type CreateFromModelMatrixArgs = CreateArgs & { modelMatrix: Mat4x4.Type };
+type CreateFromModelMatrixArgs = CreateArgs & { modelMatrix: Mat4x4.Type };
 
 export const createFromModelMatrix = (args: CreateFromModelMatrixArgs): PerspectiveCameraComponent => {
     const aspect = args.aspect;
