@@ -1,17 +1,13 @@
-import { TypedArray } from './internal';
+import { QuatAngleOrder, QuatType } from './types';
 import { EPSILON } from './utils';
-
-export type Type = [number, number, number, number] | TypedArray;
-
-export type QuatAngleOrder = 'xyz' | 'xzy' | 'yxz' | 'yzx' | 'zxy' | 'zyx';
 
 export const angleOrder: QuatAngleOrder = 'zyx';
 
-export const create = (x: number, y: number, z: number, w: number): Type => [x, y, z, w];
+export const create = (x: number, y: number, z: number, w: number): QuatType => [x, y, z, w];
 
-export const createIdentity = (): Type => [0, 0, 0, 1];
+export const createIdentity = (): QuatType => [0, 0, 0, 1];
 
-export const copy = (out: Type, quat: Type): Type => {
+export const copy = (out: QuatType, quat: QuatType): QuatType => {
     out[0] = quat[0];
     out[1] = quat[1];
     out[2] = quat[2];
@@ -19,11 +15,11 @@ export const copy = (out: Type, quat: Type): Type => {
     return out;
 };
 
-export const createCopy = (quat: Type): Type => {
+export const createCopy = (quat: QuatType): QuatType => {
     return copy(create(0, 0, 0, 1), quat);
 };
 
-export const set = (out: Type, x: number, y: number, z: number, w: number) => {
+export const set = (out: QuatType, x: number, y: number, z: number, w: number) => {
     out[0] = x;
     out[1] = y;
     out[2] = z;
@@ -31,7 +27,7 @@ export const set = (out: Type, x: number, y: number, z: number, w: number) => {
     return out;
 };
 
-export const fromEuler = (out: Type, x: number, y: number, z: number, order: QuatAngleOrder = angleOrder) => {
+export const fromEuler = (out: QuatType, x: number, y: number, z: number, order: QuatAngleOrder = angleOrder) => {
     const halfToRad = Math.PI / 360;
     x *= halfToRad;
     z *= halfToRad;
@@ -88,7 +84,7 @@ export const fromEuler = (out: Type, x: number, y: number, z: number, order: Qua
     return out;
 };
 
-export const rotationX = (out: Type, quat: Type, radians: number) => {
+export const rotationX = (out: QuatType, quat: QuatType, radians: number) => {
     radians *= 0.5;
 
     const ax = quat[0],
@@ -107,9 +103,9 @@ export const rotationX = (out: Type, quat: Type, radians: number) => {
     return out;
 };
 
-export const rotateX = (out: Type, radians: number) => rotationX(out, out, radians);
+export const rotateX = (out: QuatType, radians: number) => rotationX(out, out, radians);
 
-export const rotationY = (out: Type, quat: Type, radians: number) => {
+export const rotationY = (out: QuatType, quat: QuatType, radians: number) => {
     radians *= 0.5;
 
     const ax = quat[0],
@@ -128,9 +124,9 @@ export const rotationY = (out: Type, quat: Type, radians: number) => {
     return out;
 };
 
-export const rotateY = (out: Type, radians: number) => rotationY(out, out, radians);
+export const rotateY = (out: QuatType, radians: number) => rotationY(out, out, radians);
 
-export const rotationZ = (out: Type, quat: Type, radians: number) => {
+export const rotationZ = (out: QuatType, quat: QuatType, radians: number) => {
     radians *= 0.5;
 
     const ax = quat[0],
@@ -149,9 +145,9 @@ export const rotationZ = (out: Type, quat: Type, radians: number) => {
     return out;
 };
 
-export const rotateZ = (out: Type, radians: number) => rotationZ(out, out, radians);
+export const rotateZ = (out: QuatType, radians: number) => rotationZ(out, out, radians);
 
-export const multiplication = (out: Type, a: Type, b: Type) => {
+export const multiplication = (out: QuatType, a: QuatType, b: QuatType) => {
     const ax = a[0],
         ay = a[1],
         az = a[2],
@@ -170,9 +166,9 @@ export const multiplication = (out: Type, a: Type, b: Type) => {
     return out;
 };
 
-export const multiply = (out: Type, quat: Type) => multiplication(out, out, quat);
+export const multiply = (out: QuatType, quat: QuatType) => multiplication(out, out, quat);
 
-export const linearInterpolation = (out: Type, a: Type, b: Type, t: number) => {
+export const linearInterpolation = (out: QuatType, a: QuatType, b: QuatType, t: number) => {
     const ax = a[0];
     const ay = a[1];
     const az = a[2];
@@ -184,9 +180,9 @@ export const linearInterpolation = (out: Type, a: Type, b: Type, t: number) => {
     return out;
 };
 
-export const lerp = (out: Type, quat: Type, t: number) => linearInterpolation(out, out, quat, t);
+export const lerp = (out: QuatType, quat: QuatType, t: number) => linearInterpolation(out, out, quat, t);
 
-export const sphericalLinearInterpolation = (out: Type, a: Type, b: Type, t: number) => {
+export const sphericalLinearInterpolation = (out: QuatType, a: QuatType, b: QuatType, t: number) => {
     const ax = a[0],
         ay = a[1],
         az = a[2],
@@ -230,4 +226,4 @@ export const sphericalLinearInterpolation = (out: Type, a: Type, b: Type, t: num
     return out;
 };
 
-export const slerp = (out: Type, quat: Type, t: number) => sphericalLinearInterpolation(out, out, quat, t);
+export const slerp = (out: QuatType, quat: QuatType, t: number) => sphericalLinearInterpolation(out, out, quat, t);

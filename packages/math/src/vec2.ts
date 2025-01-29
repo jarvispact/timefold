@@ -1,61 +1,59 @@
-import { TypedArray } from './internal';
+import { Vec2Type } from './types';
 
-export type Type = [number, number] | TypedArray;
+export const create = (x: number, y: number): Vec2Type => [x, y];
+export const fromScalar = (scalar: number): Vec2Type => [scalar, scalar];
 
-export const create = (x: number, y: number): Type => [x, y];
-export const fromScalar = (scalar: number): Type => [scalar, scalar];
-
-export const copy = (out: Type, vec2: Type): Type => {
+export const copy = (out: Vec2Type, vec2: Vec2Type): Vec2Type => {
     out[0] = vec2[0];
     out[1] = vec2[1];
     return out;
 };
 
-export const createCopy = (vec2: Type): Type => {
+export const createCopy = (vec2: Vec2Type): Vec2Type => {
     return copy(create(0, 0), vec2);
 };
 
-export const addition = (out: Type, a: Type, b: Type) => {
+export const addition = (out: Vec2Type, a: Vec2Type, b: Vec2Type) => {
     out[0] = a[0] + b[0];
     out[1] = a[1] + b[1];
     return out;
 };
 
-export const add = (out: Type, vec2: Type) => {
+export const add = (out: Vec2Type, vec2: Vec2Type) => {
     return addition(out, out, vec2);
 };
 
-export const subtraction = (out: Type, a: Type, b: Type) => {
+export const subtraction = (out: Vec2Type, a: Vec2Type, b: Vec2Type) => {
     out[0] = a[0] - b[0];
     out[1] = a[1] - b[1];
     return out;
 };
 
-export const subtract = (out: Type, vec2: Type) => {
+export const subtract = (out: Vec2Type, vec2: Vec2Type) => {
     return subtraction(out, out, vec2);
 };
 
-export const multiplication = (out: Type, a: Type, b: Type) => {
+export const multiplication = (out: Vec2Type, a: Vec2Type, b: Vec2Type) => {
     out[0] = a[0] * b[0];
     out[1] = a[1] * b[1];
     return out;
 };
 
-export const multiply = (out: Type, vec2: Type) => {
+export const multiply = (out: Vec2Type, vec2: Vec2Type) => {
     return multiplication(out, out, vec2);
 };
 
-export const scaling = (out: Type, vec2: Type, factor: number) => {
+export const scaling = (out: Vec2Type, vec2: Vec2Type, factor: number) => {
     out[0] = vec2[0] * factor;
     out[1] = vec2[1] * factor;
     return out;
 };
 
-export const scale = (out: Type, factor: number) => {
+export const scale = (out: Vec2Type, factor: number) => {
     return scaling(out, out, factor);
 };
 
-export const normalization = (out: Type, vec2: Type) => {
+export const normalization = (out: Vec2Type, vec2: Vec2Type) => {
     const x = vec2[0],
         y = vec2[1];
 
@@ -70,7 +68,7 @@ export const normalization = (out: Type, vec2: Type) => {
     return out;
 };
 
-export const normalize = (out: Type) => {
+export const normalize = (out: Vec2Type) => {
     return normalization(out, out);
 };
 
@@ -78,7 +76,7 @@ export const createNormalized = (x: number, y: number) => {
     return normalize(create(x, y));
 };
 
-export const linearInterpolation = (out: Type, a: Type, b: Type, t: number) => {
+export const linearInterpolation = (out: Vec2Type, a: Vec2Type, b: Vec2Type, t: number) => {
     const ax = a[0],
         ay = a[1];
 
@@ -88,11 +86,11 @@ export const linearInterpolation = (out: Type, a: Type, b: Type, t: number) => {
     return out;
 };
 
-export const lerp = (out: Type, vec2: Type, t: number) => {
+export const lerp = (out: Vec2Type, vec2: Vec2Type, t: number) => {
     return linearInterpolation(out, out, vec2, t);
 };
 
-export const rotation = (out: Type, a: Type, b: Type, rad: number) => {
+export const rotation = (out: Vec2Type, a: Vec2Type, b: Vec2Type, rad: number) => {
     //Translate point to the origin
     const p0 = a[0] - b[0],
         p1 = a[1] - b[1],
@@ -106,6 +104,6 @@ export const rotation = (out: Type, a: Type, b: Type, rad: number) => {
     return out;
 };
 
-export const rotate = (out: Type, vec2: Type, rad: number) => {
+export const rotate = (out: Vec2Type, vec2: Vec2Type, rad: number) => {
     return rotation(out, out, vec2, rad);
 };

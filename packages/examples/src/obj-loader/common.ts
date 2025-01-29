@@ -1,5 +1,5 @@
 import { Uniform, WebgpuUtils, Wgsl } from '@timefold/webgpu';
-import { Vec3, Mat4x4, MathUtils } from '@timefold/math';
+import { Vec3, Mat4x4, MathUtils, Vec3Type } from '@timefold/math';
 import { ObjObject } from '@timefold/obj';
 
 const dpr = window.devicePixelRatio || 1;
@@ -120,7 +120,7 @@ export type CommonEntity = {
     };
 };
 
-export const setupEntity = (color: Vec3.Type, layout: Awaited<ReturnType<typeof setupScene>>['Layout']) => {
+export const setupEntity = (color: Vec3Type, layout: Awaited<ReturnType<typeof setupScene>>['Layout']) => {
     const uniform = layout.createBindGroups(1, { entity: WebgpuUtils.createBufferDescriptor() });
 
     const entity = Entity.create();

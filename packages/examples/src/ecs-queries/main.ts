@@ -1,12 +1,12 @@
 import { Component, System, World } from '@timefold/ecs';
-import { Vec2 } from '@timefold/math';
+import { Vec2, Vec2Type } from '@timefold/math';
 
-type PositionComponent = Component.Type<'Position', Vec2.Type>;
-type VelocityComponent = Component.Type<'Velocity', Vec2.Type>;
+type PositionComponent = Component.Type<'Position', Vec2Type>;
+type VelocityComponent = Component.Type<'Velocity', Vec2Type>;
 type MoveableComponent = Component.Type<'Moveable'>;
 type WorldComponent = PositionComponent | VelocityComponent | MoveableComponent;
 
-const createComponents = (vel: Vec2.Type, isMoveable: boolean) => {
+const createComponents = (vel: Vec2Type, isMoveable: boolean) => {
     const position = Component.create('Position', Vec2.create(0, 0));
     const velocity = Component.create('Velocity', vel);
     const moveable = Component.create('Moveable');

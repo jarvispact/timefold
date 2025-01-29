@@ -1,5 +1,5 @@
 import { Component } from '@timefold/ecs';
-import { Vec3, Scalar, Mat4x4, Quat } from '@timefold/math';
+import { Vec3Type, ScalarType, Mat4x4Type, QuatType } from '@timefold/math';
 
 // Data
 
@@ -11,9 +11,9 @@ export type DataComponent<B extends ArrayBufferLike = ArrayBuffer> = Component.T
 export type DirLightType = '@tf/DirLight';
 
 export type DirLightData = {
-    direction: Vec3.Type;
-    color: Vec3.Type;
-    intensity: Scalar.Type;
+    direction: Vec3Type;
+    color: Vec3Type;
+    intensity: ScalarType;
 };
 
 export type DirLightComponent = Component.Type<DirLightType, DirLightData>;
@@ -27,9 +27,9 @@ export type PerspectiveCameraData = {
     fovy: number;
     near: number;
     far: number | undefined;
-    viewMatrix: Mat4x4.Type;
-    projectionMatrix: Mat4x4.Type;
-    viewProjectionMatrix: Mat4x4.Type;
+    viewMatrix: Mat4x4Type;
+    projectionMatrix: Mat4x4Type;
+    viewProjectionMatrix: Mat4x4Type;
 };
 
 export type PerspectiveCameraComponent = Component.Type<PerspectiveCameraType, PerspectiveCameraData>;
@@ -39,9 +39,9 @@ export type PerspectiveCameraComponent = Component.Type<PerspectiveCameraType, P
 export type PhongMaterialType = '@tf/PhongMaterial';
 
 export type PhongMaterialData = {
-    diffuseColor: Vec3.Type;
-    specularColor: Vec3.Type;
-    opacity: Scalar.Type;
+    diffuseColor: Vec3Type;
+    specularColor: Vec3Type;
+    opacity: ScalarType;
 };
 
 export type PhongMaterialComponent = Component.Type<PhongMaterialType, PhongMaterialData>;
@@ -51,11 +51,11 @@ export type PhongMaterialComponent = Component.Type<PhongMaterialType, PhongMate
 export type TransformType = '@tf/Transform';
 
 export type TransformData = {
-    translation: Vec3.Type;
-    rotation: Quat.Type;
-    scale: Vec3.Type;
-    modelMatrix: Mat4x4.Type;
-    normalMatrix: Mat4x4.Type;
+    translation: Vec3Type;
+    rotation: QuatType;
+    scale: Vec3Type;
+    modelMatrix: Mat4x4Type;
+    normalMatrix: Mat4x4Type;
 };
 
 export type TransformComponent = Component.Type<TransformType, TransformData>;

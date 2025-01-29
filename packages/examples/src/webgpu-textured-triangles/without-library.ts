@@ -1,4 +1,4 @@
-import { Mat4x4, MathUtils, Vec3 } from '@timefold/math';
+import { Mat4x4, MathUtils, Vec3, Vec3Type } from '@timefold/math';
 import { Entity } from './entity';
 
 const dpr = window.devicePixelRatio || 1;
@@ -40,7 +40,7 @@ struct Entity {
 }
 `.trim();
 
-const createEntity = (device: GPUDevice, layout: GPUBindGroupLayout, position: Vec3.Type, color: Vec3.Type): Entity => {
+const createEntity = (device: GPUDevice, layout: GPUBindGroupLayout, position: Vec3Type, color: Vec3Type): Entity => {
     const data = new ArrayBuffer(16 * Float32Array.BYTES_PER_ELEMENT + 4 * Float32Array.BYTES_PER_ELEMENT);
     const modelMatrix = new Float32Array(data, 0, 16);
     const _color = new Float32Array(data, 16 * Float32Array.BYTES_PER_ELEMENT, 3);

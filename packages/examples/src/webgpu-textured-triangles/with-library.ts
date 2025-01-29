@@ -1,4 +1,4 @@
-import { Mat4x4, MathUtils, Vec3 } from '@timefold/math';
+import { Mat4x4, MathUtils, Vec3, Vec3Type } from '@timefold/math';
 import { Uniform, WebgpuUtils, Wgsl } from '@timefold/webgpu';
 import { Entity } from './entity';
 
@@ -61,7 +61,7 @@ ${Uniform.getWgslFromGroups([SceneUniformGroup, EntityUniformGroup])}
 }
 `.trim();
 
-const createEntity = (bindgroup: GPUBindGroup, buffer: GPUBuffer, position: Vec3.Type, color: Vec3.Type): Entity => {
+const createEntity = (bindgroup: GPUBindGroup, buffer: GPUBuffer, position: Vec3Type, color: Vec3Type): Entity => {
     const { buffer: data, views } = EntityStruct.create();
     Mat4x4.fromTranslation(views.model_matrix, position);
     Vec3.copy(views.color, color);

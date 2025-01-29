@@ -1,12 +1,12 @@
 import { Component } from '@timefold/ecs';
-import { Scalar, Vec3 } from '@timefold/math';
+import { Scalar, Vec3, Vec3Type } from '@timefold/math';
 import { PhongMaterialComponent, PhongMaterialType } from './types';
 
 export const type: PhongMaterialType = '@tf/PhongMaterial';
 
 export type CreateArgs = {
-    diffuseColor?: Vec3.Type;
-    specularColor?: Vec3.Type;
+    diffuseColor?: Vec3Type;
+    specularColor?: Vec3Type;
     opacity?: number;
 };
 

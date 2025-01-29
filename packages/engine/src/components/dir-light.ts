@@ -1,12 +1,12 @@
 import { Component } from '@timefold/ecs';
-import { Vec3, Scalar } from '@timefold/math';
+import { Vec3, Scalar, Vec3Type } from '@timefold/math';
 import { DirLightComponent, DirLightType } from './types';
 
 export const type: DirLightType = '@tf/DirLight';
 
 type CreateArgs = {
-    direction: Vec3.Type;
-    color?: Vec3.Type;
+    direction: Vec3Type;
+    color?: Vec3Type;
     intensity?: number;
 };
 

@@ -1,5 +1,5 @@
 import { Component } from '@timefold/ecs';
-import { Mat4x4, MathUtils } from '@timefold/math';
+import { Mat4x4, Mat4x4Type, MathUtils } from '@timefold/math';
 import { PerspectiveCameraComponent, PerspectiveCameraType } from './types';
 
 export const type: PerspectiveCameraType = '@tf/PerspectiveCamera';
@@ -36,7 +36,7 @@ export const create = (args: CreateArgs): PerspectiveCameraComponent => {
     });
 };
 
-type CreateFromModelMatrixArgs = CreateArgs & { modelMatrix: Mat4x4.Type };
+type CreateFromModelMatrixArgs = CreateArgs & { modelMatrix: Mat4x4Type };
 
 export const createFromModelMatrix = (args: CreateFromModelMatrixArgs): PerspectiveCameraComponent => {
     const aspect = args.aspect;
@@ -63,7 +63,7 @@ export const createFromModelMatrix = (args: CreateFromModelMatrixArgs): Perspect
     });
 };
 
-export const updateFromModelMatrix = (out: PerspectiveCameraComponent, modelMatrix: Mat4x4.Type) => {
+export const updateFromModelMatrix = (out: PerspectiveCameraComponent, modelMatrix: Mat4x4Type) => {
     Mat4x4.invert(out.data.viewMatrix, modelMatrix);
     Mat4x4.multiplication(out.data.viewProjectionMatrix, out.data.projectionMatrix, out.data.viewMatrix);
     return out;
