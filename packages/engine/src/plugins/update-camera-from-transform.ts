@@ -1,8 +1,8 @@
-import { Plugin, System } from '@timefold/ecs';
+import { createPlugin, createSystem } from '@timefold/ecs';
 import { PerspectiveCamera } from '../components';
 import { EngineWorld } from '../types';
 
-export const UpdateCameraFromTransformPlugin = Plugin.create<EngineWorld>({
+export const UpdateCameraFromTransformPlugin = createPlugin<EngineWorld>({
     fn: (world) => {
         const query = world.createQuery(
             {
@@ -11,7 +11,7 @@ export const UpdateCameraFromTransformPlugin = Plugin.create<EngineWorld>({
             { map: ([transform, camera]) => ({ modelMatrix: transform.data.modelMatrix, camera }) },
         );
 
-        const UpdateCameraSystem = System.create({
+        const UpdateCameraSystem = createSystem({
             stage: 'after-update',
             fn: () => {
                 for (const { modelMatrix, camera } of query) {

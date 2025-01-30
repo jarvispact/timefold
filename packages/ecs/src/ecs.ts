@@ -1,6 +1,6 @@
-export * as Component from './component';
-export * as Event from './event';
-export * as Plugin from './plugin';
-export * as System from './system';
-export * as World from './world';
-export * from './entity';
+export * from './component';
+export * from './event';
+export * from './plugin';
+export * from './system';
+export * from './world';
+export * from './types';

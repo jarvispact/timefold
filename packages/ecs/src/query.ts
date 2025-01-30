@@ -1,45 +1,45 @@
-import * as Component from './component';
+import { Component } from './component';
 
 type CommonQueryTupleDefinition = {
     include?: false;
     optional?: true;
 };
 
-type HasQueryTupleDefinition<WorldComponent extends Component.Type> = CommonQueryTupleDefinition & {
+type HasQueryTupleDefinition<WorldComponent extends Component> = CommonQueryTupleDefinition & {
     has: WorldComponent['type'];
 };
 
-type OrQueryTupleDefinition<WorldComponent extends Component.Type> = CommonQueryTupleDefinition & {
+type OrQueryTupleDefinition<WorldComponent extends Component> = CommonQueryTupleDefinition & {
     or: WorldComponent['type'][];
 };
 
-export type QueryTupleDefinition<WorldComponent extends Component.Type> =
+export type QueryTupleDefinition<WorldComponent extends Component> =
     | HasQueryTupleDefinition<WorldComponent>
     | OrQueryTupleDefinition<WorldComponent>;
 
-export type QueryDefinition<WorldComponent extends Component.Type> = {
+export type QueryDefinition<WorldComponent extends Component> = {
     includeId?: true;
     tuple: QueryTupleDefinition<WorldComponent>[];
 };
 
-export const isHasQueryDefinition = <WorldComponent extends Component.Type>(
+export const isHasQueryDefinition = <WorldComponent extends Component>(
     item: QueryTupleDefinition<WorldComponent>,
 ): item is HasQueryTupleDefinition<WorldComponent> => 'has' in item && typeof item.has === 'string';
 
-export const isOrQueryDefinition = <WorldComponent extends Component.Type>(
+export const isOrQueryDefinition = <WorldComponent extends Component>(
     item: QueryTupleDefinition<WorldComponent>,
 ): item is OrQueryTupleDefinition<WorldComponent> => 'or' in item && Array.isArray(item.or);
 
-type Optional<TupleItem extends QueryTupleDefinition<Component.Type>, T> = TupleItem extends { optional: true }
+type Optional<TupleItem extends QueryTupleDefinition<Component>, T> = TupleItem extends { optional: true }
     ? T | undefined
     : T;
 
 type DefaultToGenericComponent<T extends unknown[]> = {
-    [Idx in keyof T]: T[Idx] extends never ? Component.Type : T[Idx];
+    [Idx in keyof T]: T[Idx] extends never ? Component : T[Idx];
 };
 
 export type QueryTuple<
-    WorldComponent extends Component.Type,
+    WorldComponent extends Component,
     QueryDef extends QueryDefinition<WorldComponent>,
     Tuple extends unknown[] = [],
 > = QueryDef['tuple'] extends [

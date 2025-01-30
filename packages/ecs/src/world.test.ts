@@ -1,18 +1,18 @@
 import { expect, it, describe, vi, expectTypeOf } from 'vitest';
-import * as World from './world';
-import * as Component from './component';
+import { Component, createComponent } from './component';
+import { createWorld } from './world';
 
 describe('world', () => {
     describe('events', () => {
         it('should call the "ecs/spawn-entity" event listener', () => {
-            const world = World.create();
+            const world = createWorld();
 
             const mock = vi.fn();
             world.on('ecs/spawn-entity', mock);
 
             const entity = {
                 id: '0',
-                components: [Component.create('A', 'a'), Component.create('B', 42)],
+                components: [createComponent('A', 'a'), createComponent('B', 42)],
             };
 
             world.spawnEntity(entity.id, entity.components);
@@ -21,14 +21,14 @@ describe('world', () => {
         });
 
         it('should call the "ecs/despawn-entity" event listener', () => {
-            const world = World.create();
+            const world = createWorld();
 
             const mock = vi.fn();
             world.on('ecs/despawn-entity', mock);
 
             const entity = {
                 id: '0',
-                components: [Component.create('A', 'a'), Component.create('B', 42)],
+                components: [createComponent('A', 'a'), createComponent('B', 42)],
             };
 
             world.spawnEntity(entity.id, entity.components);
@@ -38,14 +38,14 @@ describe('world', () => {
         });
 
         it('should call the "ecs/add-component" event listener', () => {
-            const world = World.create();
+            const world = createWorld();
 
             const mock = vi.fn();
             world.on('ecs/add-component', mock);
 
-            const a = Component.create('A', 'a');
-            const b = Component.create('B', 42);
-            const c = Component.create('C', true);
+            const a = createComponent('A', 'a');
+            const b = createComponent('B', 42);
+            const c = createComponent('C', true);
 
             const entity = {
                 id: '0',
@@ -62,14 +62,14 @@ describe('world', () => {
         });
 
         it('should call the "ecs/remove-component" event listener', () => {
-            const world = World.create();
+            const world = createWorld();
 
             const mock = vi.fn();
             world.on('ecs/remove-component', mock);
 
-            const a = Component.create('A', 'a');
-            const b = Component.create('B', 42);
-            const c = Component.create('C', true);
+            const a = createComponent('A', 'a');
+            const b = createComponent('B', 42);
+            const c = createComponent('C', true);
 
             const entity = {
                 id: '0',
@@ -88,21 +88,21 @@ describe('world', () => {
 
     describe('queries (spawn-entity)', () => {
         it('should return tuples that contain just the id as the only item', () => {
-            type A = Component.Type<'A', string>;
-            type B = Component.Type<'B', number>;
-            type C = Component.Type<'C', boolean>;
+            type A = Component<'A', string>;
+            type B = Component<'B', number>;
+            type C = Component<'C', boolean>;
 
             type WorldComponent = A | B | C;
 
-            const world = World.create<WorldComponent>();
+            const world = createWorld<WorldComponent>();
 
             const query = world.createQuery({ includeId: true, tuple: [] });
             expectTypeOf(query).toMatchTypeOf<[string][]>();
             expect(query).toEqual([]);
 
-            const a = Component.create('A', 'a');
-            const b = Component.create('B', 42);
-            const c = Component.create('C', true);
+            const a = createComponent('A', 'a');
+            const b = createComponent('B', 42);
+            const c = createComponent('C', true);
 
             world.spawnEntity('0', [a]);
 
@@ -118,13 +118,13 @@ describe('world', () => {
         });
 
         it('[has-query] should return tuples that contain the id along with the specified components', () => {
-            type A = Component.Type<'A', string>;
-            type B = Component.Type<'B', number>;
-            type C = Component.Type<'C', boolean>;
+            type A = Component<'A', string>;
+            type B = Component<'B', number>;
+            type C = Component<'C', boolean>;
 
             type WorldComponent = A | B | C;
 
-            const world = World.create<WorldComponent>();
+            const world = createWorld<WorldComponent>();
 
             const query = world.createQuery({
                 includeId: true,
@@ -134,9 +134,9 @@ describe('world', () => {
             expectTypeOf(query).toMatchTypeOf<[string, A, C][]>();
             expect(query).toEqual([]);
 
-            const a = Component.create('A', 'a');
-            const b = Component.create('B', 42);
-            const c = Component.create('C', true);
+            const a = createComponent('A', 'a');
+            const b = createComponent('B', 42);
+            const c = createComponent('C', true);
 
             world.spawnEntity('0', [a]);
 
@@ -156,13 +156,13 @@ describe('world', () => {
         });
 
         it('[has-query] should return tuples without id and with the specified components', () => {
-            type A = Component.Type<'A', string>;
-            type B = Component.Type<'B', number>;
-            type C = Component.Type<'C', boolean>;
+            type A = Component<'A', string>;
+            type B = Component<'B', number>;
+            type C = Component<'C', boolean>;
 
             type WorldComponent = A | B | C;
 
-            const world = World.create<WorldComponent>();
+            const world = createWorld<WorldComponent>();
 
             const query = world.createQuery({
                 tuple: [{ has: 'A' }, { has: 'C' }],
@@ -171,9 +171,9 @@ describe('world', () => {
             expectTypeOf(query).toMatchTypeOf<[A, C][]>();
             expect(query).toEqual([]);
 
-            const a = Component.create('A', 'a');
-            const b = Component.create('B', 42);
-            const c = Component.create('C', true);
+            const a = createComponent('A', 'a');
+            const b = createComponent('B', 42);
+            const c = createComponent('C', true);
 
             world.spawnEntity('0', [a]);
 
@@ -193,13 +193,13 @@ describe('world', () => {
         });
 
         it('[has-query] should return the mapped result without id', () => {
-            type A = Component.Type<'A', string>;
-            type B = Component.Type<'B', number>;
-            type C = Component.Type<'C', boolean>;
+            type A = Component<'A', string>;
+            type B = Component<'B', number>;
+            type C = Component<'C', boolean>;
 
             type WorldComponent = A | B | C;
 
-            const world = World.create<WorldComponent>();
+            const world = createWorld<WorldComponent>();
 
             const query = world.createQuery(
                 {
@@ -213,9 +213,9 @@ describe('world', () => {
             expectTypeOf(query).toMatchTypeOf<{ a: string; c: boolean }[]>();
             expect(query).toEqual([]);
 
-            const a = Component.create('A', 'a');
-            const b = Component.create('B', 42);
-            const c = Component.create('C', true);
+            const a = createComponent('A', 'a');
+            const b = createComponent('B', 42);
+            const c = createComponent('C', true);
 
             world.spawnEntity('0', [a]);
 
@@ -235,13 +235,13 @@ describe('world', () => {
         });
 
         it('[has-query] should return tuples that contain the id along with the specified components respecting the `includes` flag', () => {
-            type A = Component.Type<'A', string>;
-            type B = Component.Type<'B', number>;
-            type C = Component.Type<'C', boolean>;
+            type A = Component<'A', string>;
+            type B = Component<'B', number>;
+            type C = Component<'C', boolean>;
 
             type WorldComponent = A | B | C;
 
-            const world = World.create<WorldComponent>();
+            const world = createWorld<WorldComponent>();
 
             const query = world.createQuery({
                 includeId: true,
@@ -251,9 +251,9 @@ describe('world', () => {
             expectTypeOf(query).toMatchTypeOf<[string, A][]>();
             expect(query).toEqual([]);
 
-            const a = Component.create('A', 'a');
-            const b = Component.create('B', 42);
-            const c = Component.create('C', true);
+            const a = createComponent('A', 'a');
+            const b = createComponent('B', 42);
+            const c = createComponent('C', true);
 
             world.spawnEntity('0', [a]);
 
@@ -273,13 +273,13 @@ describe('world', () => {
         });
 
         it('[has-query] should return tuples that contain the id along with the specified optional components', () => {
-            type A = Component.Type<'A', string>;
-            type B = Component.Type<'B', number>;
-            type C = Component.Type<'C', boolean>;
+            type A = Component<'A', string>;
+            type B = Component<'B', number>;
+            type C = Component<'C', boolean>;
 
             type WorldComponent = A | B | C;
 
-            const world = World.create<WorldComponent>();
+            const world = createWorld<WorldComponent>();
 
             const query = world.createQuery({
                 includeId: true,
@@ -289,9 +289,9 @@ describe('world', () => {
             expectTypeOf(query).toMatchTypeOf<[string, A, C | undefined][]>();
             expect(query).toEqual([]);
 
-            const a = Component.create('A', 'a');
-            const b = Component.create('B', 42);
-            const c = Component.create('C', true);
+            const a = createComponent('A', 'a');
+            const b = createComponent('B', 42);
+            const c = createComponent('C', true);
 
             world.spawnEntity('0', [a]);
 
@@ -314,13 +314,13 @@ describe('world', () => {
         });
 
         it('[or-query] should return tuples that contain the id along with the specified components', () => {
-            type A = Component.Type<'A', string>;
-            type B = Component.Type<'B', number>;
-            type C = Component.Type<'C', boolean>;
+            type A = Component<'A', string>;
+            type B = Component<'B', number>;
+            type C = Component<'C', boolean>;
 
             type WorldComponent = A | B | C;
 
-            const world = World.create<WorldComponent>();
+            const world = createWorld<WorldComponent>();
 
             const query = world.createQuery({
                 includeId: true,
@@ -330,9 +330,9 @@ describe('world', () => {
             expectTypeOf(query).toMatchTypeOf<[string, A | C][]>();
             expect(query).toEqual([]);
 
-            const a = Component.create('A', 'a');
-            const b = Component.create('B', 42);
-            const c = Component.create('C', true);
+            const a = createComponent('A', 'a');
+            const b = createComponent('B', 42);
+            const c = createComponent('C', true);
 
             world.spawnEntity('0', [a]);
 
@@ -359,13 +359,13 @@ describe('world', () => {
         });
 
         it('[or-query] should return the mapped result of the specified query', () => {
-            type A = Component.Type<'A', string>;
-            type B = Component.Type<'B', number>;
-            type C = Component.Type<'C', boolean>;
+            type A = Component<'A', string>;
+            type B = Component<'B', number>;
+            type C = Component<'C', boolean>;
 
             type WorldComponent = A | B | C;
 
-            const world = World.create<WorldComponent>();
+            const world = createWorld<WorldComponent>();
 
             const query = world.createQuery(
                 {
@@ -380,9 +380,9 @@ describe('world', () => {
             expectTypeOf(query).toMatchTypeOf<{ a: string; c: string | boolean }[]>();
             expect(query).toEqual([]);
 
-            const a = Component.create('A', 'a');
-            const b = Component.create('B', 42);
-            const c = Component.create('C', true);
+            const a = createComponent('A', 'a');
+            const b = createComponent('B', 42);
+            const c = createComponent('C', true);
 
             world.spawnEntity('0', [a]);
 
@@ -411,21 +411,21 @@ describe('world', () => {
 
     describe('queries (despawn-entity)', () => {
         it('should remove tuples that contain just the id as the only component', () => {
-            type A = Component.Type<'A', string>;
-            type B = Component.Type<'B', number>;
-            type C = Component.Type<'C', boolean>;
+            type A = Component<'A', string>;
+            type B = Component<'B', number>;
+            type C = Component<'C', boolean>;
 
             type WorldComponent = A | B | C;
 
-            const world = World.create<WorldComponent>();
+            const world = createWorld<WorldComponent>();
 
             const query = world.createQuery({ includeId: true, tuple: [] });
             expectTypeOf(query).toMatchTypeOf<[string][]>();
             expect(query).toEqual([]);
 
-            const a = Component.create('A', 'a');
-            const b = Component.create('B', 42);
-            const c = Component.create('C', true);
+            const a = createComponent('A', 'a');
+            const b = createComponent('B', 42);
+            const c = createComponent('C', true);
 
             world.spawnEntity('0', [a]);
 
@@ -451,13 +451,13 @@ describe('world', () => {
         });
 
         it('[has-query] should remove tuples that contain the id along with the specified component', () => {
-            type A = Component.Type<'A', string>;
-            type B = Component.Type<'B', number>;
-            type C = Component.Type<'C', boolean>;
+            type A = Component<'A', string>;
+            type B = Component<'B', number>;
+            type C = Component<'C', boolean>;
 
             type WorldComponent = A | B | C;
 
-            const world = World.create<WorldComponent>();
+            const world = createWorld<WorldComponent>();
 
             const query = world.createQuery({
                 includeId: true,
@@ -467,8 +467,8 @@ describe('world', () => {
             expectTypeOf(query).toMatchTypeOf<[string, A, C][]>();
             expect(query).toEqual([]);
 
-            const a = Component.create('A', 'a');
-            const c = Component.create('C', true);
+            const a = createComponent('A', 'a');
+            const c = createComponent('C', true);
 
             world.spawnEntity('0', [a, c]);
 
@@ -517,13 +517,13 @@ describe('world', () => {
         });
 
         it('[has-query] should remove tuples without the id and the specified component', () => {
-            type A = Component.Type<'A', string>;
-            type B = Component.Type<'B', number>;
-            type C = Component.Type<'C', boolean>;
+            type A = Component<'A', string>;
+            type B = Component<'B', number>;
+            type C = Component<'C', boolean>;
 
             type WorldComponent = A | B | C;
 
-            const world = World.create<WorldComponent>();
+            const world = createWorld<WorldComponent>();
 
             const query = world.createQuery({
                 tuple: [{ has: 'A' }, { has: 'C' }],
@@ -532,8 +532,8 @@ describe('world', () => {
             expectTypeOf(query).toMatchTypeOf<[A, C][]>();
             expect(query).toEqual([]);
 
-            const a = Component.create('A', 'a');
-            const c = Component.create('C', true);
+            const a = createComponent('A', 'a');
+            const c = createComponent('C', true);
 
             world.spawnEntity('0', [a, c]);
 
@@ -584,20 +584,20 @@ describe('world', () => {
 
     describe('queries (add-component)', () => {
         it('should add a tuple when a component is added to an entity which results in a satisfied query definition', () => {
-            type A = Component.Type<'A', string>;
-            type B = Component.Type<'B', number>;
-            type C = Component.Type<'C', boolean>;
+            type A = Component<'A', string>;
+            type B = Component<'B', number>;
+            type C = Component<'C', boolean>;
 
             type WorldComponent = A | B | C;
 
-            const world = World.create<WorldComponent>();
+            const world = createWorld<WorldComponent>();
 
             const query = world.createQuery({ includeId: true, tuple: [{ has: 'A' }] });
             expectTypeOf(query).toMatchTypeOf<[string, A][]>();
             expect(query).toEqual([]);
 
-            const a = Component.create('A', 'a');
-            const b = Component.create('B', 42);
+            const a = createComponent('A', 'a');
+            const b = createComponent('B', 42);
 
             world.spawnEntity('0', [a]);
 
@@ -626,13 +626,13 @@ describe('world', () => {
 
     describe('queries (remove-component)', () => {
         it('should remove a tuple when a component is removed from an entity which results in a query definition not being satisfied anymore', () => {
-            type A = Component.Type<'A', string>;
-            type B = Component.Type<'B', number>;
-            type C = Component.Type<'C', boolean>;
+            type A = Component<'A', string>;
+            type B = Component<'B', number>;
+            type C = Component<'C', boolean>;
 
             type WorldComponent = A | B | C;
 
-            const world = World.create<WorldComponent>();
+            const world = createWorld<WorldComponent>();
 
             const query = world.createQuery({
                 includeId: true,
@@ -642,8 +642,8 @@ describe('world', () => {
             expectTypeOf(query).toMatchTypeOf<[string, A, B][]>();
             expect(query).toEqual([]);
 
-            const a = Component.create('A', 'a');
-            const b = Component.create('B', 42);
+            const a = createComponent('A', 'a');
+            const b = createComponent('B', 42);
 
             world.spawnEntity('0', [a, b]);
 
@@ -672,13 +672,13 @@ describe('world', () => {
 
     describe('complex queries', () => {
         it('should produce the correct query eventually', () => {
-            type A = Component.Type<'A', string>;
-            type B = Component.Type<'B', number>;
-            type C = Component.Type<'C', boolean>;
-            type D = Component.Type<'D', null>;
+            type A = Component<'A', string>;
+            type B = Component<'B', number>;
+            type C = Component<'C', boolean>;
+            type D = Component<'D', null>;
 
             type WorldComponent = A | B | C | D;
-            const world = World.create<WorldComponent>();
+            const world = createWorld<WorldComponent>();
 
             const query = world.createQuery({
                 includeId: true,
@@ -688,10 +688,10 @@ describe('world', () => {
             expectTypeOf(query).toMatchTypeOf<[string, A, B | C, D | undefined][]>();
             expect(query).toEqual([]);
 
-            const a = Component.create('A', 'a');
-            const b = Component.create('B', 42);
-            const c = Component.create('C', true);
-            const d = Component.create('D', null);
+            const a = createComponent('A', 'a');
+            const b = createComponent('B', 42);
+            const c = createComponent('C', true);
+            const d = createComponent('D', null);
 
             world.spawnEntity('0', [a, b, d]); // match
             world.spawnEntity('1', [a, c, d]); // match

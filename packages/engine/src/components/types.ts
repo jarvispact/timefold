@@ -4,7 +4,7 @@ import { Vec3Type, ScalarType, Mat4x4Type, QuatType } from '@timefold/math';
 // Data
 
 export type DataType = '@tf/Data';
-export type DataComponent<B extends ArrayBufferLike = ArrayBuffer> = Component.Type<DataType, B>;
+export type DataComponent<B extends ArrayBufferLike = ArrayBuffer> = Component<DataType, B>;
 
 // DirLight
 
@@ -16,7 +16,7 @@ export type DirLightData = {
     intensity: ScalarType;
 };
 
-export type DirLightComponent = Component.Type<DirLightType, DirLightData>;
+export type DirLightComponent = Component<DirLightType, DirLightData>;
 
 // PerspectiveCamera
 
@@ -32,7 +32,7 @@ export type PerspectiveCameraData = {
     viewProjectionMatrix: Mat4x4Type;
 };
 
-export type PerspectiveCameraComponent = Component.Type<PerspectiveCameraType, PerspectiveCameraData>;
+export type PerspectiveCameraComponent = Component<PerspectiveCameraType, PerspectiveCameraData>;
 
 // PhongMaterial
 
@@ -44,7 +44,7 @@ export type PhongMaterialData = {
     opacity: ScalarType;
 };
 
-export type PhongMaterialComponent = Component.Type<PhongMaterialType, PhongMaterialData>;
+export type PhongMaterialComponent = Component<PhongMaterialType, PhongMaterialData>;
 
 // Transform
 
@@ -58,7 +58,7 @@ export type TransformData = {
     normalMatrix: Mat4x4Type;
 };
 
-export type TransformComponent = Component.Type<TransformType, TransformData>;
+export type TransformComponent = Component<TransformType, TransformData>;
 
 // EngineComponent
 

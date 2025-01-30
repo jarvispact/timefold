@@ -1,4 +1,4 @@
-import { Plugin, System, World } from '@timefold/ecs';
+import { createWorld, Plugin, System } from '@timefold/ecs';
 
 const MyPlugin = Plugin.create({
     fn: (world) => {
@@ -38,7 +38,7 @@ const MyUpdateSystem = System.create({
     },
 });
 
-const world = World.create().registerPlugins(MyPlugin).registerSystems([MyStartupSystem, MyUpdateSystem]);
+const world = createWorld().registerPlugins(MyPlugin).registerSystems([MyStartupSystem, MyUpdateSystem]);
 
 void (async () => {
     await world.run();

@@ -1,4 +1,4 @@
-import { Event, World } from '@timefold/ecs';
+import { EcsEvent, World } from '@timefold/ecs';
 import { EngineComponent } from './components/types';
 import { Wgsl } from '@timefold/webgpu';
 
@@ -60,7 +60,7 @@ export type PhongEntityStruct = Wgsl.Struct<
 
 // World
 
-export type EngineEvent = Event.EcsEvent<EngineComponent[]>;
+export type EngineEvent = EcsEvent<EngineComponent[]>;
 
 export type SceneData = Wgsl.InferStructResult<SceneStruct>;
 
@@ -72,4 +72,4 @@ export type EngineResources = {
     };
 };
 
-export type EngineWorld = World.World<EngineComponent, EngineEvent, EngineResources>;
+export type EngineWorld = World<EngineComponent, EngineEvent, EngineResources>;

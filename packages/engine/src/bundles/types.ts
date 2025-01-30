@@ -1,4 +1,4 @@
-import { Component, World, Event } from '@timefold/ecs';
+import { Component, EcsEvent, World } from '@timefold/ecs';
 import {
     DataComponent,
     DirLightComponent,
@@ -27,4 +27,4 @@ export type PhongEntityBundle = {
 
 // BundleWorld
 
-export type BundleWorld = World.World<Component.Type, Event.EcsEvent<Component.Type[]>, EngineResources>;
+export type BundleWorld = World<Component, EcsEvent<Component[]>, EngineResources>;

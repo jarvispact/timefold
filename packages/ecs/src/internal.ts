@@ -1,7 +1,7 @@
-import * as Component from './component';
-import * as Event from './event';
-import * as Plugin from './plugin';
-import * as System from './system';
+import { Component } from './component';
+import { GenericEcsEvent } from './event';
+import { EcsPlugin } from './plugin';
+import { EcsSystem, isParallelSystem, SystemStage } from './system';
 
 export const objectKeys = <Obj extends Record<string, unknown>>(obj: Obj) => Object.keys(obj) as (keyof Obj)[];
 
@@ -13,18 +13,18 @@ export const arrayOfAll =
     <U extends T[]>(array: U & ([T] extends [U[number]] ? unknown : 'Invalid')) =>
         array;
 
-export type ComponentsByType = Record<Component.Type['type'], Component.Type | undefined>;
+export type ComponentsByType = Record<Component['type'], Component | undefined>;
 
-export type Subscriber = (event: Event.Generic) => void;
+export type Subscriber = (event: GenericEcsEvent) => void;
 
 export const arraySwapDelete = <Item>(arr: Item[], idx: number) => {
     arr[idx] = arr[arr.length - 1];
     return arr.pop();
 };
 
-export const sortPlugin = (a: Plugin.Plugin, b: Plugin.Plugin) => a.order - b.order;
+export const sortPlugin = (a: EcsPlugin, b: EcsPlugin) => a.order - b.order;
 
-export const sortSystem = (a: System.System<System.Stage>, b: System.System<System.Stage>) => a.order - b.order;
+export const sortSystem = (a: EcsSystem<SystemStage>, b: EcsSystem<SystemStage>) => a.order - b.order;
 
 export const callFnWithoutArgs = (fn: () => unknown) => fn();
 
@@ -32,11 +32,11 @@ export const createCallFnWithUpdateArgs =
     (delta: number, time: number) => (fn: (delta: number, time: number) => unknown) =>
         fn(delta, time);
 
-export const runSystemsWithoutArgs = async (systems: System.System<'startup' | 'render'>[]) => {
+export const runSystemsWithoutArgs = async (systems: EcsSystem<'startup' | 'render'>[]) => {
     for (let i = 0; i < systems.length; i++) {
         const system = systems[i];
 
-        if (System.isParallel(system)) {
+        if (isParallelSystem(system)) {
             await Promise.allSettled(system.fns.map(callFnWithoutArgs));
         } else {
             const maybePromise = system.fn();
@@ -48,13 +48,13 @@ export const runSystemsWithoutArgs = async (systems: System.System<'startup' | '
 };
 
 export const createRunSystemsWithUpdateArgs =
-    (delta: number, time: number) => async (systems: System.System<'before-update' | 'update' | 'after-update'>[]) => {
+    (delta: number, time: number) => async (systems: EcsSystem<'before-update' | 'update' | 'after-update'>[]) => {
         const callFnWithUpdateArgs = createCallFnWithUpdateArgs(delta, time);
 
         for (let i = 0; i < systems.length; i++) {
             const system = systems[i];
 
-            if (System.isParallel(system)) {
+            if (isParallelSystem(system)) {
                 await Promise.allSettled(system.fns.map(callFnWithUpdateArgs));
             } else {
                 const maybePromise = system.fn(delta, time);
@@ -65,7 +65,7 @@ export const createRunSystemsWithUpdateArgs =
         }
     };
 
-export const findComponentByTypes = (componentTypes: Component.Type['type'][], components: Component.Type[]) => {
+export const findComponentByTypes = (componentTypes: Component['type'][], components: Component[]) => {
     for (let i = 0; i < components.length; i++) {
         const component = components[i];
         if (componentTypes.includes(component.type)) {
@@ -76,7 +76,7 @@ export const findComponentByTypes = (componentTypes: Component.Type['type'][], c
     return undefined;
 };
 
-export const removeComponentByType = (type: Component.Type['type'], components: Component.Type[]) => {
+export const removeComponentByType = (type: Component['type'], components: Component[]) => {
     for (let i = 0; i < components.length; i++) {
         const component = components[i];
         if (component.type === type) {

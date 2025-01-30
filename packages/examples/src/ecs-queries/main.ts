@@ -1,19 +1,19 @@
-import { Component, System, World } from '@timefold/ecs';
+import { Component, createComponent, createWorld, System } from '@timefold/ecs';
 import { Vec2, Vec2Type } from '@timefold/math';
 
-type PositionComponent = Component.Type<'Position', Vec2Type>;
-type VelocityComponent = Component.Type<'Velocity', Vec2Type>;
-type MoveableComponent = Component.Type<'Moveable'>;
+type PositionComponent = Component<'Position', Vec2Type>;
+type VelocityComponent = Component<'Velocity', Vec2Type>;
+type MoveableComponent = Component<'Moveable'>;
 type WorldComponent = PositionComponent | VelocityComponent | MoveableComponent;
 
 const createComponents = (vel: Vec2Type, isMoveable: boolean) => {
-    const position = Component.create('Position', Vec2.create(0, 0));
-    const velocity = Component.create('Velocity', vel);
-    const moveable = Component.create('Moveable');
+    const position = createComponent('Position', Vec2.create(0, 0));
+    const velocity = createComponent('Velocity', vel);
+    const moveable = createComponent('Moveable');
     return isMoveable ? [position, velocity, moveable] : [position, velocity];
 };
 
-const world = World.create<WorldComponent>();
+const world = createWorld<WorldComponent>();
 
 const query = world.createQuery(
     { includeId: true, tuple: [{ has: 'Position' }, { has: 'Velocity' }, { has: 'Moveable', include: false }] },

@@ -1,8 +1,9 @@
-export type Type<ComponentType extends string | number = string | number, Data = undefined> = Data extends undefined
-    ? { type: ComponentType }
-    : { type: ComponentType; data: Data };
+export type Component<
+    ComponentType extends string | number = string | number,
+    Data = undefined,
+> = Data extends undefined ? { type: ComponentType } : { type: ComponentType; data: Data };
 
-export const create = <ComponentType extends string | number = string | number, Data = undefined>(
+export const createComponent = <ComponentType extends string | number = string | number, Data = undefined>(
     type: ComponentType,
     data?: Data,
-) => (data === undefined ? { type } : { type, data }) as Type<ComponentType, Data>;
+) => (data === undefined ? { type } : { type, data }) as Component<ComponentType, Data>;

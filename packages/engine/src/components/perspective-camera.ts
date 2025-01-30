@@ -1,4 +1,4 @@
-import { Component } from '@timefold/ecs';
+import { createComponent } from '@timefold/ecs';
 import { Mat4x4, Mat4x4Type, MathUtils } from '@timefold/math';
 import { PerspectiveCameraComponent, PerspectiveCameraType } from './types';
 
@@ -25,7 +25,7 @@ export const create = (args: CreateArgs): PerspectiveCameraComponent => {
     Mat4x4.perspective(projectionMatrix, fovy, aspect, near, far);
     Mat4x4.multiplication(viewProjectionMatrix, projectionMatrix, viewMatrix);
 
-    return Component.create(type, {
+    return createComponent(type, {
         aspect,
         fovy,
         near,
@@ -52,7 +52,7 @@ export const createFromModelMatrix = (args: CreateFromModelMatrixArgs): Perspect
     Mat4x4.perspective(projectionMatrix, fovy, aspect, near, far);
     Mat4x4.multiplication(viewProjectionMatrix, projectionMatrix, viewMatrix);
 
-    return Component.create(type, {
+    return createComponent(type, {
         aspect,
         fovy,
         near,

@@ -1,49 +1,47 @@
-import * as Component from './component';
-import * as World from './world';
+import { Component } from './component';
+import { World } from './world';
 
-type BuildFn<W = World.World<Component.Type>> = ((world: W) => unknown) | ((world: W) => Promise<unknown>);
+type BuildFn<W = World<Component>> = ((world: W) => unknown) | ((world: W) => Promise<unknown>);
 
-export type SerialPluginArgs<W = World.World<Component.Type>> = {
+export type SerialPluginArgs<W = World<Component>> = {
     fn: BuildFn<W>;
     order?: number;
 };
 
-export type SerialPlugin<W = World.World<Component.Type>> = {
+export type SerialPlugin<W = World<Component>> = {
     parallel: false;
     fn: BuildFn<W>;
     order: number;
 };
 
-export type ParallelPluginArgs<W = World.World<Component.Type>> = {
+export type ParallelPluginArgs<W = World<Component>> = {
     fns: BuildFn<W>[];
     order?: number;
 };
 
-export type ParallelPlugin<W = World.World<Component.Type>> = {
+export type ParallelPlugin<W = World<Component>> = {
     parallel: true;
     fns: BuildFn<W>[];
     order: number;
 };
 
-export type Plugin<W = World.World<Component.Type>> = SerialPlugin<W> | ParallelPlugin<W>;
+export type EcsPlugin<W = World<Component>> = SerialPlugin<W> | ParallelPlugin<W>;
 
-export const defaultOrder = 10;
+const defaultOrder = 10;
 
-export const isSerial = <W = World.World<Component.Type>>(
+export const isSerialPlugin = <W = World<Component>>(
     plugin: SerialPlugin<W> | ParallelPlugin<W>,
 ): plugin is SerialPlugin<W> => !plugin.parallel;
 
-export const isParallel = <W = World.World<Component.Type>>(
+export const isParallelPlugin = <W = World<Component>>(
     plugin: SerialPlugin<W> | ParallelPlugin<W>,
 ): plugin is ParallelPlugin<W> => plugin.parallel;
 
-const isParallelArgs = <W = World.World<Component.Type>>(
+const isParallelArgs = <W = World<Component>>(
     args: SerialPluginArgs<W> | ParallelPluginArgs<W>,
 ): args is ParallelPluginArgs<W> => 'fns' in args;
 
-export const create = <W = World.World<Component.Type>>(
-    args: SerialPluginArgs<W> | ParallelPluginArgs<W>,
-): Plugin<W> => {
+export const createPlugin = <W = World<Component>>(args: SerialPluginArgs<W> | ParallelPluginArgs<W>): EcsPlugin<W> => {
     if (isParallelArgs(args)) {
         return {
             parallel: true,

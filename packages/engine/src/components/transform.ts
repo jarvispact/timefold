@@ -1,4 +1,4 @@
-import { Component } from '@timefold/ecs';
+import { createComponent } from '@timefold/ecs';
 import { Vec3, Mat4x4, Quat, Vec3Type, QuatType } from '@timefold/math';
 import { TransformComponent, TransformType } from './types';
 
@@ -20,7 +20,7 @@ export const createFromTRS = (args: CreateFromTRSArgs): TransformComponent => {
     Mat4x4.transpose(normalMatrix, modelMatrix);
     Mat4x4.inverted(normalMatrix);
 
-    return Component.create(type, {
+    return createComponent(type, {
         translation,
         rotation,
         scale,
@@ -47,7 +47,7 @@ export const createAndLookAt = ({ translation, target, up = Vec3.up() }: CreateA
     Mat4x4.transpose(normalMatrix, modelMatrix);
     Mat4x4.inverted(normalMatrix);
 
-    return Component.create(type, {
+    return createComponent(type, {
         translation,
         rotation,
         scale,

@@ -13,50 +13,52 @@ type FnMap = {
     cleanup: FnWithoutArgs;
 };
 
-export type Stage = keyof FnMap;
-export type SystemFn<S extends Stage> = FnMap[S];
+export type SystemStage = keyof FnMap;
+export type SystemFnForStage<S extends SystemStage> = FnMap[S];
 
-export type SerialSystemArgs<S extends Stage> = {
+export type SerialSystemArgs<S extends SystemStage> = {
     stage: S;
     fn: FnMap[S];
     order?: number;
 };
 
-export type SerialSystem<S extends Stage> = {
+export type SerialSystem<S extends SystemStage> = {
     stage: S;
     parallel: false;
     fn: FnMap[S];
     order: number;
 };
 
-export type ParallelSystemArgs<S extends Stage> = {
+export type ParallelSystemArgs<S extends SystemStage> = {
     stage: S;
     fns: FnMap[S][];
     order?: number;
 };
 
-export type ParallelSystem<S extends Stage> = {
+export type ParallelSystem<S extends SystemStage> = {
     stage: S;
     parallel: true;
     fns: FnMap[S][];
     order: number;
 };
 
-export type System<S extends Stage> = SerialSystem<S> | ParallelSystem<S>;
+export type EcsSystem<S extends SystemStage> = SerialSystem<S> | ParallelSystem<S>;
 
-export const defaultOrder = 10;
+const defaultOrder = 10;
 
-export const isSerial = <S extends Stage>(system: SerialSystem<S> | ParallelSystem<S>): system is SerialSystem<S> =>
-    !system.parallel;
+export const isSerialSystem = <S extends SystemStage>(
+    system: SerialSystem<S> | ParallelSystem<S>,
+): system is SerialSystem<S> => !system.parallel;
 
-export const isParallel = <S extends Stage>(system: SerialSystem<S> | ParallelSystem<S>): system is ParallelSystem<S> =>
-    system.parallel;
+export const isParallelSystem = <S extends SystemStage>(
+    system: SerialSystem<S> | ParallelSystem<S>,
+): system is ParallelSystem<S> => system.parallel;
 
-const isParallelArgs = <S extends Stage>(
+const isParallelArgs = <S extends SystemStage>(
     args: SerialSystemArgs<S> | ParallelSystemArgs<S>,
 ): args is ParallelSystemArgs<S> => 'fns' in args;
 
-export const create = <S extends Stage, Args extends SerialSystemArgs<S> | ParallelSystemArgs<S>>(
+export const createSystem = <S extends SystemStage, Args extends SerialSystemArgs<S> | ParallelSystemArgs<S>>(
     args: Args,
 ): Args extends ParallelSystemArgs<S> ? ParallelSystem<S> : SerialSystem<S> => {
     if (isParallelArgs(args)) {

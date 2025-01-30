@@ -1,7 +1,3 @@
-import * as Component from './component';
-import * as Event from './event';
-import * as Plugin from './plugin';
-import * as System from './system';
 import {
     arraySwapDelete,
     createRunSystemsWithUpdateArgs,
@@ -13,41 +9,52 @@ import {
     sortSystem,
     Subscriber,
 } from './internal';
-import * as Query from './query';
-import { EntityId } from './entity';
+import { EntityId } from './types';
+import { Component } from './component';
+import { EcsPlugin, isParallelPlugin } from './plugin';
+import {
+    AddComponentEcsEvent,
+    DespawnEntityEcsEvent,
+    EcsEvent,
+    GenericEcsEvent,
+    RemoveComponentEcsEvent,
+    SpawnEntityEcsEvent,
+} from './event';
+import { EcsSystem, ParallelSystem, SerialSystem, SystemStage } from './system';
+import { isHasQueryDefinition, QueryDefinition, QueryTuple } from './query';
 
-export type Options = {
+export type WorldOptions = {
     targetUpdatesPerSecond: number;
     targetFramesPerSecond: number;
 };
 
-const defaultOptions: Options = {
+const defaultOptions: WorldOptions = {
     targetUpdatesPerSecond: 60,
     targetFramesPerSecond: 60,
 };
 
 class EcsWorld<
-    WorldComponent extends Component.Type,
-    WorldEvent extends Event.Generic = Event.EcsEvent<WorldComponent[]>,
+    WorldComponent extends Component,
+    WorldEvent extends GenericEcsEvent = EcsEvent<WorldComponent[]>,
     WorldResources extends Record<string, unknown> = Record<string, unknown>,
 > {
     deltaTime: number = 0;
     time: number = 0;
 
-    private options: Options;
+    private options: WorldOptions;
 
     private resources: WorldResources = {} as WorldResources;
 
-    private subscribers: Record<Event.EcsEvent<Component.Type[]>['type'], Subscriber[]> = {
+    private subscribers: Record<EcsEvent<Component[]>['type'], Subscriber[]> = {
         'ecs/spawn-entity': [],
         'ecs/despawn-entity': [],
         'ecs/add-component': [],
         'ecs/remove-component': [],
     };
 
-    private plugins: Plugin.Plugin[] = [];
+    private plugins: EcsPlugin[] = [];
 
-    private systems: { [S in System.Stage]: (System.SerialSystem<S> | System.ParallelSystem<S>)[] } = {
+    private systems: { [S in SystemStage]: (SerialSystem<S> | ParallelSystem<S>)[] } = {
         startup: [],
         'before-update': [],
         update: [],
@@ -56,10 +63,10 @@ class EcsWorld<
         cleanup: [],
     };
 
-    private componentsByEntityId: Record<EntityId, Component.Type[] | undefined> = {};
+    private componentsByEntityId: Record<EntityId, Component[] | undefined> = {};
 
-    constructor(opts?: Partial<Options>) {
-        const options: Options = { ...defaultOptions, ...opts };
+    constructor(opts?: Partial<WorldOptions>) {
+        const options: WorldOptions = { ...defaultOptions, ...opts };
         this.options = options;
     }
 
@@ -71,9 +78,9 @@ class EcsWorld<
         this.resources[id] = resource;
     }
 
-    private internalOn<EventType extends Event.EcsEvent<Component.Type[]>['type']>(
+    private internalOn<EventType extends EcsEvent<Component[]>['type']>(
         eventType: EventType,
-        listener: (event: Extract<Event.EcsEvent<Component.Type[]>, { type: EventType }>) => void,
+        listener: (event: Extract<EcsEvent<Component[]>, { type: EventType }>) => void,
     ) {
         this.subscribers[eventType].push(listener as Subscriber);
     }
@@ -85,7 +92,7 @@ class EcsWorld<
         this.internalOn(eventType as never, listener);
     }
 
-    private internalEmit(event: Event.EcsEvent<Component.Type[]>) {
+    private internalEmit(event: EcsEvent<Component[]>) {
         for (let i = 0; i < this.subscribers[event.type].length; i++) {
             const subscriber = this.subscribers[event.type][i];
             subscriber(event);
@@ -97,7 +104,7 @@ class EcsWorld<
     }
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    registerPlugins(plugins: Plugin.Plugin<any> | Plugin.Plugin<any>[]) {
+    registerPlugins(plugins: EcsPlugin<any> | EcsPlugin<any>[]) {
         const pluginsArray = Array.isArray(plugins) ? plugins : [plugins];
 
         for (let i = 0; i < pluginsArray.length; i++) {
@@ -110,10 +117,10 @@ class EcsWorld<
         return this;
     }
 
-    registerSystems(systems: System.System<System.Stage> | System.System<System.Stage>[]) {
+    registerSystems(systems: EcsSystem<SystemStage> | EcsSystem<SystemStage>[]) {
         const systemsArray = Array.isArray(systems) ? systems : [systems];
 
-        let stagesToSort: System.Stage[] = [];
+        let stagesToSort: SystemStage[] = [];
 
         for (let i = 0; i < systemsArray.length; i++) {
             const system = systemsArray[i];
@@ -165,7 +172,7 @@ class EcsWorld<
         id: string;
         bundle:
             | WorldComponent[]
-            | ((world: EcsWorld<WorldComponent, Event.EcsEvent<WorldComponent[]>, WorldResources>) => WorldComponent[]);
+            | ((world: EcsWorld<WorldComponent, EcsEvent<WorldComponent[]>, WorldResources>) => WorldComponent[]);
         components?: WorldComponent[];
     }) {
         const bundleComponents = typeof bundle === 'function' ? bundle(this as never) : bundle;
@@ -178,7 +185,7 @@ class EcsWorld<
 
         type Component = Extract<WorldComponent, { type: T }>;
         return findComponentByTypes([type], componentsForEntityId) as Component extends never
-            ? Component.Type
+            ? Component
             : Component | undefined;
     }
 
@@ -208,9 +215,9 @@ class EcsWorld<
     }
 
     createQuery<
-        const QueryDef extends Query.QueryDefinition<WorldComponent>,
+        const QueryDef extends QueryDefinition<WorldComponent>,
         Options extends {
-            map?: (tuple: Query.QueryTuple<WorldComponent, QueryDef>) => unknown;
+            map?: (tuple: QueryTuple<WorldComponent, QueryDef>) => unknown;
         },
     >(queryDefinition: QueryDef, options?: Options) {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-return
@@ -242,7 +249,7 @@ class EcsWorld<
             }
         };
 
-        const spawnEntityEventHandler = (event: Event.SpawnEntity<Component.Type[]>) => {
+        const spawnEntityEventHandler = (event: SpawnEntityEcsEvent<Component[]>) => {
             const tuple: unknown[] = [];
 
             // special case - tuple with ids only
@@ -263,7 +270,7 @@ class EcsWorld<
             for (const item of queryDefinition.tuple) {
                 const include = item.include === undefined;
 
-                const component = Query.isHasQueryDefinition(item)
+                const component = isHasQueryDefinition(item)
                     ? findComponentByTypes([item.has], event.payload.components)
                     : findComponentByTypes(item.or, event.payload.components);
 
@@ -283,7 +290,7 @@ class EcsWorld<
             // ============================= Duplicated block end
         };
 
-        const despawnEntityEventHandler = (event: Event.DespawnEntity<Component.Type[]>) => {
+        const despawnEntityEventHandler = (event: DespawnEntityEcsEvent<Component[]>) => {
             // special case - tuple with ids only
             if (queryDefinition.tuple.length === 0 && queryDefinition.includeId) {
                 removeFromQueryResult(event.payload.id);
@@ -294,7 +301,7 @@ class EcsWorld<
             let queryMatchCount = 0;
 
             for (const item of queryDefinition.tuple) {
-                const component = Query.isHasQueryDefinition(item)
+                const component = isHasQueryDefinition(item)
                     ? findComponentByTypes([item.has], event.payload.components)
                     : findComponentByTypes(item.or, event.payload.components);
 
@@ -312,7 +319,7 @@ class EcsWorld<
             // ============================= Duplicated block end
         };
 
-        const addComponentEventHandler = (event: Event.AddComponent<Component.Type[]>) => {
+        const addComponentEventHandler = (event: AddComponentEcsEvent<Component[]>) => {
             // when there is no definition there is nothing to do.
             if (queryDefinition.tuple.length === 0) return;
 
@@ -336,7 +343,7 @@ class EcsWorld<
             for (const item of queryDefinition.tuple) {
                 const include = item.include === undefined;
 
-                const component = Query.isHasQueryDefinition(item)
+                const component = isHasQueryDefinition(item)
                     ? findComponentByTypes([item.has], componentsForEntityId)
                     : findComponentByTypes(item.or, componentsForEntityId);
 
@@ -356,7 +363,7 @@ class EcsWorld<
             // ============================= Duplicated block end
         };
 
-        const removeComponentEventHandler = (event: Event.RemoveComponent<Component.Type[]>) => {
+        const removeComponentEventHandler = (event: RemoveComponentEcsEvent<Component[]>) => {
             // when there is no definition there is nothing to do.
             if (queryDefinition.tuple.length === 0) return;
 
@@ -369,7 +376,7 @@ class EcsWorld<
 
             // ============================= Duplicated block start
             for (const item of queryDefinition.tuple) {
-                const component = Query.isHasQueryDefinition(item)
+                const component = isHasQueryDefinition(item)
                     ? findComponentByTypes([item.has], componentsForEntityId)
                     : findComponentByTypes(item.or, componentsForEntityId);
 
@@ -388,20 +395,20 @@ class EcsWorld<
         this.internalOn('ecs/remove-component', removeComponentEventHandler);
 
         return queryResult as unknown as Options extends {
-            map: (tuple: Query.QueryTuple<WorldComponent, QueryDef>) => infer MapResult;
+            map: (tuple: QueryTuple<WorldComponent, QueryDef>) => infer MapResult;
         }
             ? MapResult[]
-            : Query.QueryTuple<WorldComponent, QueryDef>[];
+            : QueryTuple<WorldComponent, QueryDef>[];
     }
 
     async run() {
-        const callFnWithWorld = (fn: (world: World<Component.Type>) => unknown) => fn(this as never);
+        const callFnWithWorld = (fn: (world: World<Component>) => unknown) => fn(this as never);
 
         if (this.plugins.length > 0) {
             for (let i = 0; i < this.plugins.length; i++) {
                 const plugin = this.plugins[i];
 
-                if (Plugin.isParallel(plugin)) {
+                if (isParallelPlugin(plugin)) {
                     await Promise.allSettled(plugin.fns.map(callFnWithWorld));
                 } else {
                     const maybePromise = plugin.fn(this as never);
@@ -470,15 +477,15 @@ class EcsWorld<
 }
 
 export type World<
-    WorldComponent extends Component.Type,
-    WorldEvent extends Event.Generic = Event.EcsEvent<WorldComponent[]>,
+    WorldComponent extends Component,
+    WorldEvent extends GenericEcsEvent = EcsEvent<WorldComponent[]>,
     Resources extends Record<string, unknown> = Record<string, unknown>,
 > = EcsWorld<WorldComponent, WorldEvent, Resources>;
 
-export const create = <
-    WorldComponent extends Component.Type,
-    WorldEvent extends Event.Generic = Event.EcsEvent<WorldComponent[]>,
+export const createWorld = <
+    WorldComponent extends Component,
+    WorldEvent extends GenericEcsEvent = EcsEvent<WorldComponent[]>,
     Resources extends Record<string, unknown> = Record<string, unknown>,
 >(
-    options?: Partial<Options>,
+    options?: Partial<WorldOptions>,
 ): EcsWorld<WorldComponent, WorldEvent, Resources> => new EcsWorld(options);
