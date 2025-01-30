@@ -1,4 +1,4 @@
-import { Plugin, System } from '@timefold/ecs';
+import { createPlugin, createSystem } from '@timefold/ecs';
 import { Structs } from '@timefold/engine';
 import { Uniform, WebgpuUtils } from '@timefold/webgpu';
 import { cubeVertices, stride } from './cube';
@@ -152,9 +152,9 @@ export const createRenderPlugin = async (canvas: HTMLCanvasElement) => {
         device.queue.submit([encoder.finish()]);
     };
 
-    const RenderSystem = System.create({ stage: 'render', fn: render });
+    const RenderSystem = createSystem({ stage: 'render', fn: render });
 
-    return Plugin.create<World>({
+    return createPlugin<World>({
         fn: (world) => {
             world.registerSystems(RenderSystem);
         },

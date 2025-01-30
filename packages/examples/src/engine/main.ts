@@ -1,4 +1,4 @@
-import { System } from '@timefold/ecs';
+import { createSystem } from '@timefold/ecs';
 import {
     PhongMaterial,
     DirLightBundle,
@@ -23,7 +23,7 @@ canvas.height = canvas.clientHeight * dpr;
 const run = async () => {
     const RenderPlugin = await createRenderPlugin(canvas);
 
-    const StartupSystem = System.create({
+    const StartupSystem = createSystem({
         stage: 'startup',
         fn: () => {
             world.spawnBundle({
@@ -86,7 +86,7 @@ const run = async () => {
         },
     );
 
-    const UpdateSystem = System.create({
+    const UpdateSystem = createSystem({
         stage: 'update',
         fn: (delta) => {
             for (const [modelMatrix, normalMatrix, rotation] of query) {
