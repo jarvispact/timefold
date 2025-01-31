@@ -1,6 +1,6 @@
 {
   "name": "@timefold/engine",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "description": "engine code for timefold",
   "type": "module",
   "sideEffects": false,

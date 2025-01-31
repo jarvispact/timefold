@@ -1,6 +1,6 @@
 {
   "name": "@timefold/math",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "description": "matrix, vector and math implementation for timefold",
   "type": "module",
   "sideEffects": false,
