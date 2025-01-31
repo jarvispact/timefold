@@ -1,4 +1,4 @@
-import { type } from './wgsl-type';
+import { type } from './wgsl';
 
 // TODO: currently not exported!!!
 // TODO: array of f32 is allowed for vertex structs

@@ -1,25 +1,29 @@
 import {
     CreateVertexBufferMode,
     formatMap,
-    FormatMap,
     GenericTypedArrayConstructor,
-    IndexFormatToTypedArray,
-    InterleavedMode,
     isTypedIndexArrayData,
-    NonInterleavedMode,
-    RemoveNever,
     SupportedFormat,
-    SupportedPositionFormat,
     TupleIndices,
 } from './internal-utils';
-import * as Uniform from './uniform';
+import {
+    BindingsForGroup,
+    BuffersByBindingKey,
+    CreateDeviceAndContextOptions,
+    CreateDeviceAndContextResult,
+    CreateIndexBufferArgs,
+    CreateIndexBufferResult,
+    CreatePipelineLayoutArgs,
+    CreatePipelineLayoutResult,
+    CreateVertexBufferLayoutDefinition,
+    CreateVertexBufferLayoutResult,
+    GenericBinding,
+    InterleavedCreateBuffer,
+    UniformGroup,
+} from './types';
 
 // ===========================================================
 // render pass
-
-export type RenderPassDescriptor = Omit<GPURenderPassDescriptor, 'colorAttachments'> & {
-    colorAttachments: GPURenderPassColorAttachment[];
-};
 
 const defaultColorAttachmentOptions = {
     clearValue: [0, 0, 0, 1],
@@ -67,19 +71,6 @@ const defaultAdapterOptions: GPURequestAdapterOptions = {
     forceFallbackAdapter: false,
 };
 
-export type CreateDeviceAndContextOptions = {
-    canvas: HTMLCanvasElement | OffscreenCanvas;
-    adapter?: GPURequestAdapterOptions;
-    device?: GPUDeviceDescriptor;
-    contextConfig?: Omit<GPUCanvasConfiguration, 'device'>;
-};
-
-export type CreateDeviceAndContextResult = {
-    device: GPUDevice;
-    context: GPUCanvasContext;
-    format: GPUTextureFormat;
-};
-
 export const createDeviceAndContext = async (
     options: CreateDeviceAndContextOptions,
 ): Promise<CreateDeviceAndContextResult> => {
@@ -108,42 +99,6 @@ export const createDeviceAndContext = async (
 
 // ===========================================================
 // vertex buffers
-
-export type CreateVertexBufferLayoutDefinition<Mode extends CreateVertexBufferMode> = Mode extends InterleavedMode
-    ? {
-          position: { format: SupportedPositionFormat; offset: number };
-      } & Record<string, { format: SupportedFormat; offset: number }>
-    : {
-          position: { format: SupportedPositionFormat };
-      } & Record<string, { format: SupportedFormat }>;
-
-type InterleavedCreateBuffer = (
-    device: GPUDevice,
-    data: Float32Array,
-) => { slot: number; buffer: GPUBuffer; count: number };
-
-type NonInterleavedCreateBuffer<Definition extends CreateVertexBufferLayoutDefinition<NonInterleavedMode>> = <
-    Name extends keyof Definition,
->(
-    device: GPUDevice,
-    name: Name,
-    data: InstanceType<FormatMap[Definition[Name]['format']]['View']>,
-) => { slot: number; buffer: GPUBuffer } & (Name extends 'position' ? { count: number } : NonNullable<unknown>);
-
-export type CreateVertexBufferLayoutResult<
-    Mode extends CreateVertexBufferMode,
-    Definition extends CreateVertexBufferLayoutDefinition<Mode>,
-> = Mode extends InterleavedMode
-    ? {
-          layout: GPUVertexBufferLayout[];
-          wgsl: string;
-          createBuffer: InterleavedCreateBuffer;
-      }
-    : {
-          layout: GPUVertexBufferLayout[];
-          wgsl: string;
-          createBuffer: NonInterleavedCreateBuffer<Definition>;
-      };
 
 export const createVertexBufferLayout = <
     Mode extends CreateVertexBufferMode,
@@ -257,16 +212,6 @@ export const createVertexBufferLayout = <
 // ===========================================================
 // index buffer
 
-export type CreateIndexBufferArgs<Format extends GPUIndexFormat> = {
-    format: Format;
-} & ({ data: InstanceType<IndexFormatToTypedArray[Format]> } | { data: ArrayBufferLike; indexCount: number });
-
-export type CreateIndexBufferResult<Format extends GPUIndexFormat = GPUIndexFormat> = {
-    buffer: GPUBuffer;
-    count: number;
-    format: Format;
-};
-
 export const createIndexBuffer = <Format extends GPUIndexFormat>(
     device: GPUDevice,
     args: CreateIndexBufferArgs<Format>,
@@ -354,49 +299,10 @@ export const createBufferDescriptor = (options?: CreateBufferDescriptorOptions):
     return { ...bufferDefaultDescriptor, ...options };
 };
 
-type BindingsForGroup<Group extends Uniform.Group<number, Record<string, Uniform.GenericBinding>>> = {
-    [BindingKey in keyof Group['bindings']]: Group['bindings'][BindingKey]['type'] extends 'sampler'
-        ? GPUSampler
-        : Group['bindings'][BindingKey]['type'] extends 'texture'
-          ? GPUTexture
-          : Group['bindings'][BindingKey]['type'] extends 'buffer'
-            ? ReturnType<typeof createBufferDescriptor>
-            : never;
-};
-
 // ===========================================================
 // pipeline layout
 
-type BuffersByBindingKey<Group extends Uniform.Group<number, Record<string, Uniform.GenericBinding>>> = RemoveNever<{
-    [BindingKey in keyof Group['bindings']]: Group['bindings'][BindingKey]['type'] extends 'buffer' ? GPUBuffer : never;
-}>;
-
-export type CreatePipelineLayoutArgs<Groups extends Uniform.Group<number, Record<string, Uniform.GenericBinding>>[]> = {
-    device: GPUDevice;
-    uniformGroups: Groups;
-};
-
-export type CreateBindGroupsResult<
-    Groups extends Uniform.Group<number, Record<string, Uniform.GenericBinding>>[],
-    Group extends TupleIndices<Groups>,
-> = {
-    group: Group;
-    bindGroup: GPUBindGroup;
-    buffers: BuffersByBindingKey<Groups[Group]>;
-};
-
-export type CreatePipelineLayoutResult<Groups extends Uniform.Group<number, Record<string, Uniform.GenericBinding>>[]> =
-    {
-        layout: GPUPipelineLayout;
-        createBindGroups: <Group extends TupleIndices<Groups>>(
-            group: Group,
-            bindings: BindingsForGroup<Groups[Group]>,
-        ) => CreateBindGroupsResult<Groups, Group>;
-    };
-
-export const createPipelineLayout = <
-    const Groups extends Uniform.Group<number, Record<string, Uniform.GenericBinding>>[],
->({
+export const createPipelineLayout = <const Groups extends UniformGroup<number, Record<string, GenericBinding>>[]>({
     device,
     uniformGroups,
 }: CreatePipelineLayoutArgs<Groups>): CreatePipelineLayoutResult<Groups> => {

@@ -1,56 +1,56 @@
 import { EcsEvent, World } from '@timefold/ecs';
 import { EngineComponent } from './components/types';
-import { Wgsl } from '@timefold/webgpu';
+import { InferWgslStructResult, WgslArray, WgslStruct, WgslType } from '@timefold/webgpu';
 
 // Structs
 
-export type CameraStruct = Wgsl.Struct<
+export type CameraStruct = WgslStruct<
     'Camera',
     {
-        position: Wgsl.Type<'vec3<f32>'>;
-        view_matrix: Wgsl.Type<'mat4x4<f32>'>;
-        projection_matrix: Wgsl.Type<'mat4x4<f32>'>;
-        view_projection_matrix: Wgsl.Type<'mat4x4<f32>'>;
+        position: WgslType<'vec3<f32>'>;
+        view_matrix: WgslType<'mat4x4<f32>'>;
+        projection_matrix: WgslType<'mat4x4<f32>'>;
+        view_projection_matrix: WgslType<'mat4x4<f32>'>;
     }
 >;
 
-export type DirLightStruct = Wgsl.Struct<
+export type DirLightStruct = WgslStruct<
     'DirLight',
     {
-        direction: Wgsl.Type<'vec3<f32>'>;
-        color: Wgsl.Type<'vec3<f32>'>;
-        intensity: Wgsl.Type<'f32'>;
+        direction: WgslType<'vec3<f32>'>;
+        color: WgslType<'vec3<f32>'>;
+        intensity: WgslType<'f32'>;
     }
 >;
 
 export type MAX_DIR_LIGHTS_TYPE = 3;
 
-export type SceneStruct = Wgsl.Struct<
+export type SceneStruct = WgslStruct<
     'Scene',
     {
         camera: CameraStruct;
-        dirLights: Wgsl.Array<DirLightStruct, MAX_DIR_LIGHTS_TYPE>;
+        dirLights: WgslArray<DirLightStruct, MAX_DIR_LIGHTS_TYPE>;
     }
 >;
 
-export type TransformStruct = Wgsl.Struct<
+export type TransformStruct = WgslStruct<
     'Transform',
     {
-        model_matrix: Wgsl.Type<'mat4x4<f32>'>;
-        normal_matrix: Wgsl.Type<'mat4x4<f32>'>;
+        model_matrix: WgslType<'mat4x4<f32>'>;
+        normal_matrix: WgslType<'mat4x4<f32>'>;
     }
 >;
 
-export type PhongMaterialStruct = Wgsl.Struct<
+export type PhongMaterialStruct = WgslStruct<
     'PhongMaterial',
     {
-        diffuse_color: Wgsl.Type<'vec3<f32>'>;
-        specular_color: Wgsl.Type<'vec3<f32>'>;
-        opacity: Wgsl.Type<'f32'>;
+        diffuse_color: WgslType<'vec3<f32>'>;
+        specular_color: WgslType<'vec3<f32>'>;
+        opacity: WgslType<'f32'>;
     }
 >;
 
-export type PhongEntityStruct = Wgsl.Struct<
+export type PhongEntityStruct = WgslStruct<
     'Entity',
     {
         transform: TransformStruct;
@@ -62,7 +62,7 @@ export type PhongEntityStruct = Wgsl.Struct<
 
 export type EngineEvent = EcsEvent<EngineComponent[]>;
 
-export type SceneData = Wgsl.InferStructResult<SceneStruct>;
+export type SceneData = InferWgslStructResult<SceneStruct>;
 
 export type EngineResources = {
     scene: {

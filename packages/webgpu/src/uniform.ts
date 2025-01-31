@@ -1,29 +1,24 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
+import {
+    BufferBinding,
+    GenericBinding,
+    GenericUniformType,
+    GenericWgslStructDefinition,
+    SamplerBinding,
+    TextureBinding,
+    UniformBindingOptions,
+    UniformGroup,
+} from './types';
+import { isArray, isStruct } from './wgsl';
 
-import { WgslType } from './lookup-table';
-import { Array, ArrayElement, isArray } from './wgsl-array';
-import { GenericStructDefinition, isStruct, Struct } from './wgsl-struct';
-import { Type } from './wgsl-type';
-
-type BindingOptions = {
-    /* GPUShaderStage.VERTEX | GPUShaderStage.FRAGMENT | GPUShaderStage.COMPUTE */
-    visibility: number;
-};
-
-export type Sampler<Binding extends number> = {
-    type: 'sampler';
-    layout: { binding: Binding } & BindingOptions & { sampler: GPUSamplerBindingLayout };
-};
-
-const defaultSamplerArgs: BindingOptions & { sampler: GPUSamplerBindingLayout } = {
+const defaultSamplerArgs: UniformBindingOptions & { sampler: GPUSamplerBindingLayout } = {
     visibility: GPUShaderStage.FRAGMENT,
     sampler: {},
 };
 
 export const sampler = <Binding extends number>(
     binding: Binding,
-    args?: BindingOptions & { sampler: GPUSamplerBindingLayout },
-): Sampler<Binding> => {
+    args?: UniformBindingOptions & { sampler: GPUSamplerBindingLayout },
+): SamplerBinding<Binding> => {
     const _args = {
         visibility: args?.visibility ?? defaultSamplerArgs.visibility,
         sampler: { ...defaultSamplerArgs.sampler, ...args?.sampler },
@@ -35,20 +30,15 @@ export const sampler = <Binding extends number>(
     };
 };
 
-export type Texture<Binding extends number> = {
-    type: 'texture';
-    layout: { binding: Binding } & BindingOptions & { texture: GPUTextureBindingLayout };
-};
-
-const defaultTextureArgs: BindingOptions & { texture: GPUTextureBindingLayout } = {
+const defaultTextureArgs: UniformBindingOptions & { texture: GPUTextureBindingLayout } = {
     visibility: GPUShaderStage.FRAGMENT,
     texture: {},
 };
 
 export const texture = <Binding extends number>(
     binding: Binding,
-    args?: BindingOptions & { texture: GPUTextureBindingLayout },
-): Texture<Binding> => {
+    args?: UniformBindingOptions & { texture: GPUTextureBindingLayout },
+): TextureBinding<Binding> => {
     const _args = {
         visibility: args?.visibility ?? defaultTextureArgs.visibility,
         texture: { ...defaultTextureArgs.texture, ...args?.texture },
@@ -60,15 +50,7 @@ export const texture = <Binding extends number>(
     };
 };
 
-type GenericUniformType = Type<WgslType> | Array<ArrayElement, any> | Struct<string, any>;
-
-export type Buffer<Binding extends number, Type extends GenericUniformType> = {
-    type: 'buffer';
-    uniformType: Type;
-    layout: { binding: Binding } & BindingOptions & { buffer: GPUBufferBindingLayout };
-};
-
-const defaultBufferArgs: BindingOptions & { buffer: GPUBufferBindingLayout } = {
+const defaultBufferArgs: UniformBindingOptions & { buffer: GPUBufferBindingLayout } = {
     visibility: GPUShaderStage.VERTEX | GPUShaderStage.FRAGMENT,
     buffer: { type: 'uniform' },
 };
@@ -76,8 +58,8 @@ const defaultBufferArgs: BindingOptions & { buffer: GPUBufferBindingLayout } = {
 export const buffer = <Binding extends number, Type extends GenericUniformType>(
     binding: Binding,
     type: Type,
-    args?: BindingOptions & { buffer: GPUBufferBindingLayout },
-): Buffer<Binding, Type> => {
+    args?: UniformBindingOptions & { buffer: GPUBufferBindingLayout },
+): BufferBinding<Binding, Type> => {
     const _args = {
         visibility: args?.visibility ?? defaultBufferArgs.visibility,
         buffer: { ...defaultBufferArgs.buffer, ...args?.buffer },
@@ -90,18 +72,10 @@ export const buffer = <Binding extends number, Type extends GenericUniformType>(
     };
 };
 
-export type GenericBinding = Sampler<number> | Texture<number> | Buffer<number, GenericUniformType>;
-
-export type Group<Group extends number, Bindings extends Record<string, GenericBinding>> = {
-    group: Group;
-    bindings: Bindings;
-    uniformDeclarations: string;
-};
-
 export const group = <G extends number, Bindings extends Record<string, GenericBinding>>(
     group: G,
     bindings: Bindings,
-): Group<G, Bindings> => {
+): UniformGroup<G, Bindings> => {
     const uniformDeclarations = Object.keys(bindings)
         .map((key) => {
             const binding = bindings[key];
@@ -124,7 +98,7 @@ export const group = <G extends number, Bindings extends Record<string, GenericB
     };
 };
 
-const resolveUniqueStructs = (structsByName: Record<string, string>, definition: GenericStructDefinition) => {
+const resolveUniqueStructs = (structsByName: Record<string, string>, definition: GenericWgslStructDefinition) => {
     const definitionValues = Object.values(definition);
 
     for (const definitionValue of definitionValues) {
@@ -140,7 +114,7 @@ const resolveUniqueStructs = (structsByName: Record<string, string>, definition:
     }
 };
 
-export const getWgslFromGroups = (groups: Group<number, Record<string, GenericBinding>>[]) => {
+export const getWgslFromGroups = (groups: UniformGroup<number, Record<string, GenericBinding>>[]) => {
     const structsByName: Record<string, string> = {};
 
     for (const group of groups) {

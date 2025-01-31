@@ -1,7 +1,6 @@
-import { lookupTable, LookupTableEntry, WgslType } from './lookup-table';
-import { ArrayElement, isArray } from './wgsl-array';
-import { GenericStructDefinition, isStruct } from './wgsl-struct';
-import { isType } from './wgsl-type';
+import { lookupTable, LookupTableEntry, WgslPrimitive } from './lookup-table';
+import { GenericWgslStructDefinition, WgslArrayElement } from './types';
+import { isArray, isStruct, isType } from './wgsl';
 
 // uniforms
 
@@ -33,7 +32,7 @@ export type NumberTupleMode = 'number-tuple';
 export type GenericTypedArrayMode = ArrayBufferMode | SharedArrayBufferMode;
 export type GenericMode = GenericTypedArrayMode | NumberTupleMode;
 
-export type TypedArrayOrTuple<T extends WgslType, Buffer extends ArrayBufferLike, Mode extends GenericMode> =
+export type TypedArrayOrTuple<T extends WgslPrimitive, Buffer extends ArrayBufferLike, Mode extends GenericMode> =
     LookupTableEntry<T> extends {
         create: infer Create extends () => number[];
         type: infer Type extends WgslScalar;
@@ -46,7 +45,7 @@ export type TypedArrayOrTuple<T extends WgslType, Buffer extends ArrayBufferLike
         : never;
 
 export type ViewConfigEntry = {
-    type: WgslType;
+    type: WgslPrimitive;
     scalar: WgslScalar;
     byteOffset: number;
     elements: number;
@@ -60,14 +59,14 @@ const roundUp = (k: number, n: number) => Math.ceil(n / k) * k;
 export const resolveViewConfigAndBufferSize = <ViewConfig extends Record<string, unknown> | unknown[]>(
     viewConfig: ViewConfig,
     input: ViewConfig extends Record<string, unknown>
-        ? { definition: GenericStructDefinition }
-        : { element: ArrayElement; size: number },
+        ? { definition: GenericWgslStructDefinition }
+        : { element: WgslArrayElement; size: number },
     bufferSize: number = 0,
     byteOffset: number = 0,
 ) => {
     let maxAlignment = 0;
 
-    const handleType = (wgslType: WgslType, isInArray: boolean): ViewConfigEntry => {
+    const handleType = (wgslType: WgslPrimitive, isInArray: boolean): ViewConfigEntry => {
         const { elements, size, align, type } = lookupTable[wgslType];
         byteOffset = roundUp(align, byteOffset);
         const viewConfig = { elements, byteOffset, scalar: type, type: wgslType };
@@ -77,7 +76,7 @@ export const resolveViewConfigAndBufferSize = <ViewConfig extends Record<string,
         return viewConfig;
     };
 
-    const handleStruct = (definition: GenericStructDefinition) => {
+    const handleStruct = (definition: GenericWgslStructDefinition) => {
         const nestedResult = resolveViewConfigAndBufferSize({}, { definition }, bufferSize, byteOffset);
         byteOffset = nestedResult.bufferSize;
         bufferSize = Math.max(bufferSize, byteOffset);
@@ -228,7 +227,9 @@ export const formatMap = {
     unorm16x4: { View: Uint16Array, stride: 4, wgsl: 'vec4<f32>' },
 
     'unorm10-10-10-2': { View: Uint32Array, stride: 4, wgsl: 'vec4<f32>' },
-} satisfies Partial<Record<GPUVertexFormat, { View: GenericTypedArrayConstructor; stride: number; wgsl: WgslType }>>;
+} satisfies Partial<
+    Record<GPUVertexFormat, { View: GenericTypedArrayConstructor; stride: number; wgsl: WgslPrimitive }>
+>;
 
 export type FormatMap = typeof formatMap;
 export type SupportedFormat = keyof FormatMap;

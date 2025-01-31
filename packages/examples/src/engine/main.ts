@@ -35,23 +35,9 @@ const run = async () => {
             });
 
             world.spawnBundle({
-                id: 'light1',
+                id: 'light',
                 bundle: DirLightBundle.create({
-                    dirLight: DirLight.create({ direction: Vec3.normalize([-1, 2, -5]), intensity: 0.2 }),
-                }),
-            });
-
-            world.spawnBundle({
-                id: 'light2',
-                bundle: DirLightBundle.create({
-                    dirLight: DirLight.create({ direction: Vec3.normalize([1, 2, -5]), intensity: 0.2 }),
-                }),
-            });
-
-            world.spawnBundle({
-                id: 'light3',
-                bundle: DirLightBundle.create({
-                    dirLight: DirLight.create({ direction: Vec3.normalize([2, 1, 4]), intensity: 0.6 }),
+                    dirLight: DirLight.create({ direction: Vec3.normalize([2, 3, 4]), intensity: 0.6 }),
                 }),
             });
 

@@ -87,9 +87,9 @@ export const lookupTable = {
 } as const;
 
 type LookupTable = typeof lookupTable;
-export type LookupTableEntry<T extends WgslType> = LookupTable[T];
-export type WgslType = keyof LookupTable;
+export type WgslPrimitive = keyof LookupTable;
+export type LookupTableEntry<T extends WgslPrimitive> = LookupTable[T];
 export const wgslTypes = Object.keys(lookupTable);
 
 type InvalidArrayType = 'i32' | 'u32' | 'f32' | 'vec2i' | 'vec2u' | 'vec2f' | 'vec2<i32>' | 'vec2<u32>' | 'vec2<f32>';
-export type WgslArrayType = Exclude<WgslType, InvalidArrayType>;
+export type WgslArrayType = Exclude<WgslPrimitive, InvalidArrayType>;

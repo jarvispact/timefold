@@ -1,6 +1,6 @@
 import { createPlugin, createSystem } from '@timefold/ecs';
 import { Structs } from '@timefold/engine';
-import { Uniform, WebgpuUtils } from '@timefold/webgpu';
+import { RenderPassDescriptor, Uniform, WebgpuUtils } from '@timefold/webgpu';
 import { cubeVertices, stride } from './cube';
 import { world, World } from './world';
 
@@ -92,7 +92,7 @@ export const createRenderPlugin = async (canvas: HTMLCanvasElement) => {
     const vertexCount = cubeVertices.length / stride;
     device.queue.writeBuffer(vertexBuffer, 0, cubeVertices.buffer);
 
-    const renderPassDescriptor: WebgpuUtils.RenderPassDescriptor = {
+    const renderPassDescriptor: RenderPassDescriptor = {
         label: 'canvas renderPass',
         colorAttachments: [WebgpuUtils.createColorAttachmentFromView(context.getCurrentTexture().createView())],
     };
