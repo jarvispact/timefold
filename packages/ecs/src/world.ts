@@ -9,7 +9,7 @@ import {
     sortSystem,
     Subscriber,
 } from './internal';
-import { EntityId } from './types';
+import { EntityId } from './misc';
 import { Component } from './component';
 import { EcsPlugin, isParallelPlugin } from './plugin';
 import {

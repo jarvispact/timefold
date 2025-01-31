@@ -1,5 +1,5 @@
 import { Component } from './component';
-import { EntityId } from './types';
+import { EntityId } from './misc';
 
 export type GenericEcsEvent = { type: string };
 
