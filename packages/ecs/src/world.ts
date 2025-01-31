@@ -214,14 +214,11 @@ class EcsWorld<
         return true;
     }
 
-    createQuery<
-        const QueryDef extends QueryDefinition<WorldComponent>,
-        Options extends {
-            map?: (tuple: QueryTuple<WorldComponent, QueryDef>) => unknown;
-        },
-    >(queryDefinition: QueryDef, options?: Options) {
+    createQuery<const QueryDef extends QueryDefinition<WorldComponent>, MapResult>(
+        args: { query: QueryDef } & { map?: (tuple: QueryTuple<WorldComponent, QueryDef>) => MapResult },
+    ) {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-return
-        const map = (options?.map ?? ((val) => val)) as (val: any) => any;
+        const map = (args.map ?? ((val) => val)) as (val: any) => any;
 
         const queryResult: unknown[][] = [];
         const entityIdQueryResultIdx: EntityId[] = [];
@@ -253,21 +250,21 @@ class EcsWorld<
             const tuple: unknown[] = [];
 
             // special case - tuple with ids only
-            if (queryDefinition.tuple.length === 0 && queryDefinition.includeId) {
+            if (args.query.tuple.length === 0 && args.query.includeId) {
                 tuple.push(event.payload.id);
                 addToQueryResult(tuple, event.payload.id);
                 return;
             }
 
             // add the id if specified in the query definition first
-            if (queryDefinition.includeId) {
+            if (args.query.includeId) {
                 tuple.push(event.payload.id);
             }
 
             // ============================= Duplicated block start
             let queryMatchCount = 0;
 
-            for (const item of queryDefinition.tuple) {
+            for (const item of args.query.tuple) {
                 const include = item.include === undefined;
 
                 const component = isHasQueryDefinition(item)
@@ -284,7 +281,7 @@ class EcsWorld<
             }
 
             // only add the tuple to the query if the whole tuple definition matches
-            if (queryMatchCount === queryDefinition.tuple.length) {
+            if (queryMatchCount === args.query.tuple.length) {
                 addToQueryResult(tuple, event.payload.id);
             }
             // ============================= Duplicated block end
@@ -292,7 +289,7 @@ class EcsWorld<
 
         const despawnEntityEventHandler = (event: DespawnEntityEcsEvent<Component[]>) => {
             // special case - tuple with ids only
-            if (queryDefinition.tuple.length === 0 && queryDefinition.includeId) {
+            if (args.query.tuple.length === 0 && args.query.includeId) {
                 removeFromQueryResult(event.payload.id);
                 return;
             }
@@ -300,7 +297,7 @@ class EcsWorld<
             // ============================= Duplicated block start
             let queryMatchCount = 0;
 
-            for (const item of queryDefinition.tuple) {
+            for (const item of args.query.tuple) {
                 const component = isHasQueryDefinition(item)
                     ? findComponentByTypes([item.has], event.payload.components)
                     : findComponentByTypes(item.or, event.payload.components);
@@ -313,7 +310,7 @@ class EcsWorld<
             }
 
             // only add the tuple to the query if the whole tuple definition matches
-            if (queryMatchCount === queryDefinition.tuple.length) {
+            if (queryMatchCount === args.query.tuple.length) {
                 removeFromQueryResult(event.payload.id);
             }
             // ============================= Duplicated block end
@@ -321,7 +318,7 @@ class EcsWorld<
 
         const addComponentEventHandler = (event: AddComponentEcsEvent<Component[]>) => {
             // when there is no definition there is nothing to do.
-            if (queryDefinition.tuple.length === 0) return;
+            if (args.query.tuple.length === 0) return;
 
             const componentsForEntityId = this.componentsByEntityId[event.payload.entityId];
             if (!componentsForEntityId) return;
@@ -333,14 +330,14 @@ class EcsWorld<
             const tuple: unknown[] = [];
 
             // add the id if specified in the query definition first
-            if (queryDefinition.includeId) {
+            if (args.query.includeId) {
                 tuple.push(event.payload.entityId);
             }
 
             // ============================= Duplicated block start
             let queryMatchCount = 0;
 
-            for (const item of queryDefinition.tuple) {
+            for (const item of args.query.tuple) {
                 const include = item.include === undefined;
 
                 const component = isHasQueryDefinition(item)
@@ -357,7 +354,7 @@ class EcsWorld<
             }
 
             // only add the tuple to the query if the whole tuple definition matches
-            if (queryMatchCount === queryDefinition.tuple.length) {
+            if (queryMatchCount === args.query.tuple.length) {
                 addToQueryResult(tuple, event.payload.entityId);
             }
             // ============================= Duplicated block end
@@ -365,7 +362,7 @@ class EcsWorld<
 
         const removeComponentEventHandler = (event: RemoveComponentEcsEvent<Component[]>) => {
             // when there is no definition there is nothing to do.
-            if (queryDefinition.tuple.length === 0) return;
+            if (args.query.tuple.length === 0) return;
 
             const componentsForEntityId = this.componentsByEntityId[event.payload.entityId];
             if (!componentsForEntityId) return;
@@ -375,7 +372,7 @@ class EcsWorld<
             if (queryResultIdx === undefined) return;
 
             // ============================= Duplicated block start
-            for (const item of queryDefinition.tuple) {
+            for (const item of args.query.tuple) {
                 const component = isHasQueryDefinition(item)
                     ? findComponentByTypes([item.has], componentsForEntityId)
                     : findComponentByTypes(item.or, componentsForEntityId);
@@ -394,11 +391,9 @@ class EcsWorld<
         this.internalOn('ecs/add-component', addComponentEventHandler);
         this.internalOn('ecs/remove-component', removeComponentEventHandler);
 
-        return queryResult as unknown as Options extends {
-            map: (tuple: QueryTuple<WorldComponent, QueryDef>) => infer MapResult;
-        }
-            ? MapResult[]
-            : QueryTuple<WorldComponent, QueryDef>[];
+        return queryResult as unknown as undefined extends MapResult
+            ? QueryTuple<WorldComponent, QueryDef>[]
+            : MapResult[];
     }
 
     async run() {

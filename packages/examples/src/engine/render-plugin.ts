@@ -105,28 +105,26 @@ export const createRenderPlugin = async (canvas: HTMLCanvasElement) => {
         fragment: { module: module, targets: [{ format }] },
     });
 
-    const query = world.createQuery(
-        {
+    const query = world.createQuery({
+        query: {
             tuple: [
                 { has: '@tf/Data' },
                 { has: '@tf/Transform', include: false },
                 { has: '@tf/PhongMaterial', include: false },
             ],
         },
-        {
-            map: ([data]) => {
-                const { bindGroup, buffers } = createBindGroups(1, {
-                    entity: WebgpuUtils.createBufferDescriptor(),
-                });
+        map: ([data]) => {
+            const { bindGroup, buffers } = createBindGroups(1, {
+                entity: WebgpuUtils.createBufferDescriptor(),
+            });
 
-                return {
-                    bindGroup,
-                    buffer: buffers.entity,
-                    data: data.data,
-                };
-            },
+            return {
+                bindGroup,
+                buffer: buffers.entity,
+                data: data.data,
+            };
         },
-    );
+    });
 
     const sceneCreateResult = world.getResource('scene').data;
 

@@ -4,12 +4,10 @@ import { EngineWorld } from '../types';
 
 export const UpdateCameraFromTransformPlugin = createPlugin<EngineWorld>({
     fn: (world) => {
-        const query = world.createQuery(
-            {
-                tuple: [{ has: '@tf/Transform' }, { has: '@tf/PerspectiveCamera' }],
-            },
-            { map: ([transform, camera]) => ({ modelMatrix: transform.data.modelMatrix, camera }) },
-        );
+        const query = world.createQuery({
+            query: { tuple: [{ has: '@tf/Transform' }, { has: '@tf/PerspectiveCamera' }] },
+            map: ([transform, camera]) => ({ modelMatrix: transform.data.modelMatrix, camera }),
+        });
 
         const UpdateCameraSystem = createSystem({
             stage: 'after-update',

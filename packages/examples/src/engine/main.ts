@@ -1,4 +1,4 @@
-import { createSystem } from '@timefold/ecs';
+import { createSystem, createTuple } from '@timefold/ecs';
 import {
     PhongMaterial,
     DirLightBundle,
@@ -8,8 +8,6 @@ import {
     DirLight,
     CameraBundle,
     PhongEntityBundle,
-    Data,
-    Structs,
 } from '@timefold/engine';
 import { Mat4x4, MathUtils, Vec3 } from '@timefold/math';
 import { createRenderPlugin } from './render-plugin';
@@ -44,7 +42,6 @@ const run = async () => {
             world.spawnBundle({
                 id: 'entity1',
                 bundle: PhongEntityBundle.create({
-                    data: Data.create(new SharedArrayBuffer(Structs.PhongEntity.bufferSize)),
                     transform: Transform.createFromTRS({ translation: [-1, 0, 0] }),
                     material: PhongMaterial.create({ diffuseColor: [0.965, 0.447, 0.502] }),
                 }),
@@ -62,15 +59,11 @@ const run = async () => {
         },
     });
 
-    const query = world.createQuery(
-        {
-            tuple: [{ has: '@tf/Transform' }, { has: 'Rotation' }],
-        },
-        {
-            map: ([transform, rotation]) =>
-                [transform.data.modelMatrix, transform.data.normalMatrix, rotation.data] as const,
-        },
-    );
+    const query = world.createQuery({
+        query: { tuple: [{ has: '@tf/Transform' }, { has: 'Rotation' }] },
+        map: ([transform, rotation]) =>
+            createTuple(transform.data.modelMatrix, transform.data.normalMatrix, rotation.data),
+    });
 
     const UpdateSystem = createSystem({
         stage: 'update',

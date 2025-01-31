@@ -1,4 +1,4 @@
-import { Component, EcsEvent, World } from '@timefold/ecs';
+import { EcsEvent, World } from '@timefold/ecs';
 import {
     DataComponent,
     DirLightComponent,
@@ -27,4 +27,5 @@ export type PhongEntityBundle = {
 
 // BundleWorld
 
-export type BundleWorld = World<Component, EcsEvent<Component[]>, EngineResources>;
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export type BundleWorld = World<any, EcsEvent<any[]>, EngineResources>;

@@ -1,9 +1,7 @@
-import { createWorld, EngineComponent, Structs } from '@timefold/engine';
+import { createWorld, EngineComponent } from '@timefold/engine';
 
 type WorldComponent = EngineComponent | { type: 'Rotation'; data: number };
 
-export const world = createWorld<WorldComponent>({
-    sceneData: Structs.Scene.create({ mode: 'shared-array-buffer' }),
-});
+export const world = createWorld<WorldComponent>();
 
 export type World = typeof world;

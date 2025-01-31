@@ -96,7 +96,7 @@ describe('world', () => {
 
             const world = createWorld<WorldComponent>();
 
-            const query = world.createQuery({ includeId: true, tuple: [] });
+            const query = world.createQuery({ query: { includeId: true, tuple: [] } });
             expectTypeOf(query).toMatchTypeOf<[string][]>();
             expect(query).toEqual([]);
 
@@ -127,8 +127,10 @@ describe('world', () => {
             const world = createWorld<WorldComponent>();
 
             const query = world.createQuery({
-                includeId: true,
-                tuple: [{ has: 'A' }, { has: 'C' }],
+                query: {
+                    includeId: true,
+                    tuple: [{ has: 'A' }, { has: 'C' }],
+                },
             });
 
             expectTypeOf(query).toMatchTypeOf<[string, A, C][]>();
@@ -165,7 +167,7 @@ describe('world', () => {
             const world = createWorld<WorldComponent>();
 
             const query = world.createQuery({
-                tuple: [{ has: 'A' }, { has: 'C' }],
+                query: { tuple: [{ has: 'A' }, { has: 'C' }] },
             });
 
             expectTypeOf(query).toMatchTypeOf<[A, C][]>();
@@ -201,14 +203,10 @@ describe('world', () => {
 
             const world = createWorld<WorldComponent>();
 
-            const query = world.createQuery(
-                {
-                    tuple: [{ has: 'A' }, { has: 'C' }],
-                },
-                {
-                    map: (tuple) => ({ a: tuple[0].data, c: tuple[1].data }),
-                },
-            );
+            const query = world.createQuery({
+                query: { tuple: [{ has: 'A' }, { has: 'C' }] },
+                map: (tuple) => ({ a: tuple[0].data, c: tuple[1].data }),
+            });
 
             expectTypeOf(query).toMatchTypeOf<{ a: string; c: boolean }[]>();
             expect(query).toEqual([]);
@@ -244,8 +242,10 @@ describe('world', () => {
             const world = createWorld<WorldComponent>();
 
             const query = world.createQuery({
-                includeId: true,
-                tuple: [{ has: 'A' }, { has: 'C', include: false }],
+                query: {
+                    includeId: true,
+                    tuple: [{ has: 'A' }, { has: 'C', include: false }],
+                },
             });
 
             expectTypeOf(query).toMatchTypeOf<[string, A][]>();
@@ -282,8 +282,10 @@ describe('world', () => {
             const world = createWorld<WorldComponent>();
 
             const query = world.createQuery({
-                includeId: true,
-                tuple: [{ has: 'A' }, { has: 'C', optional: true }],
+                query: {
+                    includeId: true,
+                    tuple: [{ has: 'A' }, { has: 'C', optional: true }],
+                },
             });
 
             expectTypeOf(query).toMatchTypeOf<[string, A, C | undefined][]>();
@@ -323,8 +325,10 @@ describe('world', () => {
             const world = createWorld<WorldComponent>();
 
             const query = world.createQuery({
-                includeId: true,
-                tuple: [{ or: ['A', 'C'] }],
+                query: {
+                    includeId: true,
+                    tuple: [{ or: ['A', 'C'] }],
+                },
             });
 
             expectTypeOf(query).toMatchTypeOf<[string, A | C][]>();
@@ -367,15 +371,13 @@ describe('world', () => {
 
             const world = createWorld<WorldComponent>();
 
-            const query = world.createQuery(
-                {
+            const query = world.createQuery({
+                query: {
                     includeId: true,
                     tuple: [{ or: ['A', 'C'] }],
                 },
-                {
-                    map: (tuple) => ({ a: tuple[0], c: tuple[1].data }),
-                },
-            );
+                map: (tuple) => ({ a: tuple[0], c: tuple[1].data }),
+            });
 
             expectTypeOf(query).toMatchTypeOf<{ a: string; c: string | boolean }[]>();
             expect(query).toEqual([]);
@@ -419,7 +421,7 @@ describe('world', () => {
 
             const world = createWorld<WorldComponent>();
 
-            const query = world.createQuery({ includeId: true, tuple: [] });
+            const query = world.createQuery({ query: { includeId: true, tuple: [] } });
             expectTypeOf(query).toMatchTypeOf<[string][]>();
             expect(query).toEqual([]);
 
@@ -460,8 +462,10 @@ describe('world', () => {
             const world = createWorld<WorldComponent>();
 
             const query = world.createQuery({
-                includeId: true,
-                tuple: [{ has: 'A' }, { has: 'C' }],
+                query: {
+                    includeId: true,
+                    tuple: [{ has: 'A' }, { has: 'C' }],
+                },
             });
 
             expectTypeOf(query).toMatchTypeOf<[string, A, C][]>();
@@ -526,7 +530,9 @@ describe('world', () => {
             const world = createWorld<WorldComponent>();
 
             const query = world.createQuery({
-                tuple: [{ has: 'A' }, { has: 'C' }],
+                query: {
+                    tuple: [{ has: 'A' }, { has: 'C' }],
+                },
             });
 
             expectTypeOf(query).toMatchTypeOf<[A, C][]>();
@@ -592,7 +598,7 @@ describe('world', () => {
 
             const world = createWorld<WorldComponent>();
 
-            const query = world.createQuery({ includeId: true, tuple: [{ has: 'A' }] });
+            const query = world.createQuery({ query: { includeId: true, tuple: [{ has: 'A' }] } });
             expectTypeOf(query).toMatchTypeOf<[string, A][]>();
             expect(query).toEqual([]);
 
@@ -635,8 +641,10 @@ describe('world', () => {
             const world = createWorld<WorldComponent>();
 
             const query = world.createQuery({
-                includeId: true,
-                tuple: [{ has: 'A' }, { has: 'B' }],
+                query: {
+                    includeId: true,
+                    tuple: [{ has: 'A' }, { has: 'B' }],
+                },
             });
 
             expectTypeOf(query).toMatchTypeOf<[string, A, B][]>();
@@ -681,8 +689,10 @@ describe('world', () => {
             const world = createWorld<WorldComponent>();
 
             const query = world.createQuery({
-                includeId: true,
-                tuple: [{ has: 'A' }, { or: ['B', 'C'] }, { has: 'D', optional: true }],
+                query: {
+                    includeId: true,
+                    tuple: [{ has: 'A' }, { or: ['B', 'C'] }, { has: 'D', optional: true }],
+                },
             });
 
             expectTypeOf(query).toMatchTypeOf<[string, A, B | C, D | undefined][]>();
