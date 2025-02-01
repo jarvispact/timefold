@@ -1,9 +1,16 @@
-import { Component, createWorld as createEcsWorld, GenericEcsEvent, EcsEvent, World } from '@timefold/ecs';
+import {
+    Component,
+    createWorld as createEcsWorld,
+    GenericEcsEvent,
+    EcsEvent,
+    World,
+    WorldOptions as EcsWorldOptions,
+} from '@timefold/ecs';
 import { EngineComponent } from './components/types';
 import { EngineResources, SceneData } from './types';
-import { MAX_DIR_LIGHTS, Scene } from './structs';
+import { MAX_DIR_LIGHTS, SceneStruct } from './structs';
 
-type CreateArgs = {
+type WorldOptions = Partial<EcsWorldOptions> & {
     sceneData?: SceneData;
 };
 
@@ -12,14 +19,14 @@ export const createWorld = <
     WorldEvent extends GenericEcsEvent = EcsEvent<WorldComponent[]>,
     WorldResources extends EngineResources = EngineResources,
 >(
-    args: CreateArgs = {},
+    options: WorldOptions = {},
 ): World<WorldComponent, WorldEvent, WorldResources> => {
-    const world = createEcsWorld<WorldComponent, WorldEvent, WorldResources>();
+    const world = createEcsWorld<WorldComponent, WorldEvent, WorldResources>(options);
 
     world.setResource('scene', {
         maxDirLights: MAX_DIR_LIGHTS,
         currentDirLight: 0,
-        data: args.sceneData ?? Scene.create({ mode: 'array-buffer' }),
+        data: options.sceneData ?? SceneStruct.create({ mode: 'array-buffer' }),
     });
 
     return world;

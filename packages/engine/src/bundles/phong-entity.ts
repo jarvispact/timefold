@@ -1,12 +1,12 @@
 import { Mat4x4, Scalar, Vec3 } from '@timefold/math';
 import { Data } from '../components';
-import { PhongEntity } from '../structs';
+import { PhongEntityStruct } from '../structs';
 import { PhongEntityBundle } from './types';
 
 export const create = (bundle: PhongEntityBundle) => {
     const { buffer, views } = bundle.data
-        ? { buffer: bundle.data.data, views: PhongEntity.fromBuffer(bundle.data.data) }
-        : PhongEntity.create({ mode: 'array-buffer' });
+        ? { buffer: bundle.data.data, views: PhongEntityStruct.fromBuffer(bundle.data.data) }
+        : PhongEntityStruct.create({ mode: 'array-buffer' });
 
     const dataComponent = Data.create(buffer);
 

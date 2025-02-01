@@ -1,15 +1,15 @@
 import { createPlugin, createSystem } from '@timefold/ecs';
-import { Structs } from '@timefold/engine';
+import { SceneStruct, PhongEntityStruct, MAX_DIR_LIGHTS, PerspectiveCamera } from '@timefold/engine';
 import { RenderPassDescriptor, Uniform, WebgpuUtils } from '@timefold/webgpu';
 import { cubeVertices, stride } from './cube';
 import { world, World } from './world';
 
 const SceneUniformGroup = Uniform.group(0, {
-    scene: Uniform.buffer(0, Structs.Scene),
+    scene: Uniform.buffer(0, SceneStruct),
 });
 
 const EntityUniformGroup = Uniform.group(1, {
-    entity: Uniform.buffer(0, Structs.PhongEntity),
+    entity: Uniform.buffer(0, PhongEntityStruct),
 });
 
 const Vertex = WebgpuUtils.createVertexBufferLayout('interleaved', {
@@ -52,7 +52,7 @@ ${Uniform.getWgslFromGroups([SceneUniformGroup, EntityUniformGroup])}
 
     var lighting = vec3f(0.0, 0.0, 0.0);
 
-    for (var i = 0; i < ${Structs.MAX_DIR_LIGHTS}; i++) {
+    for (var i = 0; i < ${MAX_DIR_LIGHTS}; i++) {
         let L = normalize(scene.dirLights[i].direction);
 
         let diff = max(dot(N, L), 0.0);
@@ -69,6 +69,18 @@ ${Uniform.getWgslFromGroups([SceneUniformGroup, EntityUniformGroup])}
     return vec4f(ambient + lighting, entity.material.opacity);
 }
 `.trim();
+
+const debounce = <T extends unknown[]>(callback: (...args: T) => void, delay: number) => {
+    let timeoutTimer: number;
+
+    return (...args: T) => {
+        clearTimeout(timeoutTimer);
+
+        timeoutTimer = setTimeout(() => {
+            callback(...args);
+        }, delay);
+    };
+};
 
 export const createRenderPlugin = async (canvas: HTMLCanvasElement) => {
     const { context, device, format } = await WebgpuUtils.createDeviceAndContext({ canvas });
@@ -105,7 +117,26 @@ export const createRenderPlugin = async (canvas: HTMLCanvasElement) => {
         fragment: { module: module, targets: [{ format }] },
     });
 
-    const query = world.createQuery({
+    const cameraQuery = world.createQuery({
+        query: { tuple: [{ has: '@tf/PerspectiveCamera' }] },
+        map: ([camera]) => camera,
+    });
+
+    const dpr = window.devicePixelRatio || 1;
+
+    const onResize = debounce(() => {
+        canvas.width = canvas.clientWidth * dpr;
+        canvas.height = canvas.clientHeight * dpr;
+        const camera = cameraQuery[0];
+        // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
+        if (!camera) return;
+        PerspectiveCamera.updateFromAspect(camera, canvas.width / canvas.height);
+    }, 100);
+
+    const resizeObserver = new ResizeObserver(onResize);
+    resizeObserver.observe(canvas);
+
+    const entityQuery = world.createQuery({
         query: {
             tuple: [
                 { has: '@tf/Data' },
@@ -140,7 +171,7 @@ export const createRenderPlugin = async (canvas: HTMLCanvasElement) => {
         pass.setBindGroup(0, scene.bindGroup);
         device.queue.writeBuffer(scene.buffers.scene, 0, sceneCreateResult.buffer);
 
-        for (const item of query) {
+        for (const item of entityQuery) {
             pass.setBindGroup(1, item.bindGroup);
             device.queue.writeBuffer(item.buffer, 0, item.data);
             pass.draw(vertexCount);
