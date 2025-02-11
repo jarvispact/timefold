@@ -1,4 +1,4 @@
-import { Component, createComponent, createWorld, System } from '@timefold/ecs';
+import { Component, createComponent, createWorld, createSystem } from '@timefold/ecs';
 import { Vec2, Vec2Type } from '@timefold/math';
 
 type PositionComponent = Component<'Position', Vec2Type>;
@@ -15,12 +15,12 @@ const createComponents = (vel: Vec2Type, isMoveable: boolean) => {
 
 const world = createWorld<WorldComponent>();
 
-const query = world.createQuery(
-    { includeId: true, tuple: [{ has: 'Position' }, { has: 'Velocity' }, { has: 'Moveable', include: false }] },
-    { map: ([id, pos, vel]) => ({ id, position: pos.data, velocity: vel.data }) },
-);
+const query = world.createQuery({
+    query: { includeId: true, tuple: [{ has: 'Position' }, { has: 'Velocity' }, { has: 'Moveable', include: false }] },
+    map: ([id, pos, vel]) => ({ id, position: pos.data, velocity: vel.data }),
+});
 
-const MyStartupSystem = System.create({
+const MyStartupSystem = createSystem({
     stage: 'startup',
     fn: () => {
         world.spawnEntity('0', createComponents(Vec2.create(1, 0), true));
@@ -31,7 +31,7 @@ const MyStartupSystem = System.create({
 
 let timeToPrintState = performance.now() + 1000;
 
-const MyUpdateSystem = System.create({
+const MyUpdateSystem = createSystem({
     stage: 'update',
     fn: (_, time) => {
         let state = '';

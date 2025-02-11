@@ -1,10 +1,10 @@
-import { createWorld, Plugin, System } from '@timefold/ecs';
+import { createWorld, createPlugin, createSystem } from '@timefold/ecs';
 
-const MyPlugin = Plugin.create({
+const MyPlugin = createPlugin({
     fn: (world) => {
         console.log('MyPlugin called');
 
-        const MyPluginStartupSystem = System.create({
+        const MyPluginStartupSystem = createSystem({
             stage: 'startup',
             fn: () => {
                 console.log('MyPluginStartupSystem called');
@@ -15,7 +15,7 @@ const MyPlugin = Plugin.create({
     },
 });
 
-const MyStartupSystem = System.create({
+const MyStartupSystem = createSystem({
     stage: 'startup',
     fn: () => {
         console.log('MyStartupSystem called');
@@ -25,7 +25,7 @@ const MyStartupSystem = System.create({
 let timeToPrintUps = performance.now() + 1000;
 let ups = 0;
 
-const MyUpdateSystem = System.create({
+const MyUpdateSystem = createSystem({
     stage: 'update',
     fn: (_, time) => {
         if (time > timeToPrintUps) {
