@@ -19,6 +19,8 @@ This separation of data and logic has many benefits:
 
 ## Quick start
 
+Here is also a [stackblitz example](https://stackblitz.com/edit/timefold-ecs-demo?file=src%2Fmain.ts).
+
 ```ts
 import { Component, createComponent, createSystem, createWorld } from '@timefold/ecs';
 import { Vec2 } from '@timefold/math';
