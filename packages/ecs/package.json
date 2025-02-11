@@ -1,6 +1,6 @@
 {
   "name": "@timefold/ecs",
-  "version": "0.0.3",
+  "version": "0.0.4",
   "description": "the ecs implementation for timefold",
   "type": "module",
   "sideEffects": false,
