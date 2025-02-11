@@ -21,7 +21,7 @@
     "noFallthroughCasesInSwitch": true,
     "noUncheckedSideEffectImports": true,
 
-    "types": ["@webgpu/types"]
+    "types": ["@webgpu/types", "vite/client"]
   },
   "include": ["./packages"]
 }

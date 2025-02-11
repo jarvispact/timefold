@@ -2,6 +2,7 @@ import { EcsEvent, World } from '@timefold/ecs';
 import {
     DataComponent,
     DirLightComponent,
+    OrthographicCameraComponent,
     PerspectiveCameraComponent,
     PhongMaterialComponent,
     TransformComponent,
@@ -12,7 +13,7 @@ import { EngineResources } from '../types';
 
 export type CameraBundle = {
     transform: TransformComponent;
-    camera: PerspectiveCameraComponent;
+    camera: PerspectiveCameraComponent | OrthographicCameraComponent;
 };
 
 export type DirLightBundle = {

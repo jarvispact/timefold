@@ -34,6 +34,24 @@ export type PerspectiveCameraData = {
 
 export type PerspectiveCameraComponent = Component<PerspectiveCameraType, PerspectiveCameraData>;
 
+// OrthographicCamera
+
+export type OrthographicCameraType = '@tf/OrthographicCamera';
+
+export type OrthographicCameraData = {
+    left: number;
+    right: number;
+    bottom: number;
+    top: number;
+    near: number;
+    far: number;
+    viewMatrix: Mat4x4Type;
+    projectionMatrix: Mat4x4Type;
+    viewProjectionMatrix: Mat4x4Type;
+};
+
+export type OrthographicCameraComponent = Component<OrthographicCameraType, OrthographicCameraData>;
+
 // PhongMaterial
 
 export type PhongMaterialType = '@tf/PhongMaterial';
@@ -65,6 +83,7 @@ export type TransformComponent = Component<TransformType, TransformData>;
 export type EngineComponent =
     | TransformComponent
     | PerspectiveCameraComponent
+    | OrthographicCameraComponent
     | DirLightComponent
     | PhongMaterialComponent
     | DataComponent;
