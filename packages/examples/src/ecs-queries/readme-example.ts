@@ -1,41 +1,18 @@
-# @timefold/ecs
-Fast and efficient, zero dependency ECS ( entity/component/system ) implementation.
-
-## Info
-
-`@timefold/ecs` is a very fast and memory efficient implementation of the ECS architecture. Strongly typed!
-
-- A `component` holds your data in this shape: `{ type: string | number, data: any }`.
-- A `entity` is just a id which can be of type `string | number`.
-- A `query` is a list, where each entry consists of a set of components.
-- A `system` operates on a query result and performs the game logic.
-
-This separation of data and logic has many benefits:
-
-- Separation of concerns. One system does just one thing.
-- Express a wide variety of entities without complex inheritance.
-- Cache locality. Up to 10x performance improvements when dealing with lots of entities.
-- Easy multi threading. Run systems in parallel if they operate on different data.
-
-## Quick start
-
-```ts
 import { Component, createComponent, createSystem, createWorld } from '@timefold/ecs';
 import { Vec2 } from '@timefold/math';
 
-// Define your component types
+// define your component types
 
 type Position = Component<'Pos', [number, number]>;
 type Velocity = Component<'Vel', [number, number]>;
 type RenderTag = Component<'RenderTag'>;
 type WorldComponent = Position | Velocity | RenderTag;
 
-// Create a world
+// create a world
 
 const world = createWorld<WorldComponent>();
 
-// Define your queries
-// TS Autocompletion in definitions and strongly typed results. Nice!
+// define your queries (TS autocompletion in definitions and strongly typed results)
 
 const physicsQuery = world.createQuery({
     query: { tuple: [{ has: 'Pos' }, { has: 'Vel' }] },
@@ -47,7 +24,7 @@ const renderQuery = world.createQuery({
     map: ([id, pos]) => ({ id, pos: pos.data }),
 });
 
-// Define your systems
+// define your systems
 
 const UpdateSystem = createSystem({
     stage: 'update',
@@ -72,13 +49,13 @@ const StartupSystem = createSystem({
     fn: () => {
         world.spawnEntity('1', [
             createComponent('Pos', [0, 0]),
-            createComponent('Vel', [1, 0]),
+            createComponent('Vel', [0, 0]),
             createComponent('RenderTag'),
         ]);
 
         world.spawnEntity('2', [
             createComponent('Pos', [0, 0]),
-            createComponent('Vel', [0, 1]),
+            createComponent('Vel', [0, 0]),
             createComponent('RenderTag'),
         ]);
     },
@@ -88,4 +65,3 @@ const StartupSystem = createSystem({
 
 world.registerSystems([StartupSystem, UpdateSystem, RenderSystem]);
 await world.run();
-```
