@@ -1,6 +1,6 @@
 import { createComponent } from '@timefold/ecs';
-import { Mat4x4 } from '@timefold/math';
-import { OrthographicCameraComponent, OrthographicCameraType } from './types';
+import { Mat4x4, Mat4x4Type } from '@timefold/math';
+import { OrthographicCameraComponent, OrthographicCameraType, PerspectiveCameraComponent } from './types';
 
 export const type: OrthographicCameraType = '@tf/OrthographicCamera';
 
@@ -29,3 +29,13 @@ export const create = (args: CreateArgs): OrthographicCameraComponent => {
         viewProjectionMatrix,
     });
 };
+
+export const updateFromModelMatrix = (out: OrthographicCameraComponent, modelMatrix: Mat4x4Type) => {
+    Mat4x4.invert(out.data.viewMatrix, modelMatrix);
+    Mat4x4.multiplication(out.data.viewProjectionMatrix, out.data.projectionMatrix, out.data.viewMatrix);
+    return out;
+};
+
+export const isOrthographic = (
+    out: PerspectiveCameraComponent | OrthographicCameraComponent,
+): out is OrthographicCameraComponent => out.type === type;

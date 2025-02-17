@@ -1,6 +1,6 @@
 import { createComponent } from '@timefold/ecs';
 import { Mat4x4, Mat4x4Type, MathUtils } from '@timefold/math';
-import { PerspectiveCameraComponent, PerspectiveCameraType } from './types';
+import { OrthographicCameraComponent, PerspectiveCameraComponent, PerspectiveCameraType } from './types';
 
 export const type: PerspectiveCameraType = '@tf/PerspectiveCamera';
 
@@ -75,3 +75,7 @@ export const updateFromAspect = (out: PerspectiveCameraComponent, aspect: number
     Mat4x4.multiplication(out.data.viewProjectionMatrix, out.data.projectionMatrix, out.data.viewMatrix);
     return out;
 };
+
+export const isPerspective = (
+    out: PerspectiveCameraComponent | OrthographicCameraComponent,
+): out is PerspectiveCameraComponent => out.type === type;

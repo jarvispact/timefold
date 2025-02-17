@@ -84,6 +84,9 @@ export const fromEuler = (out: QuatType, x: number, y: number, z: number, order:
     return out;
 };
 
+export const createFromEuler = (x: number, y: number, z: number, order: QuatAngleOrder = angleOrder) =>
+    fromEuler(createIdentity(), x, y, z, order);
+
 export const rotationX = (out: QuatType, quat: QuatType, radians: number) => {
     radians *= 0.5;
 

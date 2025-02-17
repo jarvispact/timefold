@@ -1,11 +1,11 @@
 import { createPlugin, createSystem } from '@timefold/ecs';
-import { PerspectiveCamera } from '../components';
+import { OrthographicCamera, PerspectiveCamera } from '../components';
 import { EngineWorld } from '../types';
 
 export const UpdateCameraFromTransformPlugin = createPlugin<EngineWorld>({
     fn: (world) => {
         const query = world.createQuery({
-            query: { tuple: [{ has: '@tf/Transform' }, { has: '@tf/PerspectiveCamera' }] },
+            query: { tuple: [{ has: '@tf/Transform' }, { or: ['@tf/PerspectiveCamera', '@tf/OrthographicCamera'] }] },
             map: ([transform, camera]) => ({ modelMatrix: transform.data.modelMatrix, camera }),
         });
 
@@ -13,7 +13,11 @@ export const UpdateCameraFromTransformPlugin = createPlugin<EngineWorld>({
             stage: 'after-update',
             fn: () => {
                 for (const { modelMatrix, camera } of query) {
-                    PerspectiveCamera.updateFromModelMatrix(camera, modelMatrix);
+                    if (PerspectiveCamera.isPerspective(camera)) {
+                        PerspectiveCamera.updateFromModelMatrix(camera, modelMatrix);
+                    } else {
+                        OrthographicCamera.updateFromModelMatrix(camera, modelMatrix);
+                    }
                 }
             },
         });

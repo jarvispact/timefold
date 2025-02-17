@@ -3,9 +3,22 @@ import { Vec2Type } from './types';
 export const create = (x: number, y: number): Vec2Type => [x, y];
 export const fromScalar = (scalar: number): Vec2Type => [scalar, scalar];
 
+export const zero = (): Vec2Type => [0, 0];
+export const one = (): Vec2Type => [1, 1];
+export const left = (): Vec2Type => [-1, 0];
+export const right = (): Vec2Type => [1, 0];
+export const up = (): Vec2Type => [0, 1];
+export const down = (): Vec2Type => [0, -1];
+
 export const copy = (out: Vec2Type, vec2: Vec2Type): Vec2Type => {
     out[0] = vec2[0];
     out[1] = vec2[1];
+    return out;
+};
+
+export const set = (out: Vec2Type, x: number, y: number): Vec2Type => {
+    out[0] = x;
+    out[1] = y;
     return out;
 };
 

@@ -24,7 +24,8 @@ export type QueryDefinition<WorldComponent extends Component> = {
 
 export const isHasQueryDefinition = <WorldComponent extends Component>(
     item: QueryTupleDefinition<WorldComponent>,
-): item is HasQueryTupleDefinition<WorldComponent> => 'has' in item && typeof item.has === 'string';
+): item is HasQueryTupleDefinition<WorldComponent> =>
+    'has' in item && (typeof item.has === 'string' || typeof item.has === 'number');
 
 export const isOrQueryDefinition = <WorldComponent extends Component>(
     item: QueryTupleDefinition<WorldComponent>,
