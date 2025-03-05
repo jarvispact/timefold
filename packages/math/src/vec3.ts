@@ -74,6 +74,15 @@ export const scale = (out: Vec3Type, factor: number) => {
     return scaling(out, out, factor);
 };
 
+export const scalingAndAddition = (out: Vec3Type, a: Vec3Type, b: Vec3Type, scale: number) => {
+    out[0] = a[0] + b[0] * scale;
+    out[1] = a[1] + b[1] * scale;
+    out[2] = a[2] + b[2] * scale;
+    return out;
+};
+
+export const scaleAndAdd = (out: Vec3Type, vec3: Vec3Type, scale: number) => scalingAndAddition(out, out, vec3, scale);
+
 export const normalization = (out: Vec3Type, vec3: Vec3Type) => {
     const x = vec3[0];
     const y = vec3[1];
@@ -105,3 +114,21 @@ export const linerInterpolation = (out: Vec3Type, a: Vec3Type, b: Vec3Type, t: n
 };
 
 export const lerp = (out: Vec3Type, vec3: Vec3Type, t: number) => linerInterpolation(out, out, vec3, t);
+
+export const inverse = (out: Vec3Type, vec3: Vec3Type) => {
+    out[0] = vec3[0] === 0 ? 0 : 1.0 / vec3[0];
+    out[1] = vec3[1] === 0 ? 0 : 1.0 / vec3[1];
+    out[2] = vec3[2] === 0 ? 0 : 1.0 / vec3[2];
+    return out;
+};
+
+export const invert = (out: Vec3Type) => inverse(out, out);
+
+export const negation = (out: Vec3Type, vec3: Vec3Type) => {
+    out[0] = vec3[0] === 0 ? 0 : -vec3[0];
+    out[1] = vec3[1] === 0 ? 0 : -vec3[1];
+    out[2] = vec3[2] === 0 ? 0 : -vec3[2];
+    return out;
+};
+
+export const negate = (out: Vec3Type) => negation(out, out);

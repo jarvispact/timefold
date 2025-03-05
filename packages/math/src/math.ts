@@ -1,3 +1,4 @@
+export * as Easings from './easings';
 export * as Mat4x4 from './mat4x4';
 export * as Quat from './quat';
 export * as Scalar from './scalar';
