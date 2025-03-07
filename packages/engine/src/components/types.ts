@@ -1,6 +1,33 @@
 import { Component } from '@timefold/ecs';
 import { Vec3Type, ScalarType, Mat4x4Type, QuatType } from '@timefold/math';
 
+// Aabb
+
+export type AabbType = '@tf/Aabb';
+
+export type AabbData = {
+    min: Vec3Type;
+    center: Vec3Type;
+    max: Vec3Type;
+};
+
+export type AabbComponent = Component<AabbType, AabbData>;
+
+// Clock
+
+export type ClockType = '@tf/Clock';
+
+export type ClockData = {
+    autoStart: boolean;
+    startTime: number;
+    oldTime: number;
+    elapsedTime: number;
+    running: boolean;
+    paused: boolean;
+};
+
+export type ClockComponent = Component<ClockType, ClockData>;
+
 // Data
 
 export type DataType = '@tf/Data';
@@ -52,6 +79,17 @@ export type OrthographicCameraData = {
 
 export type OrthographicCameraComponent = Component<OrthographicCameraType, OrthographicCameraData>;
 
+// UnlitMaterial
+
+export type UnlitMaterialType = '@tf/UnlitMaterial';
+
+export type UnlitMaterialData = {
+    color: Vec3Type;
+    opacity: ScalarType;
+};
+
+export type UnlitMaterialComponent = Component<UnlitMaterialType, UnlitMaterialData>;
+
 // PhongMaterial
 
 export type PhongMaterialType = '@tf/PhongMaterial';
@@ -81,9 +119,12 @@ export type TransformComponent = Component<TransformType, TransformData>;
 // EngineComponent
 
 export type EngineComponent =
+    | AabbComponent
     | TransformComponent
     | PerspectiveCameraComponent
     | OrthographicCameraComponent
     | DirLightComponent
+    | UnlitMaterialComponent
     | PhongMaterialComponent
-    | DataComponent;
+    | DataComponent
+    | ClockComponent;

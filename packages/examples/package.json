@@ -19,6 +19,9 @@
     "dev:engine": "sed 's/{example-folder}/engine/g' index.html.template > index.html && vite --port 9093",
     "build:engine": "sed 's/{example-folder}/engine/g' index.html.template > index.html && vite build",
 
+    "dev:2d-platformer": "sed 's/{example-folder}/2d-platformer/g' index.html.template > index.html && vite --port 9093",
+    "build:2d-platformer": "sed 's/{example-folder}/2d-platformer/g' index.html.template > index.html && vite build",
+
     "dev:webgpu-triangle": "sed 's/{example-folder}/webgpu-triangle/g' index.html.template > index.html && vite --port 9093",
     "build:webgpu-triangle": "sed 's/{example-folder}/webgpu-triangle/g' index.html.template > index.html && vite build",
 

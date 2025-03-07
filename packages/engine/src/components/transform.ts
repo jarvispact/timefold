@@ -55,3 +55,9 @@ export const createAndLookAt = ({ translation, target, up = Vec3.up() }: CreateA
         normalMatrix,
     });
 };
+
+export const updateMatrices = (out: TransformComponent) => {
+    Mat4x4.fromRotationTranslationScale(out.data.modelMatrix, out.data.rotation, out.data.translation, out.data.scale);
+    Mat4x4.modelToNormal(out.data.normalMatrix, out.data.modelMatrix);
+    return out;
+};

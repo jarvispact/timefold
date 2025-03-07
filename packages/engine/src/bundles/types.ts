@@ -6,6 +6,7 @@ import {
     PerspectiveCameraComponent,
     PhongMaterialComponent,
     TransformComponent,
+    UnlitMaterialComponent,
 } from '../components/types';
 import { EngineResources } from '../types';
 
@@ -18,6 +19,12 @@ export type CameraBundle = {
 
 export type DirLightBundle = {
     dirLight: DirLightComponent;
+};
+
+export type UnlitEntityBundle = {
+    data?: DataComponent<ArrayBufferLike>;
+    transform: TransformComponent;
+    material: UnlitMaterialComponent;
 };
 
 export type PhongEntityBundle = {
