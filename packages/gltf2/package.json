@@ -1,0 +1,27 @@
+{
+  "name": "@timefold/gltf2",
+  "version": "0.0.1",
+  "description": "gltf2 loader and parser for timefold",
+  "type": "module",
+  "sideEffects": false,
+  "main": "./dist/gltf2.umd.js",
+  "module": "./dist/gltf2.js",
+  "types": "./dist/gltf2.d.ts",
+  "publishConfig": {
+    "access": "public"
+  },
+  "exports": {
+    ".": {
+      "import": "./dist/gltf2.js",
+      "require": "./dist/gltf2.umd.js"
+    }
+  },
+  "author": "jarvispact <jarvispact@gmail.com>",
+  "license": "MIT",
+  "scripts": {
+    "test": "vitest --typecheck",
+    "test:run": "vitest run --typecheck",
+    "build": "rm -rf ./dist && vite build && tsc",
+    "publish-to-npm": "npm publish"
+  }
+}

@@ -229,7 +229,8 @@ export type CreateDeviceAndContextResult = {
 
 export type CreateIndexBufferArgs<Format extends GPUIndexFormat> = {
     format: Format;
-} & ({ data: InstanceType<IndexFormatToTypedArray[Format]> } | { data: ArrayBufferLike; indexCount: number });
+    data: InstanceType<IndexFormatToTypedArray[Format]>;
+};
 
 export type CreateIndexBufferResult<Format extends GPUIndexFormat = GPUIndexFormat> = {
     buffer: GPUBuffer;

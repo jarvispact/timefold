@@ -12,6 +12,7 @@
           "@timefold/math": ["../../math/src/math.ts"],
           "@timefold/webgpu": ["../../webgpu/src/webgpu.ts"],
           "@timefold/obj": ["../../obj/src/obj.ts"],
+          "@timefold/gltf2": ["../../gltf2/src/gltf2.ts"],
           "@timefold/engine": ["../../engine/src/engine.ts"]
       }
   },

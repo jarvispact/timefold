@@ -2,7 +2,6 @@ import {
     CreateVertexBufferMode,
     formatMap,
     GenericTypedArrayConstructor,
-    isTypedIndexArrayData,
     SupportedFormat,
     TupleIndices,
 } from './internal-utils';
@@ -142,9 +141,12 @@ export const createVertexBufferLayout = <
                 label: `${name.toString()} vertex buffer`,
                 size: data.byteLength,
                 usage: GPUBufferUsage.VERTEX | GPUBufferUsage.COPY_DST,
+                mappedAtCreation: true,
             });
 
-            device.queue.writeBuffer(buffer, 0, data);
+            const gpuBufferArray = new Uint8Array(buffer.getMappedRange());
+            gpuBufferArray.set(new Uint8Array(data.buffer, data.byteOffset, data.byteLength));
+            buffer.unmap();
 
             return {
                 // slot is actually the index into the layout (GPUVertexBufferLayout[])
@@ -191,9 +193,12 @@ export const createVertexBufferLayout = <
             label: 'interleaved vertex buffer',
             size: data.byteLength,
             usage: GPUBufferUsage.VERTEX | GPUBufferUsage.COPY_DST,
+            mappedAtCreation: true,
         });
 
-        device.queue.writeBuffer(buffer, 0, data);
+        const gpuBufferArray = new Uint8Array(buffer.getMappedRange());
+        gpuBufferArray.set(new Uint8Array(data.buffer, data.byteOffset, data.byteLength));
+        buffer.unmap();
 
         return {
             slot: 0,
@@ -217,17 +222,18 @@ export const createIndexBuffer = <Format extends GPUIndexFormat>(
     args: CreateIndexBufferArgs<Format>,
 ): CreateIndexBufferResult<Format> => {
     const buffer = device.createBuffer({
-        size: args.data.byteLength,
+        size: Math.ceil(args.data.byteLength / 4) * 4,
         usage: GPUBufferUsage.INDEX | GPUBufferUsage.COPY_DST,
+        mappedAtCreation: true,
     });
 
-    const count = isTypedIndexArrayData(args) ? args.data.length : args.indexCount;
-
-    device.queue.writeBuffer(buffer, 0, args.data);
+    const gpuBufferArray = new Uint8Array(buffer.getMappedRange());
+    gpuBufferArray.set(new Uint8Array(args.data.buffer, args.data.byteOffset, args.data.byteLength));
+    buffer.unmap();
 
     return {
         buffer,
-        count,
+        count: args.data.length,
         format: args.format,
     };
 };

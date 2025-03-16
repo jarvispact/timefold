@@ -17,7 +17,7 @@ const defaultSamplerArgs: UniformBindingOptions & { sampler: GPUSamplerBindingLa
 
 export const sampler = <Binding extends number>(
     binding: Binding,
-    args?: UniformBindingOptions & { sampler: GPUSamplerBindingLayout },
+    args?: UniformBindingOptions & { sampler?: GPUSamplerBindingLayout },
 ): SamplerBinding<Binding> => {
     const _args = {
         visibility: args?.visibility ?? defaultSamplerArgs.visibility,
@@ -37,7 +37,7 @@ const defaultTextureArgs: UniformBindingOptions & { texture: GPUTextureBindingLa
 
 export const texture = <Binding extends number>(
     binding: Binding,
-    args?: UniformBindingOptions & { texture: GPUTextureBindingLayout },
+    args?: UniformBindingOptions & { texture?: GPUTextureBindingLayout },
 ): TextureBinding<Binding> => {
     const _args = {
         visibility: args?.visibility ?? defaultTextureArgs.visibility,
@@ -58,7 +58,7 @@ const defaultBufferArgs: UniformBindingOptions & { buffer: GPUBufferBindingLayou
 export const buffer = <Binding extends number, Type extends GenericUniformType>(
     binding: Binding,
     type: Type,
-    args?: UniformBindingOptions & { buffer: GPUBufferBindingLayout },
+    args?: UniformBindingOptions & { buffer?: GPUBufferBindingLayout },
 ): BufferBinding<Binding, Type> => {
     const _args = {
         visibility: args?.visibility ?? defaultBufferArgs.visibility,

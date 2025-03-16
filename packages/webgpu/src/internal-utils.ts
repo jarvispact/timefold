@@ -245,11 +245,3 @@ export type IndexFormatToTypedArray = {
     uint16: Uint16ArrayConstructor;
     uint32: Uint32ArrayConstructor;
 };
-
-type GenericTypedArrayConstructorForIndices = IndexFormatToTypedArray[keyof IndexFormatToTypedArray];
-
-export const isTypedIndexArrayData = (
-    args:
-        | { data: InstanceType<GenericTypedArrayConstructorForIndices> }
-        | { data: ArrayBufferLike; indexCount: number },
-): args is { data: InstanceType<GenericTypedArrayConstructorForIndices> } => 'buffer' in args.data;

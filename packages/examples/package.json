@@ -16,6 +16,9 @@
     "dev:obj-loader": "sed 's/{example-folder}/obj-loader/g' index.html.template > index.html && vite --port 9093",
     "build:obj-loader": "sed 's/{example-folder}/obj-loader/g' index.html.template > index.html && vite build",
 
+    "dev:gltf2-loader": "sed 's/{example-folder}/gltf2-loader/g' index.html.template > index.html && vite --port 9093",
+    "build:gltf2-loader": "sed 's/{example-folder}/gltf2-loader/g' index.html.template > index.html && vite build",
+
     "dev:engine": "sed 's/{example-folder}/engine/g' index.html.template > index.html && vite --port 9093",
     "build:engine": "sed 's/{example-folder}/engine/g' index.html.template > index.html && vite build",
 

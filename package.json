@@ -8,6 +8,7 @@
     "packages/math",
     "packages/webgpu",
     "packages/obj",
+    "packages/gltf2",
     "packages/engine",
     "packages/examples"
   ],
