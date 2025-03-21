@@ -1,26 +1,35 @@
 import { getTextureIndex } from './texture';
 import {
     ParsedGltf2Material,
-    ParsedGltf2PbrMetallicRoughnessMaterialBase,
-    ParsedGltf2PbrMetallicRoughnessMaterialOpaque,
-    ParsedGltf2PbrMetallicRoughnessMaterialOpaqueDoubleSided,
-    ParsedGltf2PbrMetallicRoughnessMaterialTransparent,
-    ParsedGltf2PbrMetallicRoughnessMaterialTransparentDoubleSided,
+    ParsedGltf2MaterialType,
+    ParsedGltf2PbrMetallicRoughnessMaterial,
     UnparsedGltf2Material,
     UnparsedGltf2PbrMetallicRoughnessMaterial,
     UnparsedGltf2Result,
 } from './types';
 
-const materialIsPbrMetallicRoughnessMaterial = (
+export const materialIsPbrMetallicRoughnessMaterial = (
     material: UnparsedGltf2Material,
 ): material is UnparsedGltf2PbrMetallicRoughnessMaterial => 'pbrMetallicRoughness' in material;
 
+export const parseMaterialType = (material: UnparsedGltf2Material): ParsedGltf2MaterialType => {
+    const pbrMaterial = materialIsPbrMetallicRoughnessMaterial(material) ? material : undefined;
+    return {
+        type: pbrMaterial ? 'pbr-metallic-roughness' : 'unknown',
+        transparent: pbrMaterial ? pbrMaterial.alphaMode === 'MASK' || pbrMaterial.alphaMode === 'BLEND' : false,
+        doubleSided: pbrMaterial?.doubleSided ?? false,
+    };
+};
+
 export const parseMaterial = (
     unparsedGltf: UnparsedGltf2Result,
+    materialType: number,
     material: UnparsedGltf2Material,
 ): ParsedGltf2Material => {
     if (materialIsPbrMetallicRoughnessMaterial(material)) {
-        const base: ParsedGltf2PbrMetallicRoughnessMaterialBase = {
+        const pbrMaterial: ParsedGltf2PbrMetallicRoughnessMaterial = {
+            type: 'pbr-metallic-roughness',
+            materialType,
             name: material.name,
             baseColor: material.pbrMetallicRoughness.baseColorFactor
                 ? [
@@ -37,33 +46,15 @@ export const parseMaterial = (
             emissive: material.emissiveFactor,
             emissiveTexture: getTextureIndex(unparsedGltf, material.emissiveTexture),
             normalTexture: getTextureIndex(unparsedGltf, material.normalTexture),
+            opacity:
+                material.alphaMode === 'MASK' && material.alphaCutoff !== undefined
+                    ? (material.pbrMetallicRoughness.baseColorFactor?.[3] ?? 1) >= material.alphaCutoff
+                        ? 1
+                        : 0
+                    : 1,
         };
 
-        if (material.alphaMode === 'BLEND' || material.alphaMode === 'MASK') {
-            const parsedMaterial:
-                | ParsedGltf2PbrMetallicRoughnessMaterialTransparent
-                | ParsedGltf2PbrMetallicRoughnessMaterialTransparentDoubleSided = {
-                type: material.doubleSided
-                    ? 'pbr-metallic-roughness-transparent-ds'
-                    : 'pbr-metallic-roughness-transparent',
-                ...base,
-                opacity:
-                    material.alphaMode === 'MASK' && material.alphaCutoff !== undefined
-                        ? (material.pbrMetallicRoughness.baseColorFactor?.[3] ?? 1) >= material.alphaCutoff
-                            ? 1
-                            : 0
-                        : 1,
-            };
-            return parsedMaterial;
-        } else {
-            const parsedMaterial:
-                | ParsedGltf2PbrMetallicRoughnessMaterialOpaque
-                | ParsedGltf2PbrMetallicRoughnessMaterialOpaqueDoubleSided = {
-                type: material.doubleSided ? 'pbr-metallic-roughness-opaque-ds' : 'pbr-metallic-roughness-opaque',
-                ...base,
-            };
-            return parsedMaterial;
-        }
+        return pbrMaterial;
     }
 
     return { type: 'unknown', name: material.name };

@@ -221,7 +221,9 @@ export type ParsedGltf2Texture = {
     sampler: ParsedGltf2Sampler;
 };
 
-export type ParsedGltf2PbrMetallicRoughnessMaterialBase = {
+export type ParsedGltf2PbrMetallicRoughnessMaterial = {
+    type: 'pbr-metallic-roughness';
+    materialType: number;
     name: string;
     baseColor: Vec3;
     baseColorTexture?: number;
@@ -232,35 +234,16 @@ export type ParsedGltf2PbrMetallicRoughnessMaterialBase = {
     emissive?: Vec3;
     emissiveTexture?: number;
     normalTexture?: number;
-};
-
-export type ParsedGltf2PbrMetallicRoughnessMaterialOpaque = ParsedGltf2PbrMetallicRoughnessMaterialBase & {
-    type: 'pbr-metallic-roughness-opaque';
-};
-
-export type ParsedGltf2PbrMetallicRoughnessMaterialTransparent = ParsedGltf2PbrMetallicRoughnessMaterialBase & {
-    type: 'pbr-metallic-roughness-transparent';
     opacity: number;
 };
 
-export type ParsedGltf2PbrMetallicRoughnessMaterialOpaqueDoubleSided = ParsedGltf2PbrMetallicRoughnessMaterialBase & {
-    type: 'pbr-metallic-roughness-opaque-ds';
+export type ParsedGltf2Material = ParsedGltf2PbrMetallicRoughnessMaterial | { type: 'unknown'; name: string };
+
+export type ParsedGltf2MaterialType = {
+    type: 'pbr-metallic-roughness' | 'unknown';
+    transparent: boolean;
+    doubleSided: boolean;
 };
-
-export type ParsedGltf2PbrMetallicRoughnessMaterialTransparentDoubleSided =
-    ParsedGltf2PbrMetallicRoughnessMaterialBase & {
-        type: 'pbr-metallic-roughness-transparent-ds';
-        opacity: number;
-    };
-
-export type ParsedGltf2Material =
-    | ParsedGltf2PbrMetallicRoughnessMaterialOpaque
-    | ParsedGltf2PbrMetallicRoughnessMaterialTransparent
-    | ParsedGltf2PbrMetallicRoughnessMaterialOpaqueDoubleSided
-    | ParsedGltf2PbrMetallicRoughnessMaterialTransparentDoubleSided
-    | { type: 'unknown'; name: string };
-
-export type ParsedGltf2MaterialType = ParsedGltf2Material['type'];
 
 export type ParsedGltf2PrimitiveLayoutAttributes = Attributes<PositionFormat, Format, Format>;
 

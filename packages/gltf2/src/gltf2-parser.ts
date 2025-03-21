@@ -1,4 +1,4 @@
-import { parseMaterial } from './material';
+import { parseMaterial, parseMaterialType } from './material';
 import { isMeshNode, parseMeshNode } from './mesh';
 import { parsePrimitive, parsePrimitiveLayout } from './primitive';
 import { parseTexture } from './texture';
@@ -64,18 +64,24 @@ export const createParser = (options: Gltf2ParserOptions = {}) => {
         }
 
         const materials: ParsedGltf2Material[] = [];
-        const uniqueMaterialTypesSet = new Set<ParsedGltf2MaterialType>();
+        const materialTypes: ParsedGltf2MaterialType[] = [];
+        const materialTypeToIdx: Record<string, number> = {};
 
         if (Array.isArray(unparsedGltf.materials) && unparsedGltf.materials.length > 0) {
             for (const material of unparsedGltf.materials) {
-                const parsedMaterial = parseMaterial(unparsedGltf, material);
-                uniqueMaterialTypesSet.add(parsedMaterial.type);
-                materials.push(parsedMaterial);
+                const materialType = parseMaterialType(material);
+                // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
+                if (materialTypeToIdx[materialType.type] === undefined) {
+                    materialTypes.push(materialType);
+                    materialTypeToIdx[materialType.type] = materialTypes.length - 1;
+                }
+
+                materials.push(parseMaterial(unparsedGltf, materialTypeToIdx[materialType.type], material));
             }
         }
 
         const primitiveLayouts: ParsedGltf2PrimitiveLayout[] = [];
-        const keyToLayoutIdx: Record<string, number | undefined> = {};
+        const keyToLayoutIdx: Record<string, number> = {};
         const primitives: ParsedGltf2Primitive[] = [];
 
         for (let mi = 0; mi < unparsedGltf.meshes.length; mi++) {
@@ -83,23 +89,15 @@ export const createParser = (options: Gltf2ParserOptions = {}) => {
 
             for (let pi = 0; pi < mesh.primitives.length; pi++) {
                 const primitive = mesh.primitives[pi];
-
                 const layout = parsePrimitiveLayout(unparsedGltf, primitive);
+
+                // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
                 if (keyToLayoutIdx[layout.key] === undefined) {
                     primitiveLayouts.push(layout.primitiveLayout);
                     keyToLayoutIdx[layout.key] = primitiveLayouts.length - 1;
                 }
 
-                const parsedPrimitive = parsePrimitive(
-                    unparsedGltf,
-                    buffers,
-                    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-                    keyToLayoutIdx[layout.key]!,
-                    mi,
-                    primitive,
-                );
-
-                primitives.push(parsedPrimitive);
+                primitives.push(parsePrimitive(unparsedGltf, buffers, keyToLayoutIdx[layout.key], mi, primitive));
             }
         }
 
@@ -124,7 +122,7 @@ export const createParser = (options: Gltf2ParserOptions = {}) => {
 
         return {
             textures,
-            materialTypes: [...uniqueMaterialTypesSet],
+            materialTypes,
             materials,
             primitiveLayouts,
             primitives,

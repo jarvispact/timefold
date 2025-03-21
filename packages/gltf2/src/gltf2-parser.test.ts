@@ -2,6 +2,7 @@ import { it, describe, vi, expect } from 'vitest';
 import { createParser } from './gltf2-parser';
 import {
     ParsedGltf2Material,
+    ParsedGltf2MaterialType,
     ParsedGltf2Mesh,
     ParsedGltf2Primitive,
     ParsedGltf2PrimitiveLayout,
@@ -32,11 +33,16 @@ describe('gltf2-parser', () => {
 
         expect(textures.length).toEqual(0);
 
-        expect(materialTypes).toEqual(['pbr-metallic-roughness-opaque-ds']);
+        const expectedMaterialTypes: ParsedGltf2MaterialType[] = [
+            { type: 'pbr-metallic-roughness', transparent: false, doubleSided: true },
+        ];
+
+        expect(materialTypes).toEqual(expectedMaterialTypes);
 
         const expectedMaterials: ParsedGltf2Material[] = [
             {
-                type: 'pbr-metallic-roughness-opaque-ds',
+                type: 'pbr-metallic-roughness',
+                materialType: 0,
                 name: 'Material',
                 baseColor: [0.8000000715255737, 0, 0.005676119588315487],
                 baseColorTexture: undefined,
@@ -47,6 +53,7 @@ describe('gltf2-parser', () => {
                 emissive: undefined,
                 emissiveTexture: undefined,
                 normalTexture: undefined,
+                opacity: 1,
             },
         ];
 
@@ -118,11 +125,16 @@ describe('gltf2-parser', () => {
 
         expect(textures).toEqual(expectedTextures);
 
-        expect(materialTypes).toEqual(['pbr-metallic-roughness-opaque-ds']);
+        const expectedMaterialTypes: ParsedGltf2MaterialType[] = [
+            { type: 'pbr-metallic-roughness', transparent: false, doubleSided: true },
+        ];
+
+        expect(materialTypes).toEqual(expectedMaterialTypes);
 
         const expectedMaterials: ParsedGltf2Material[] = [
             {
-                type: 'pbr-metallic-roughness-opaque-ds',
+                type: 'pbr-metallic-roughness',
+                materialType: 0,
                 name: 'Material',
                 baseColor: [0, 0, 0],
                 baseColorTexture: 1,
@@ -133,6 +145,7 @@ describe('gltf2-parser', () => {
                 emissive: undefined,
                 emissiveTexture: undefined,
                 normalTexture: 0,
+                opacity: 1,
             },
         ];
 
@@ -177,7 +190,12 @@ describe('gltf2-parser', () => {
 
         expect(textures.length).toEqual(0);
         expect(materials.map((m) => m.name)).toEqual(['Red', 'Green1', 'Green2', 'Blue', 'Yellow']);
-        expect(materialTypes).toEqual(['pbr-metallic-roughness-opaque-ds']);
+
+        const expectedMaterialTypes: ParsedGltf2MaterialType[] = [
+            { type: 'pbr-metallic-roughness', transparent: false, doubleSided: true },
+        ];
+
+        expect(materialTypes).toEqual(expectedMaterialTypes);
 
         const expectedPrimitiveLayouts: ParsedGltf2PrimitiveLayout[] = [
             {
