@@ -185,8 +185,15 @@ describe('gltf2-parser', () => {
     it('should parse multiple planes with and without instances', async () => {
         const parser = createParser();
 
-        const { textures, materialTypes, materials, primitiveLayouts, primitives, meshes, primitiveToMeshes } =
-            await parser.parse(multiplePlanesWithAndWithoutInstances);
+        const {
+            textures,
+            materialTypes,
+            materials,
+            primitiveLayouts,
+            primitives,
+            meshes,
+            meshesForPrimitive: primitiveToMeshes,
+        } = await parser.parse(multiplePlanesWithAndWithoutInstances);
 
         expect(textures.length).toEqual(0);
         expect(materials.map((m) => m.name)).toEqual(['Red', 'Green1', 'Green2', 'Blue', 'Yellow']);
@@ -335,7 +342,7 @@ describe('gltf2-parser', () => {
 
         expect(meshes).toEqual(expectedMeshes);
 
-        const expectedPrimitiveToMeshes: ParsedGltf2Result['primitiveToMeshes'] = {
+        const expectedPrimitiveToMeshes: ParsedGltf2Result['meshesForPrimitive'] = {
             0: [0, 2, 3],
             1: [1],
             2: [4],

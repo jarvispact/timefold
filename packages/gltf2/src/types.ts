@@ -292,7 +292,7 @@ export type ParsedGltf2Result = {
     primitiveLayouts: ParsedGltf2PrimitiveLayout[];
     primitives: ParsedGltf2Primitive[];
     meshes: ParsedGltf2Mesh[];
-    primitiveToMeshes: Record<number, number[]>;
+    meshesForPrimitive: Record<number, number[]>;
     scenes: ParsedGltf2Scene[];
     activeScene: number;
 };

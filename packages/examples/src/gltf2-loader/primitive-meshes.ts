@@ -163,7 +163,7 @@ const run = async () => {
                             uv,
                             index,
                         },
-                        meshes: result.primitiveToMeshes[pi].map((m) => {
+                        meshes: result.meshesForPrimitive[pi].map((m) => {
                             const mesh = result.meshes[m];
 
                             const bindGroup = PipelineLayout.createBindGroups(1, {

@@ -102,7 +102,7 @@ export const createParser = (options: Gltf2ParserOptions = {}) => {
         }
 
         const meshes: ParsedGltf2Mesh[] = [];
-        const primitiveToMeshes: Record<number, number[]> = {};
+        const meshesForPrimitive: Record<number, number[]> = {};
 
         for (const node of unparsedGltf.nodes) {
             if (isMeshNode(node)) {
@@ -111,11 +111,11 @@ export const createParser = (options: Gltf2ParserOptions = {}) => {
 
                 for (const primitive of parsedMesh.primitives) {
                     // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
-                    if (!primitiveToMeshes[primitive.primitive]) {
-                        primitiveToMeshes[primitive.primitive] = [];
+                    if (!meshesForPrimitive[primitive.primitive]) {
+                        meshesForPrimitive[primitive.primitive] = [];
                     }
 
-                    primitiveToMeshes[primitive.primitive].push(meshes.length - 1);
+                    meshesForPrimitive[primitive.primitive].push(meshes.length - 1);
                 }
             }
         }
@@ -127,7 +127,7 @@ export const createParser = (options: Gltf2ParserOptions = {}) => {
             primitiveLayouts,
             primitives,
             meshes,
-            primitiveToMeshes,
+            meshesForPrimitive,
             // TODO: since we dont return nodes, we should provide `meshNodes` and `cameraNodes`, ... instead
             scenes: unparsedGltf.scenes,
             activeScene: unparsedGltf.scene,
