@@ -14,40 +14,49 @@ export type UnparsedAccessorType = keyof AccessorTypeMapping;
 export const componentTypeMapping = {
     5120: {
         type: 'BYTE',
-        ctor: Int8Array,
-        bpe: Int8Array['BYTES_PER_ELEMENT'],
+        indexFormat: 'uint16',
+        createView: (buffer: ArrayBufferLike, byteOffset: number, size: number) =>
+            new Int8Array(buffer, byteOffset, size),
     },
     5121: {
         type: 'UNSIGNED_BYTE',
-        ctor: Uint8Array,
-        bpe: Uint8Array['BYTES_PER_ELEMENT'],
+        indexFormat: 'uint16',
+        createView: (buffer: ArrayBufferLike, byteOffset: number, size: number) =>
+            new Uint8Array(buffer, byteOffset, size),
     },
     5122: {
         type: 'SHORT',
-        ctor: Int16Array,
-        bpe: Int16Array['BYTES_PER_ELEMENT'],
+        indexFormat: 'uint16',
+        createView: (buffer: ArrayBufferLike, byteOffset: number, size: number) =>
+            new Int16Array(buffer, byteOffset, size),
     },
     5123: {
         type: 'UNSIGNED_SHORT',
-        ctor: Uint16Array,
-        bpe: Uint16Array['BYTES_PER_ELEMENT'],
+        indexFormat: 'uint16',
+        createView: (buffer: ArrayBufferLike, byteOffset: number, size: number) =>
+            new Uint16Array(buffer, byteOffset, size),
     },
     5125: {
         type: 'UNSIGNED_INT',
-        ctor: Uint32Array,
-        bpe: Uint32Array['BYTES_PER_ELEMENT'],
+        indexFormat: 'uint32',
+        createView: (buffer: ArrayBufferLike, byteOffset: number, size: number) =>
+            new Uint32Array(buffer, byteOffset, size),
     },
     5126: {
         type: 'FLOAT',
-        ctor: Float32Array,
-        bpe: Float32Array['BYTES_PER_ELEMENT'],
+        indexFormat: 'uint32', // invalid - but we expect gltf exporters to do the correct thing
+        createView: (buffer: ArrayBufferLike, byteOffset: number, size: number) =>
+            new Float32Array(buffer, byteOffset, size),
     },
 } as const;
 
 type ComponentTypeMapping = typeof componentTypeMapping;
 export type UnparsedComponentType = keyof ComponentTypeMapping;
 export type ParsedComponentTypeType = ComponentTypeMapping[UnparsedComponentType]['type'];
+export type ParsedComponentTypeIndexFormat = ComponentTypeMapping[UnparsedComponentType]['indexFormat'];
+export type ParsedComponentTypeView = ReturnType<ComponentTypeMapping[UnparsedComponentType]['createView']>;
 
+// TODO: Support Webgl and offer mapping in userland?
 export const primitiveModeMapping = {
     0: 'point-list',
     1: 'line-list',

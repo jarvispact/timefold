@@ -1,6 +1,8 @@
+import { Format, PositionFormat } from './format';
 import { Mat4x4, Vec4, Vec3 } from './internal';
 import {
-    ParsedComponentTypeType,
+    ParsedComponentTypeIndexFormat,
+    ParsedComponentTypeView,
     ParsedGltf2PrimitiveMode,
     ParsedSamplerMagFilter,
     ParsedSamplerMinFilter,
@@ -57,13 +59,11 @@ export type UnparsedGltf2Camera =
           name: string;
       };
 
-type UnparsedGltf2PositionAttributeMap = {
+type Gltf2PositionAttributeMap = {
     POSITION: Float32Array;
 };
 
-type UnparsedGltf2PositionAttribute = keyof UnparsedGltf2PositionAttributeMap;
-
-type UnparsedGltf2AttributeWithoutPositionMap = {
+type Gltf2AttributeWithoutPositionMap = {
     NORMAL: Float32Array;
     TANGENT: Float32Array;
     TEXCOORD_0: Float32Array;
@@ -78,20 +78,25 @@ type UnparsedGltf2AttributeWithoutPositionMap = {
     WEIGHTS_0: Float32Array;
     WEIGHTS_1: Float32Array;
     WEIGHTS_2: Float32Array;
-    // [`_${string}`]: Float32Array;
 };
 
-type UnparsedGltf2AttributeWithoutPosition = keyof UnparsedGltf2AttributeWithoutPositionMap;
+export type Gltf2PositionAttribute = keyof Gltf2PositionAttributeMap;
+export type Gltf2AttributeWithoutPosition = keyof Gltf2AttributeWithoutPositionMap;
+export type Gltf2Attribute = Gltf2PositionAttribute | Gltf2AttributeWithoutPosition;
 
-export type UnparsedGltf2Attribute = UnparsedGltf2PositionAttribute | UnparsedGltf2AttributeWithoutPosition;
+type Attributes<PositionValue, WithoutPositionValue, OtherValue> = {
+    [Name in Gltf2PositionAttribute]: PositionValue;
+} & Partial<{
+    [Name in Gltf2AttributeWithoutPosition]: WithoutPositionValue;
+}> & {
+        [Name in `_${string}`]: OtherValue;
+    };
+
+export type UnparsedGltf2PrimitiveAttributes = Attributes<number, number, number>;
 
 export type UnparsedGltf2Primitive = {
     mode?: UnparsedGltf2PrimitiveMode;
-    attributes: {
-        [Name in UnparsedGltf2PositionAttribute]: number;
-    } & Partial<{
-        [Name in UnparsedGltf2AttributeWithoutPosition]: number;
-    }>;
+    attributes: UnparsedGltf2PrimitiveAttributes;
     indices?: number;
     material?: number;
 };
@@ -103,18 +108,20 @@ export type UnparsedGltf2Mesh = {
 
 export type UnparsedGltf2Accessor = {
     bufferView: number;
-    byteOffset: number;
+    byteOffset?: number;
     componentType: UnparsedComponentType;
     count: number;
     type: UnparsedAccessorType;
     min?: number[];
     max?: number[];
+    normalized?: boolean;
 };
 
 export type UnparsedGltf2BufferView = {
     buffer: number;
     byteLength: number;
     byteOffset: number;
+    byteStride?: number;
     target: UnparsedBufferViewTarget;
 };
 
@@ -255,30 +262,26 @@ export type ParsedGltf2Material =
 
 export type ParsedGltf2MaterialType = ParsedGltf2Material['type'];
 
-export type ParsedGltf2PositionAttributeFormat = 'float32' | 'float32x2' | 'float32x3' | 'float32x4';
+export type ParsedGltf2PrimitiveLayoutAttributes = Attributes<PositionFormat, Format, Format>;
 
-// TODO: others
-export type ParsedGltf2AttributeFormat =
-    | ParsedGltf2PositionAttributeFormat
-    | 'sint32'
-    | 'sint32x2'
-    | 'sint32x3'
-    | 'sint32x4';
+export type ParsedGltf2PrimitiveLayout = {
+    mode: ParsedGltf2PrimitiveMode;
+    attributes: Attributes<PositionFormat, Format, Format>;
+};
 
-export type ParsedGltf2Attributes = {
-    [Name in keyof UnparsedGltf2PositionAttributeMap]: UnparsedGltf2PositionAttributeMap[Name];
-} & Partial<{
-    [Name in keyof UnparsedGltf2AttributeWithoutPositionMap]: UnparsedGltf2AttributeWithoutPositionMap[Name];
-}>;
-
-type TypedIndexArray = Uint16Array | Uint32Array;
+export type ParsedGltf2Attributes = Attributes<
+    Gltf2PositionAttributeMap[Gltf2PositionAttribute],
+    Gltf2AttributeWithoutPositionMap[Gltf2AttributeWithoutPosition],
+    ParsedComponentTypeView
+>;
 
 export type ParsedGltf2Primitive = {
+    primitiveLayout: number;
     mesh: number;
     material?: number;
     mode: ParsedGltf2PrimitiveMode;
     attributes: ParsedGltf2Attributes;
-    indices?: { type: ParsedComponentTypeType; data: TypedIndexArray };
+    indices?: { format: ParsedComponentTypeIndexFormat; data: Uint16Array | Uint32Array };
 };
 
 export type ParsedGltf2MeshPrimitive = {
@@ -301,10 +304,12 @@ export type ParsedGltf2Scene = {
 
 export type ParsedGltf2Result = {
     textures: ParsedGltf2Texture[];
-    materials: ParsedGltf2Material[];
     materialTypes: ParsedGltf2MaterialType[];
+    materials: ParsedGltf2Material[];
+    primitiveLayouts: ParsedGltf2PrimitiveLayout[];
     primitives: ParsedGltf2Primitive[];
     meshes: ParsedGltf2Mesh[];
+    primitiveToMeshes: Record<number, number[]>;
     scenes: ParsedGltf2Scene[];
     activeScene: number;
 };

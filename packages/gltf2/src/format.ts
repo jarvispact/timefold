@@ -45,8 +45,10 @@ type FormatToTypedArray = {
 };
 
 export type Format = keyof FormatToTypedArray;
+export type PositionFormat = 'float32x2' | 'float32x3' | 'float32x4';
 export type TypedArrayForFormat<T extends Format> = FormatToTypedArray[T];
 
+// TODO: Support Webgl and offer mapping function to WebGPU format?
 export const getFormat = (
     componentType: ParsedComponentTypeType,
     accessorType: UnparsedAccessorType,

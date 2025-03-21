@@ -1,6 +1,6 @@
 import { parseMaterial } from './material';
 import { isMeshNode, parseMeshNode } from './mesh';
-import { parsePrimitive } from './primitive';
+import { parsePrimitive, parsePrimitiveLayout } from './primitive';
 import { parseTexture } from './texture';
 import {
     Gltf2ParserOptions,
@@ -8,6 +8,7 @@ import {
     ParsedGltf2MaterialType,
     ParsedGltf2Mesh,
     ParsedGltf2Primitive,
+    ParsedGltf2PrimitiveLayout,
     ParsedGltf2Result,
     ParsedGltf2Texture,
     UnparsedGltf2Result,
@@ -25,9 +26,11 @@ export const createParser = (options: Gltf2ParserOptions = {}) => {
 
         const bufferPromises: Promise<ArrayBuffer>[] = [];
 
-        for (const buffer of unparsedGltf.buffers) {
-            const url = buffer.uri.startsWith('data:') ? buffer.uri : opts.resolveBufferUrl(buffer.uri);
-            bufferPromises.push(fetch(url).then((response) => response.arrayBuffer()));
+        if (Array.isArray(unparsedGltf.buffers) && unparsedGltf.buffers.length > 0) {
+            for (const buffer of unparsedGltf.buffers) {
+                const url = buffer.uri.startsWith('data:') ? buffer.uri : opts.resolveBufferUrl(buffer.uri);
+                bufferPromises.push(fetch(url).then((response) => response.arrayBuffer()));
+            }
         }
 
         const buffers = await Promise.all(bufferPromises);
@@ -71,43 +74,63 @@ export const createParser = (options: Gltf2ParserOptions = {}) => {
             }
         }
 
+        const primitiveLayouts: ParsedGltf2PrimitiveLayout[] = [];
+        const keyToLayoutIdx: Record<string, number | undefined> = {};
         const primitives: ParsedGltf2Primitive[] = [];
 
         for (let mi = 0; mi < unparsedGltf.meshes.length; mi++) {
             const mesh = unparsedGltf.meshes[mi];
+
             for (let pi = 0; pi < mesh.primitives.length; pi++) {
                 const primitive = mesh.primitives[pi];
-                const parsedPrimitive = parsePrimitive(unparsedGltf, buffers, mi, primitive);
 
-                // const attributeKeys = objectKeys(parsedPrimitive.attributes)
-                //     .sort()
-                //     .map((key) => {
-                //         const format = parsedPrimitive.attributes[key]?.format;
-                //         return `${key}:${format}`;
-                //     })
-                //     .join('|');
+                const layout = parsePrimitiveLayout(unparsedGltf, primitive);
+                if (keyToLayoutIdx[layout.key] === undefined) {
+                    primitiveLayouts.push(layout.primitiveLayout);
+                    keyToLayoutIdx[layout.key] = primitiveLayouts.length - 1;
+                }
 
-                // const mode = parsedPrimitive.mode;
-                // const key = `${mode}(${attributeKeys})`;
+                const parsedPrimitive = parsePrimitive(
+                    unparsedGltf,
+                    buffers,
+                    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+                    keyToLayoutIdx[layout.key]!,
+                    mi,
+                    primitive,
+                );
 
                 primitives.push(parsedPrimitive);
             }
         }
 
         const meshes: ParsedGltf2Mesh[] = [];
+        const primitiveToMeshes: Record<number, number[]> = {};
 
         for (const node of unparsedGltf.nodes) {
             if (isMeshNode(node)) {
-                meshes.push(parseMeshNode(unparsedGltf, primitives, node));
+                const parsedMesh = parseMeshNode(unparsedGltf, primitives, node);
+                meshes.push(parsedMesh);
+
+                for (const primitive of parsedMesh.primitives) {
+                    // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
+                    if (!primitiveToMeshes[primitive.primitive]) {
+                        primitiveToMeshes[primitive.primitive] = [];
+                    }
+
+                    primitiveToMeshes[primitive.primitive].push(meshes.length - 1);
+                }
             }
         }
 
         return {
             textures,
-            materials,
             materialTypes: [...uniqueMaterialTypesSet],
+            materials,
+            primitiveLayouts,
             primitives,
             meshes,
+            primitiveToMeshes,
+            // TODO: since we dont return nodes, we should provide `meshNodes` and `cameraNodes`, ... instead
             scenes: unparsedGltf.scenes,
             activeScene: unparsedGltf.scene,
         };

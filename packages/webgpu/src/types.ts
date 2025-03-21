@@ -299,13 +299,10 @@ export type CreatePipelineLayoutArgs<Groups extends UniformGroup<number, Record<
     uniformGroups: Groups;
 };
 
-export type CreateBindGroupsResult<
-    Groups extends UniformGroup<number, Record<string, GenericBinding>>[],
-    Group extends TupleIndices<Groups>,
-> = {
-    group: Group;
+export type CreateBindGroupResult<Group extends UniformGroup<number, Record<string, GenericBinding>>> = {
+    group: Group['group'];
     bindGroup: GPUBindGroup;
-    buffers: BuffersByBindingKey<Groups[Group]>;
+    buffers: BuffersByBindingKey<Group>;
 };
 
 export type CreatePipelineLayoutResult<Groups extends UniformGroup<number, Record<string, GenericBinding>>[]> = {
@@ -313,5 +310,5 @@ export type CreatePipelineLayoutResult<Groups extends UniformGroup<number, Recor
     createBindGroups: <Group extends TupleIndices<Groups>>(
         group: Group,
         bindings: BindingsForGroup<Groups[Group]>,
-    ) => CreateBindGroupsResult<Groups, Group>;
+    ) => CreateBindGroupResult<Groups[Group]>;
 };

@@ -4,6 +4,8 @@ import {
     ParsedGltf2Material,
     ParsedGltf2Mesh,
     ParsedGltf2Primitive,
+    ParsedGltf2PrimitiveLayout,
+    ParsedGltf2Result,
     ParsedGltf2Sampler,
     ParsedGltf2Texture,
 } from './types';
@@ -24,8 +26,13 @@ vi.stubGlobal('createImageBitmap', createImageBitmapMock);
 describe('gltf2-parser', () => {
     it('should parse a single plane with material, without textures', async () => {
         const parser = createParser();
-        const { textures, materials, primitives } = await parser.parse(singlePlaneNoTextures);
+
+        const { textures, materialTypes, materials, primitiveLayouts, primitives } =
+            await parser.parse(singlePlaneNoTextures);
+
         expect(textures.length).toEqual(0);
+
+        expect(materialTypes).toEqual(['pbr-metallic-roughness-opaque-ds']);
 
         const expectedMaterials: ParsedGltf2Material[] = [
             {
@@ -45,8 +52,22 @@ describe('gltf2-parser', () => {
 
         expect(materials).toEqual(expectedMaterials);
 
+        const expectedPrimitiveLayouts: ParsedGltf2PrimitiveLayout[] = [
+            {
+                mode: 'triangle-list',
+                attributes: {
+                    POSITION: 'float32x3',
+                    TEXCOORD_0: 'float32x2',
+                    NORMAL: 'float32x3',
+                },
+            },
+        ];
+
+        expect(primitiveLayouts).toEqual(expectedPrimitiveLayouts);
+
         const expectedPrimitives: ParsedGltf2Primitive[] = [
             {
+                primitiveLayout: 0,
                 mesh: 0,
                 material: 0,
                 mode: 'triangle-list',
@@ -55,7 +76,7 @@ describe('gltf2-parser', () => {
                     NORMAL: new Float32Array([0, 1, -0, 0, 1, -0, 0, 1, -0, 0, 1, -0]),
                     TEXCOORD_0: new Float32Array([0, 1, 1, 1, 0, 0, 1, 0]),
                 },
-                indices: { type: 'UNSIGNED_SHORT', data: new Uint16Array([0, 1, 3, 0, 3, 2]) },
+                indices: { format: 'uint16', data: new Uint16Array([0, 1, 3, 0, 3, 2]) },
             },
         ];
 
@@ -64,7 +85,9 @@ describe('gltf2-parser', () => {
 
     it('should parse a single plane with material, with textures', async () => {
         const parser = createParser();
-        const { textures, materials, primitives } = await parser.parse(singlePlaneWithTextures);
+
+        const { textures, materialTypes, materials, primitiveLayouts, primitives } =
+            await parser.parse(singlePlaneWithTextures);
 
         const expectedImage = { width: 1024, height: 1024, close };
 
@@ -95,6 +118,8 @@ describe('gltf2-parser', () => {
 
         expect(textures).toEqual(expectedTextures);
 
+        expect(materialTypes).toEqual(['pbr-metallic-roughness-opaque-ds']);
+
         const expectedMaterials: ParsedGltf2Material[] = [
             {
                 type: 'pbr-metallic-roughness-opaque-ds',
@@ -113,8 +138,22 @@ describe('gltf2-parser', () => {
 
         expect(materials).toEqual(expectedMaterials);
 
+        const expectedPrimitiveLayouts: ParsedGltf2PrimitiveLayout[] = [
+            {
+                mode: 'triangle-list',
+                attributes: {
+                    POSITION: 'float32x3',
+                    TEXCOORD_0: 'float32x2',
+                    NORMAL: 'float32x3',
+                },
+            },
+        ];
+
+        expect(primitiveLayouts).toEqual(expectedPrimitiveLayouts);
+
         const expectedPrimitives: ParsedGltf2Primitive[] = [
             {
+                primitiveLayout: 0,
                 mesh: 0,
                 material: 0,
                 mode: 'triangle-list',
@@ -123,7 +162,7 @@ describe('gltf2-parser', () => {
                     NORMAL: new Float32Array([0, 1, -0, 0, 1, -0, 0, 1, -0, 0, 1, -0]),
                     TEXCOORD_0: new Float32Array([0, 1, 1, 1, 0, 0, 1, 0]),
                 },
-                indices: { type: 'UNSIGNED_SHORT', data: new Uint16Array([0, 1, 3, 0, 3, 2]) },
+                indices: { format: 'uint16', data: new Uint16Array([0, 1, 3, 0, 3, 2]) },
             },
         ];
 
@@ -132,15 +171,32 @@ describe('gltf2-parser', () => {
 
     it('should parse multiple planes with and without instances', async () => {
         const parser = createParser();
-        const { textures, materials, primitives, meshes } = await parser.parse(multiplePlanesWithAndWithoutInstances);
+
+        const { textures, materialTypes, materials, primitiveLayouts, primitives, meshes, primitiveToMeshes } =
+            await parser.parse(multiplePlanesWithAndWithoutInstances);
 
         expect(textures.length).toEqual(0);
         expect(materials.map((m) => m.name)).toEqual(['Red', 'Green1', 'Green2', 'Blue', 'Yellow']);
+        expect(materialTypes).toEqual(['pbr-metallic-roughness-opaque-ds']);
+
+        const expectedPrimitiveLayouts: ParsedGltf2PrimitiveLayout[] = [
+            {
+                mode: 'triangle-list',
+                attributes: {
+                    POSITION: 'float32x3',
+                    TEXCOORD_0: 'float32x2',
+                    NORMAL: 'float32x3',
+                },
+            },
+        ];
+
+        expect(primitiveLayouts).toEqual(expectedPrimitiveLayouts);
 
         // unique primitives
 
         const expectedPrimitives: ParsedGltf2Primitive[] = [
             {
+                primitiveLayout: 0,
                 mesh: 0,
                 material: 0,
                 mode: 'triangle-list',
@@ -149,9 +205,10 @@ describe('gltf2-parser', () => {
                     NORMAL: new Float32Array([0, 1, -0, 0, 1, -0, 0, 1, -0, 0, 1, -0]),
                     TEXCOORD_0: new Float32Array([0, 1, 1, 1, 0, 0, 1, 0]),
                 },
-                indices: { type: 'UNSIGNED_SHORT', data: new Uint16Array([0, 1, 3, 0, 3, 2]) },
+                indices: { format: 'uint16', data: new Uint16Array([0, 1, 3, 0, 3, 2]) },
             },
             {
+                primitiveLayout: 0,
                 mesh: 1,
                 material: 1,
                 mode: 'triangle-list',
@@ -160,9 +217,10 @@ describe('gltf2-parser', () => {
                     NORMAL: new Float32Array([0, 1, -0, 0, 1, -0, 0, 1, -0, 0, 1, -0]),
                     TEXCOORD_0: new Float32Array([0, 1, 1, 1, 0, 0, 1, 0]),
                 },
-                indices: { type: 'UNSIGNED_SHORT', data: new Uint16Array([0, 1, 3, 0, 3, 2]) },
+                indices: { format: 'uint16', data: new Uint16Array([0, 1, 3, 0, 3, 2]) },
             },
             {
+                primitiveLayout: 0,
                 mesh: 2,
                 material: 2,
                 mode: 'triangle-list',
@@ -171,9 +229,10 @@ describe('gltf2-parser', () => {
                     NORMAL: new Float32Array([0, 1, -0, 0, 1, -0, 0, 1, -0, 0, 1, -0]),
                     TEXCOORD_0: new Float32Array([0, 1, 1, 1, 0, 0, 1, 0]),
                 },
-                indices: { type: 'UNSIGNED_SHORT', data: new Uint16Array([0, 1, 3, 0, 3, 2]) },
+                indices: { format: 'uint16', data: new Uint16Array([0, 1, 3, 0, 3, 2]) },
             },
             {
+                primitiveLayout: 0,
                 mesh: 3,
                 material: 3,
                 mode: 'triangle-list',
@@ -182,9 +241,10 @@ describe('gltf2-parser', () => {
                     NORMAL: new Float32Array([0, 1, -0, 0, 1, -0, 0, 1, -0]),
                     TEXCOORD_0: new Float32Array([1, 1, 0, 0, 1, 0]),
                 },
-                indices: { type: 'UNSIGNED_SHORT', data: new Uint16Array([0, 2, 1]) },
+                indices: { format: 'uint16', data: new Uint16Array([0, 2, 1]) },
             },
             {
+                primitiveLayout: 0,
                 mesh: 3,
                 material: 4,
                 mode: 'triangle-list',
@@ -193,7 +253,7 @@ describe('gltf2-parser', () => {
                     NORMAL: new Float32Array([0, 1, -0, 0, 1, -0, 0, 1, -0]),
                     TEXCOORD_0: new Float32Array([0, 1, 1, 1, 0, 0]),
                 },
-                indices: { type: 'UNSIGNED_SHORT', data: new Uint16Array([1, 2, 0]) },
+                indices: { format: 'uint16', data: new Uint16Array([1, 2, 0]) },
             },
         ];
 
@@ -256,5 +316,15 @@ describe('gltf2-parser', () => {
         ];
 
         expect(meshes).toEqual(expectedMeshes);
+
+        const expectedPrimitiveToMeshes: ParsedGltf2Result['primitiveToMeshes'] = {
+            0: [0, 2, 3],
+            1: [1],
+            2: [4],
+            3: [5],
+            4: [5],
+        };
+
+        expect(primitiveToMeshes).toEqual(expectedPrimitiveToMeshes);
     });
 });
