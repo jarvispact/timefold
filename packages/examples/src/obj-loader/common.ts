@@ -1,4 +1,4 @@
-import { Uniform, WebgpuUtils, Wgsl } from '@timefold/webgpu';
+import { RenderPassDescriptor, Uniform, WebgpuUtils, Wgsl } from '@timefold/webgpu';
 import { Vec3, Mat4x4, MathUtils, Vec3Type } from '@timefold/math';
 import { ObjObject } from '@timefold/obj';
 
@@ -85,7 +85,7 @@ export const setupScene = async (Vertex: typeof VertexInterleaved | typeof Verte
 
     const sceneBindgroup = Layout.createBindGroups(0, { scene: WebgpuUtils.createBufferDescriptor() });
 
-    const renderPassDescriptor: WebgpuUtils.RenderPassDescriptor = {
+    const renderPassDescriptor: RenderPassDescriptor = {
         colorAttachments: [WebgpuUtils.createColorAttachmentFromView(context.getCurrentTexture().createView())],
         depthStencilAttachment: WebgpuUtils.createDepthAttachmentFromView(device, canvas.width, canvas.height),
     };

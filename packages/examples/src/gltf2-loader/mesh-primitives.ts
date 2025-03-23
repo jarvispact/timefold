@@ -131,7 +131,7 @@ const run = async () => {
             const pipeline = device.createRenderPipeline({
                 layout: PipelineLayout.layout,
                 primitive: {
-                    cullMode: materialType === 'pbr-metallic-roughness-opaque-ds' ? 'none' : 'back',
+                    cullMode: materialType.doubleSided ? 'none' : 'back',
                     topology: primitiveLayout.mode,
                 },
                 vertex: { module: module, buffers: VertexLayout.layout },
@@ -160,7 +160,7 @@ const run = async () => {
                         const material =
                             primitive.material !== undefined ? result.materials[primitive.material] : undefined;
 
-                        if (material && material.type === 'pbr-metallic-roughness-opaque-ds') {
+                        if (material && material.type === 'pbr-metallic-roughness') {
                             Vec3.copy(entity.views.color, material.baseColor);
                         } else {
                             Vec3.set(entity.views.color, 0.965, 0.447, 0.502);
