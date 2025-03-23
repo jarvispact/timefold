@@ -15,36 +15,42 @@ export const componentTypeMapping = {
     5120: {
         type: 'BYTE',
         indexFormat: 'uint16',
+        byteSize: 1,
         createView: (buffer: ArrayBufferLike, byteOffset: number, size: number) =>
             new Int8Array(buffer, byteOffset, size),
     },
     5121: {
         type: 'UNSIGNED_BYTE',
         indexFormat: 'uint16',
+        byteSize: 1,
         createView: (buffer: ArrayBufferLike, byteOffset: number, size: number) =>
             new Uint8Array(buffer, byteOffset, size),
     },
     5122: {
         type: 'SHORT',
         indexFormat: 'uint16',
+        byteSize: 2,
         createView: (buffer: ArrayBufferLike, byteOffset: number, size: number) =>
             new Int16Array(buffer, byteOffset, size),
     },
     5123: {
         type: 'UNSIGNED_SHORT',
         indexFormat: 'uint16',
+        byteSize: 2,
         createView: (buffer: ArrayBufferLike, byteOffset: number, size: number) =>
             new Uint16Array(buffer, byteOffset, size),
     },
     5125: {
         type: 'UNSIGNED_INT',
         indexFormat: 'uint32',
+        byteSize: 4,
         createView: (buffer: ArrayBufferLike, byteOffset: number, size: number) =>
             new Uint32Array(buffer, byteOffset, size),
     },
     5126: {
         type: 'FLOAT',
         indexFormat: 'uint32', // invalid - but we expect gltf exporters to do the correct thing
+        byteSize: 4,
         createView: (buffer: ArrayBufferLike, byteOffset: number, size: number) =>
             new Float32Array(buffer, byteOffset, size),
     },

@@ -127,7 +127,10 @@ export type UnparsedGltf2BufferView = {
 
 export type UnparsedGltf2Buffer = { byteLength: number; uri: string };
 
-export type UnparsedGltf2Image = { bufferView: number; mimeType: string; name: string };
+type UnparsedGltf2ImageBase = { mimeType: string; name: string };
+export type UnparsedGltf2ImageWithBufferView = UnparsedGltf2ImageBase & { bufferView: number };
+export type UnparsedGltf2ImageWithUri = UnparsedGltf2ImageBase & { uri: string };
+export type UnparsedGltf2Image = UnparsedGltf2ImageWithBufferView | UnparsedGltf2ImageWithUri;
 
 export type UnparsedGltf2Texture = { source: number; sampler?: number };
 
@@ -202,6 +205,7 @@ export type UnparsedGltf2Result = {
 
 export type Gltf2ParserOptions = {
     resolveBufferUrl?: (uri: string) => string;
+    resolveImageUrl?: (uri: string) => string;
 };
 
 // ============================
@@ -245,27 +249,43 @@ export type ParsedGltf2MaterialType = {
     doubleSided: boolean;
 };
 
-export type ParsedGltf2PrimitiveLayoutAttributes = Attributes<PositionFormat, Format, Format>;
+export type ParsedGltf2PrimitiveLayoutAttributes = Attributes<
+    { format: PositionFormat; offset: number },
+    { format: Format; offset: number },
+    { format: Format; offset: number }
+>;
 
 export type ParsedGltf2PrimitiveLayout = {
+    type: 'interleaved' | 'non-interleaved';
     mode: ParsedGltf2PrimitiveMode;
-    attributes: Attributes<PositionFormat, Format, Format>;
+    attributes: ParsedGltf2PrimitiveLayoutAttributes;
 };
 
-export type ParsedGltf2Attributes = Attributes<
+export type ParsedGltf2AttributesNonInterleaved = Attributes<
     Gltf2PositionAttributeMap[Gltf2PositionAttribute],
     Gltf2AttributeWithoutPositionMap[Gltf2AttributeWithoutPosition],
     ParsedComponentTypeView
 >;
 
-export type ParsedGltf2Primitive = {
+export type ParsedGltf2PrimitiveBase = {
     primitiveLayout: number;
     mesh: number;
     material?: number;
     mode: ParsedGltf2PrimitiveMode;
-    attributes: ParsedGltf2Attributes;
     indices?: { format: ParsedComponentTypeIndexFormat; data: Uint16Array | Uint32Array };
 };
+
+export type ParsedGltf2PrimitiveInterleaved = ParsedGltf2PrimitiveBase & {
+    type: 'interleaved';
+    vertices: Float32Array;
+};
+
+export type ParsedGltf2PrimitiveNonInterleaved = ParsedGltf2PrimitiveBase & {
+    type: 'non-interleaved';
+    attributes: ParsedGltf2AttributesNonInterleaved;
+};
+
+export type ParsedGltf2Primitive = ParsedGltf2PrimitiveInterleaved | ParsedGltf2PrimitiveNonInterleaved;
 
 export type ParsedGltf2MeshPrimitive = {
     primitive: number;

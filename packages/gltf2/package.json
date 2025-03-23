@@ -23,5 +23,8 @@
     "test:run": "vitest run --typecheck",
     "build": "rm -rf ./dist && vite build && tsc",
     "publish-to-npm": "npm publish"
+  },
+  "devDependencies": {
+    "msw": "^2.7.3"
   }
 }

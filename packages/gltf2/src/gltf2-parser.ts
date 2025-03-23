@@ -11,12 +11,18 @@ import {
     ParsedGltf2PrimitiveLayout,
     ParsedGltf2Result,
     ParsedGltf2Texture,
+    UnparsedGltf2Image,
+    UnparsedGltf2ImageWithBufferView,
     UnparsedGltf2Result,
 } from './types';
 
 const defaultGltfParserOptions = {
     resolveBufferUrl: (uri) => uri,
+    resolveImageUrl: (uri) => uri,
 } satisfies Gltf2ParserOptions;
+
+const isImageWithBufferView = (image: UnparsedGltf2Image): image is UnparsedGltf2ImageWithBufferView =>
+    'bufferView' in image && typeof image.bufferView === 'number';
 
 export const createParser = (options: Gltf2ParserOptions = {}) => {
     const opts = { ...defaultGltfParserOptions, ...options };
@@ -39,17 +45,25 @@ export const createParser = (options: Gltf2ParserOptions = {}) => {
 
         if (Array.isArray(unparsedGltf.images) && unparsedGltf.images.length > 0) {
             for (const image of unparsedGltf.images) {
-                const bufferView = unparsedGltf.bufferViews[image.bufferView];
+                if (isImageWithBufferView(image)) {
+                    const bufferView = unparsedGltf.bufferViews[image.bufferView];
 
-                // TODO: length !== byteLength ???
-                const imageData = new Uint8Array(
-                    buffers[bufferView.buffer],
-                    bufferView.byteOffset,
-                    bufferView.byteLength,
-                );
+                    const imageData = new Uint8Array(
+                        buffers[bufferView.buffer],
+                        bufferView.byteOffset,
+                        bufferView.byteLength,
+                    );
 
-                const blob = new Blob([imageData], { type: image.mimeType });
-                imagePromises.push(createImageBitmap(blob));
+                    const blob = new Blob([imageData], { type: image.mimeType });
+                    imagePromises.push(createImageBitmap(blob));
+                } else {
+                    const url = opts.resolveImageUrl(image.uri);
+                    imagePromises.push(
+                        fetch(url)
+                            .then((res) => res.blob())
+                            .then((blob) => createImageBitmap(blob)),
+                    );
+                }
             }
         }
 
@@ -97,7 +111,16 @@ export const createParser = (options: Gltf2ParserOptions = {}) => {
                     keyToLayoutIdx[layout.key] = primitiveLayouts.length - 1;
                 }
 
-                primitives.push(parsePrimitive(unparsedGltf, buffers, keyToLayoutIdx[layout.key], mi, primitive));
+                primitives.push(
+                    parsePrimitive(
+                        unparsedGltf,
+                        buffers,
+                        layout.primitiveLayout,
+                        keyToLayoutIdx[layout.key],
+                        mi,
+                        primitive,
+                    ),
+                );
             }
         }
 
