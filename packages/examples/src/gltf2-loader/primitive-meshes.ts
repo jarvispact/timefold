@@ -1,4 +1,4 @@
-import { Gltf2Parser, ParsedGltf2Material, ParsedGltf2Mesh, ParsedGltf2Primitive } from '@timefold/gltf2';
+import { Gltf2Loader, ParsedGltf2Material, ParsedGltf2Mesh, ParsedGltf2Primitive } from '@timefold/gltf2';
 import { WebgpuUtils, Wgsl, Uniform, RenderPassDescriptor, CreateBindGroupResult } from '@timefold/webgpu';
 import { Mat4x4, MathUtils, Vec3 } from '@timefold/math';
 
@@ -60,9 +60,7 @@ type RenderTree = {
 };
 
 const run = async () => {
-    const gltfJson = await fetch('./multiple-planes-with-and-without-instances.gltf').then((res) => res.text());
-    const parser = Gltf2Parser.createParser();
-    const result = await parser.parse(gltfJson);
+    const result = await Gltf2Loader.load('./multiple-planes-with-and-without-instances.gltf');
     console.log(result);
 
     const renderTree: RenderTree = {
@@ -254,8 +252,6 @@ const run = async () => {
         pass.end();
         device.queue.submit([encoder.finish()]);
         // requestAnimationFrame(render);
-
-        console.log({ renderTree });
         console.log(stats);
     };
 

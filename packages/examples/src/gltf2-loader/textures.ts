@@ -1,4 +1,4 @@
-import { Gltf2Parser, ParsedGltf2Material, ParsedGltf2Mesh, ParsedGltf2Primitive } from '@timefold/gltf2';
+import { Gltf2Loader, ParsedGltf2Material, ParsedGltf2Mesh, ParsedGltf2Primitive } from '@timefold/gltf2';
 import { WebgpuUtils, Wgsl, Uniform, RenderPassDescriptor, CreateBindGroupResult } from '@timefold/webgpu';
 import { Mat4x4, MathUtils, Vec3 } from '@timefold/math';
 
@@ -62,14 +62,11 @@ type RenderTree = {
 };
 
 const run = async () => {
-    const brickColorMap = await fetch('./bricks-color-map.jpg')
-        .then((res) => res.blob())
-        .then((blob) => createImageBitmap(blob));
-
-    const gltfJson = await fetch('./single-plane-with-textures.gltf').then((res) => res.text());
-    const parser = Gltf2Parser.createParser();
-    const result = await parser.parse(gltfJson);
+    const result = await Gltf2Loader.load('./single-plane-with-textures.gltf');
     console.log(result);
+
+    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+    const brickColorMap = result.textures.find((t) => t.name === 'bricks-color-map')!.image;
 
     const renderTree: RenderTree = {
         pipelines: [],
@@ -264,8 +261,6 @@ const run = async () => {
         pass.end();
         device.queue.submit([encoder.finish()]);
         // requestAnimationFrame(render);
-
-        console.log({ renderTree });
         console.log(stats);
     };
 
