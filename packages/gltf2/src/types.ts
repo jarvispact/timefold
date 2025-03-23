@@ -127,7 +127,10 @@ export type UnparsedGltf2BufferView = {
 
 export type UnparsedGltf2Buffer = { byteLength: number; uri: string };
 
-export type UnparsedGltf2Image = { bufferView: number; mimeType: string; name: string };
+type UnparsedGltf2ImageBase = { mimeType: string; name: string };
+export type UnparsedGltf2ImageWithBufferView = UnparsedGltf2ImageBase & { bufferView: number };
+export type UnparsedGltf2ImageWithUri = UnparsedGltf2ImageBase & { uri: string };
+export type UnparsedGltf2Image = UnparsedGltf2ImageWithBufferView | UnparsedGltf2ImageWithUri;
 
 export type UnparsedGltf2Texture = { source: number; sampler?: number };
 
@@ -202,6 +205,7 @@ export type UnparsedGltf2Result = {
 
 export type Gltf2ParserOptions = {
     resolveBufferUrl?: (uri: string) => string;
+    resolveImageUrl?: (uri: string) => string;
 };
 
 // ============================
@@ -280,11 +284,6 @@ export type ParsedGltf2Mesh = {
     primitives: ParsedGltf2MeshPrimitive[];
 };
 
-export type ParsedGltf2Scene = {
-    name: string;
-    nodes: number[];
-};
-
 export type ParsedGltf2Result = {
     textures: ParsedGltf2Texture[];
     materialTypes: ParsedGltf2MaterialType[];
@@ -293,6 +292,4 @@ export type ParsedGltf2Result = {
     primitives: ParsedGltf2Primitive[];
     meshes: ParsedGltf2Mesh[];
     meshesForPrimitive: Record<number, number[]>;
-    scenes: ParsedGltf2Scene[];
-    activeScene: number;
 };
