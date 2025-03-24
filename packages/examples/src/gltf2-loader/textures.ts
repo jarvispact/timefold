@@ -37,7 +37,7 @@ type RenderTreeBuffers = {
     position: { slot: number; buffer: GPUBuffer; count: number };
     normal: { slot: number; buffer: GPUBuffer };
     uv: { slot: number; buffer: GPUBuffer };
-    index: { buffer: GPUBuffer; format: 'uint16' | 'uint32'; count: number };
+    index?: { buffer: GPUBuffer; format: 'uint16' | 'uint32'; count: number };
 };
 
 type RenderTreeMesh = {
@@ -90,7 +90,7 @@ const run = async () => {
                 uniformGroups: [SceneUniformGroup, EntityUniformGroup],
             });
 
-            // Incompatible - skip
+            // Incompatible with current shader - skip
             if (!primitiveLayout.attributes.NORMAL || !primitiveLayout.attributes.TEXCOORD_0) {
                 continue;
             }
@@ -125,9 +125,10 @@ const run = async () => {
                 @fragment fn fs(vsOut: VSOutput) -> @location(0) vec4f {
                     let N = normalize(vsOut.normal);
                     let L = normalize(scene.sun_direction);
-                    let ambient = entity.color * 0.1;
+                    let color = textureSample(colorMap, colorSampler, vsOut.uv).rgb;
+                    let ambient = color * 0.1;
                     let diff = max(dot(N, L), 0.0);
-                    let diffuse = max(dot(N, L), 0.0) * scene.sun_color * textureSample(colorMap, colorSampler, vsOut.uv).rgb;
+                    let diffuse = max(dot(N, L), 0.0) * scene.sun_color * color;
                     return vec4f(ambient + diffuse, 1.0);
                 }
             `.trim();
@@ -147,25 +148,28 @@ const run = async () => {
             const sceneBindGroup = PipelineLayout.createBindGroups(0, { scene: WebgpuUtils.createBufferDescriptor() });
 
             const primitives = result.primitives
-                .map((primitive, pi) => {
-                    if (!primitive.attributes.NORMAL || !primitive.attributes.TEXCOORD_0 || !primitive.indices) {
+                .map((primitive, pi): RenderTreePrimitive | undefined => {
+                    if (!primitive.attributes.NORMAL || !primitive.attributes.TEXCOORD_0) {
                         return undefined;
                     }
 
-                    const position = VertexLayout.createBuffer(device, 'position', primitive.attributes.POSITION);
-                    const normal = VertexLayout.createBuffer(device, 'normal', primitive.attributes.NORMAL);
-                    const uv = VertexLayout.createBuffer(device, 'uv', primitive.attributes.TEXCOORD_0);
-                    const index = WebgpuUtils.createIndexBuffer(device, {
-                        format: primitive.indices.format,
-                        data: primitive.indices.data,
+                    const buffers = VertexLayout.createBuffers(device, {
+                        position: primitive.attributes.POSITION,
+                        normal: primitive.attributes.NORMAL,
+                        uv: primitive.attributes.TEXCOORD_0,
                     });
+
+                    const index = primitive.indices
+                        ? WebgpuUtils.createIndexBuffer(device, {
+                              format: primitive.indices.format,
+                              data: primitive.indices.data,
+                          })
+                        : undefined;
 
                     return {
                         primitive,
                         buffers: {
-                            position,
-                            normal,
-                            uv,
+                            ...buffers,
                             index,
                         },
                         meshes: result.meshesForPrimitive[pi].map((m) => {
@@ -217,7 +221,7 @@ const run = async () => {
     const proj = Mat4x4.createPerspective(MathUtils.degreesToRadians(65), canvas.width / canvas.height, 0.1);
     Mat4x4.multiplication(scene.views.view_projection_matrix, proj, view);
 
-    Vec3.normalization(scene.views.sun_direction, Vec3.create(-2, 3, -4));
+    Vec3.normalization(scene.views.sun_direction, Vec3.create(2, 3, 4));
     Vec3.set(scene.views.sun_color, 1, 1, 1);
 
     const stats = {
@@ -245,14 +249,24 @@ const run = async () => {
                 pass.setVertexBuffer(primitive.buffers.position.slot, primitive.buffers.position.buffer);
                 pass.setVertexBuffer(primitive.buffers.normal.slot, primitive.buffers.normal.buffer);
                 pass.setVertexBuffer(primitive.buffers.uv.slot, primitive.buffers.uv.buffer);
-                pass.setIndexBuffer(primitive.buffers.index.buffer, primitive.buffers.index.format);
+
+                if (primitive.buffers.index) {
+                    pass.setIndexBuffer(primitive.buffers.index.buffer, primitive.buffers.index.format);
+                }
+
                 stats.setVertexIndexBuffers++;
 
                 for (const mesh of primitive.meshes) {
                     pass.setBindGroup(mesh.bindGroup.group, mesh.bindGroup.bindGroup);
                     device.queue.writeBuffer(mesh.bindGroup.buffers.entity, 0, mesh.data);
                     stats.setEntityBindgroup++;
-                    pass.drawIndexed(primitive.buffers.index.count);
+
+                    if (primitive.buffers.index) {
+                        pass.drawIndexed(primitive.buffers.index.count);
+                    } else {
+                        pass.draw(primitive.buffers.position.count);
+                    }
+
                     stats.drawCalls++;
                 }
             }

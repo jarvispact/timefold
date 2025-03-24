@@ -99,6 +99,12 @@ export const createDeviceAndContext = async (
 // ===========================================================
 // vertex buffers
 
+// TODO:    Do we even need the offset for non-interleaved buffers?
+//          The format already encodes it. Or maybe make it optional?
+//          Also stride would be a better name?
+
+// TODO:    Stricter TypedArray Views based on the format?
+//          Probably does not play well with generic gltf2.
 export const createVertexBufferLayout = <
     Mode extends CreateVertexBufferMode,
     Definition extends CreateVertexBufferLayoutDefinition<Mode>,
@@ -157,11 +163,25 @@ export const createVertexBufferLayout = <
             };
         };
 
+        const createBuffers = (
+            device: GPUDevice,
+            attribs: { [K in keyof Definition]: InstanceType<GenericTypedArrayConstructor> },
+        ) => {
+            return Object.keys(attribs).reduce(
+                (accum, key: keyof Definition) => {
+                    accum[key] = createBuffer(device, key, attribs[key]);
+                    return accum;
+                },
+                {} as { [K in keyof Definition]: { slot: number; buffer: GPUBuffer; count?: number } },
+            );
+        };
+
         return {
             layout,
             wgsl,
             createBuffer,
-        } as CreateVertexBufferLayoutResult<Mode, Definition>;
+            createBuffers,
+        } as unknown as CreateVertexBufferLayoutResult<Mode, Definition>;
     }
 
     let arrayStride = 0;

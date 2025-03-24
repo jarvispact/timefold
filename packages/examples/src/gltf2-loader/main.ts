@@ -1,3 +1,3 @@
-import './primitive-meshes';
+// import './primitive-meshes';
 // import './mesh-primitives';
-// import './textures';
+import './textures';

@@ -262,6 +262,15 @@ type NonInterleavedCreateBuffer<Definition extends CreateVertexBufferLayoutDefin
     data: InstanceType<FormatMap[Definition[Name]['format']]['View']>,
 ) => { slot: number; buffer: GPUBuffer } & (Name extends 'position' ? { count: number } : NonNullable<unknown>);
 
+type NonInterleavedCreateBuffers<Definition extends CreateVertexBufferLayoutDefinition<NonInterleavedMode>> = (
+    device: GPUDevice,
+    attribs: { [K in keyof Definition]: InstanceType<FormatMap[Definition[K]['format']]['View']> },
+) => {
+    [K in keyof Definition]: { slot: number; buffer: GPUBuffer } & (K extends 'position'
+        ? { count: number }
+        : NonNullable<unknown>);
+};
+
 export type CreateVertexBufferLayoutResult<
     Mode extends CreateVertexBufferMode,
     Definition extends CreateVertexBufferLayoutDefinition<Mode>,
@@ -275,6 +284,7 @@ export type CreateVertexBufferLayoutResult<
           layout: GPUVertexBufferLayout[];
           wgsl: string;
           createBuffer: NonInterleavedCreateBuffer<Definition>;
+          createBuffers: NonInterleavedCreateBuffers<Definition>;
       };
 
 // ===========================================================
