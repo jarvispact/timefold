@@ -102,6 +102,7 @@ export const createDeviceAndContext = async (
 // TODO:    Do we even need the offset for non-interleaved buffers?
 //          The format already encodes it. Or maybe make it optional?
 //          Also stride would be a better name?
+//    !!!   But then it will depend on the order of the attributes?
 
 // TODO:    Stricter TypedArray Views based on the format?
 //          Probably does not play well with generic gltf2.
@@ -177,6 +178,7 @@ export const createVertexBufferLayout = <
         };
 
         return {
+            mode: 'non-interleaved',
             layout,
             wgsl,
             createBuffer,
@@ -228,6 +230,7 @@ export const createVertexBufferLayout = <
     };
 
     return {
+        mode: 'interleaved',
         layout,
         wgsl,
         createBuffer,

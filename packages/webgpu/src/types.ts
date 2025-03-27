@@ -276,11 +276,13 @@ export type CreateVertexBufferLayoutResult<
     Definition extends CreateVertexBufferLayoutDefinition<Mode>,
 > = Mode extends InterleavedMode
     ? {
+          mode: InterleavedMode;
           layout: GPUVertexBufferLayout[];
           wgsl: string;
           createBuffer: InterleavedCreateBuffer;
       }
     : {
+          mode: NonInterleavedMode;
           layout: GPUVertexBufferLayout[];
           wgsl: string;
           createBuffer: NonInterleavedCreateBuffer<Definition>;
