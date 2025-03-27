@@ -33,12 +33,23 @@ const EntityUniformGroup = Uniform.group(1, {
 
 type EntityUniformGroup = typeof EntityUniformGroup;
 
-type RenderTreeBuffers = {
-    position: { slot: number; buffer: GPUBuffer; count: number };
-    normal: { slot: number; buffer: GPUBuffer };
-    uv: { slot: number; buffer: GPUBuffer };
+type RenderTreeBuffersInterleaved = {
+    type: 'interleaved';
+    vertices: { slot: number; buffer: GPUBuffer; count: number };
     index?: { buffer: GPUBuffer; format: 'uint16' | 'uint32'; count: number };
 };
+
+type RenderTreeBuffersNonInterleaved = {
+    type: 'non-interleaved';
+    buffers: {
+        position: { slot: number; buffer: GPUBuffer; count: number };
+        normal: { slot: number; buffer: GPUBuffer };
+        uv: { slot: number; buffer: GPUBuffer };
+    };
+    index?: { buffer: GPUBuffer; format: 'uint16' | 'uint32'; count: number };
+};
+
+type RenderTreeBuffers = RenderTreeBuffersInterleaved | RenderTreeBuffersNonInterleaved;
 
 type RenderTreeMesh = {
     bindGroup: CreateBindGroupResult<EntityUniformGroup>;
@@ -47,9 +58,8 @@ type RenderTreeMesh = {
     mesh: ParsedGltf2Mesh;
 };
 
-type RenderTreePrimitive = {
+type RenderTreePrimitive = RenderTreeBuffers & {
     primitive: ParsedGltf2Primitive;
-    buffers: RenderTreeBuffers;
     meshes: RenderTreeMesh[];
 };
 
@@ -62,7 +72,7 @@ type RenderTree = {
 };
 
 const run = async () => {
-    const result = await Gltf2Loader.load('./single-plane-with-textures.gltf');
+    const result = await Gltf2Loader.load('./single-plane-with-textures-interleaved.gltf');
     console.log(result);
 
     // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
@@ -95,11 +105,21 @@ const run = async () => {
                 continue;
             }
 
-            const VertexLayout = WebgpuUtils.createVertexBufferLayout('non-interleaved', {
-                position: { format: primitiveLayout.attributes.POSITION },
-                uv: { format: primitiveLayout.attributes.TEXCOORD_0 },
-                normal: { format: primitiveLayout.attributes.NORMAL },
+            const InterleavedLayout = WebgpuUtils.createVertexBufferLayout('interleaved', {
+                position: primitiveLayout.attributes.POSITION,
+                uv: primitiveLayout.attributes.TEXCOORD_0,
+                normal: primitiveLayout.attributes.NORMAL,
             });
+
+            const NonInterleavedLayout = WebgpuUtils.createVertexBufferLayout('non-interleaved', {
+                position: primitiveLayout.attributes.POSITION,
+                uv: primitiveLayout.attributes.TEXCOORD_0,
+                normal: primitiveLayout.attributes.NORMAL,
+            });
+
+            const VertexLayout = primitiveLayout.type === 'interleaved' ? InterleavedLayout : NonInterleavedLayout;
+
+            console.log({ VertexLayout });
 
             const code = /* wgsl */ `
                 ${VertexLayout.wgsl}
@@ -149,15 +169,12 @@ const run = async () => {
 
             const primitives = result.primitives
                 .map((primitive, pi): RenderTreePrimitive | undefined => {
-                    if (!primitive.attributes.NORMAL || !primitive.attributes.TEXCOORD_0) {
+                    if (
+                        primitive.type === 'non-interleaved' &&
+                        (!primitive.attributes.NORMAL || !primitive.attributes.TEXCOORD_0)
+                    ) {
                         return undefined;
                     }
-
-                    const buffers = VertexLayout.createBuffers(device, {
-                        position: primitive.attributes.POSITION,
-                        normal: primitive.attributes.NORMAL,
-                        uv: primitive.attributes.TEXCOORD_0,
-                    });
 
                     const index = primitive.indices
                         ? WebgpuUtils.createIndexBuffer(device, {
@@ -166,12 +183,30 @@ const run = async () => {
                           })
                         : undefined;
 
+                    console.log({ primitive });
+
+                    const renderTreePrimitive =
+                        primitive.type === 'interleaved'
+                            ? {
+                                  type: 'interleaved' as const,
+                                  vertices: InterleavedLayout.createBuffer(device, primitive.vertices),
+                                  index,
+                              }
+                            : {
+                                  type: 'non-interleaved' as const,
+                                  buffers: NonInterleavedLayout.createBuffers(device, {
+                                      position: primitive.attributes.POSITION,
+                                      // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+                                      normal: primitive.attributes.NORMAL!,
+                                      // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+                                      uv: primitive.attributes.TEXCOORD_0!,
+                                  }),
+                                  index,
+                              };
+
                     return {
                         primitive,
-                        buffers: {
-                            ...buffers,
-                            index,
-                        },
+                        ...renderTreePrimitive,
                         meshes: result.meshesForPrimitive[pi].map((m) => {
                             const mesh = result.meshes[m];
 
@@ -246,12 +281,16 @@ const run = async () => {
             stats.setSceneBindgroup++;
 
             for (const primitive of primitives) {
-                pass.setVertexBuffer(primitive.buffers.position.slot, primitive.buffers.position.buffer);
-                pass.setVertexBuffer(primitive.buffers.normal.slot, primitive.buffers.normal.buffer);
-                pass.setVertexBuffer(primitive.buffers.uv.slot, primitive.buffers.uv.buffer);
+                if (primitive.type === 'interleaved') {
+                    pass.setVertexBuffer(primitive.vertices.slot, primitive.vertices.buffer);
+                } else {
+                    pass.setVertexBuffer(primitive.buffers.position.slot, primitive.buffers.position.buffer);
+                    pass.setVertexBuffer(primitive.buffers.normal.slot, primitive.buffers.normal.buffer);
+                    pass.setVertexBuffer(primitive.buffers.uv.slot, primitive.buffers.uv.buffer);
+                }
 
-                if (primitive.buffers.index) {
-                    pass.setIndexBuffer(primitive.buffers.index.buffer, primitive.buffers.index.format);
+                if (primitive.index) {
+                    pass.setIndexBuffer(primitive.index.buffer, primitive.index.format);
                 }
 
                 stats.setVertexIndexBuffers++;
@@ -261,8 +300,10 @@ const run = async () => {
                     device.queue.writeBuffer(mesh.bindGroup.buffers.entity, 0, mesh.data);
                     stats.setEntityBindgroup++;
 
-                    if (primitive.buffers.index) {
-                        pass.drawIndexed(primitive.buffers.index.count);
+                    if (primitive.index) {
+                        pass.drawIndexed(primitive.index.count);
+                    } else if (primitive.type === 'interleaved') {
+                        pass.draw(primitive.vertices.count);
                     } else {
                         pass.draw(primitive.buffers.position.count);
                     }
