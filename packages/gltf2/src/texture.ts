@@ -2,10 +2,10 @@ import { samplerMagFilterMapping, samplerMinFilterMapping, samplerWrapMapping } 
 import { ParsedGltf2Sampler, ParsedGltf2Texture, UnparsedGltf2Result, UnparsedGltf2Texture } from './types';
 
 const defaultSampler: ParsedGltf2Sampler = {
-    magFilter: 'LINEAR',
-    minFilter: 'LINEAR',
-    wrapS: 'CLAMP_TO_EDGE',
-    wrapT: 'CLAMP_TO_EDGE',
+    magFilter: 'linear',
+    minFilter: 'linear',
+    wrapS: 'clamp-to-edge',
+    wrapT: 'clamp-to-edge',
 };
 
 export const parseTexture = (
@@ -13,7 +13,7 @@ export const parseTexture = (
     images: ImageBitmap[],
     texture: UnparsedGltf2Texture,
 ): ParsedGltf2Texture => {
-    const name = unparsedGltf.images ? unparsedGltf.images[texture.source].name : `Texture${texture.source}`;
+    const name = unparsedGltf.images?.[texture.source].name ?? `Texture${texture.source}`;
 
     if (texture.sampler === undefined) {
         return {
@@ -23,23 +23,15 @@ export const parseTexture = (
         };
     }
 
-    const sampler = unparsedGltf.samplers?.[texture.sampler];
-    if (!sampler) {
-        return {
-            name,
-            image: images[texture.source],
-            sampler: defaultSampler,
-        };
-    }
-
+    const sampler = unparsedGltf.samplers?.[texture.sampler] ?? {};
     return {
         name,
         image: images[texture.source],
         sampler: {
-            magFilter: samplerMagFilterMapping[sampler.magFilter],
-            minFilter: samplerMinFilterMapping[sampler.minFilter],
-            wrapS: sampler.wrapS ? samplerWrapMapping[sampler.wrapS] : 'CLAMP_TO_EDGE',
-            wrapT: sampler.wrapT ? samplerWrapMapping[sampler.wrapT] : 'CLAMP_TO_EDGE',
+            magFilter: sampler.magFilter ? samplerMagFilterMapping[sampler.magFilter] : defaultSampler.magFilter,
+            minFilter: sampler.minFilter ? samplerMinFilterMapping[sampler.minFilter] : defaultSampler.minFilter,
+            wrapS: sampler.wrapS ? samplerWrapMapping[sampler.wrapS] : defaultSampler.wrapS,
+            wrapT: sampler.wrapT ? samplerWrapMapping[sampler.wrapT] : defaultSampler.wrapT,
         },
     };
 };

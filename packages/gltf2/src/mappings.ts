@@ -15,36 +15,42 @@ export const componentTypeMapping = {
     5120: {
         type: 'BYTE',
         indexFormat: 'uint16',
+        byteSize: 1,
         createView: (buffer: ArrayBufferLike, byteOffset: number, size: number) =>
             new Int8Array(buffer, byteOffset, size),
     },
     5121: {
         type: 'UNSIGNED_BYTE',
         indexFormat: 'uint16',
+        byteSize: 1,
         createView: (buffer: ArrayBufferLike, byteOffset: number, size: number) =>
             new Uint8Array(buffer, byteOffset, size),
     },
     5122: {
         type: 'SHORT',
         indexFormat: 'uint16',
+        byteSize: 2,
         createView: (buffer: ArrayBufferLike, byteOffset: number, size: number) =>
             new Int16Array(buffer, byteOffset, size),
     },
     5123: {
         type: 'UNSIGNED_SHORT',
         indexFormat: 'uint16',
+        byteSize: 2,
         createView: (buffer: ArrayBufferLike, byteOffset: number, size: number) =>
             new Uint16Array(buffer, byteOffset, size),
     },
     5125: {
         type: 'UNSIGNED_INT',
         indexFormat: 'uint32',
+        byteSize: 4,
         createView: (buffer: ArrayBufferLike, byteOffset: number, size: number) =>
             new Uint32Array(buffer, byteOffset, size),
     },
     5126: {
         type: 'FLOAT',
         indexFormat: 'uint32', // invalid - but we expect gltf exporters to do the correct thing
+        byteSize: 4,
         createView: (buffer: ArrayBufferLike, byteOffset: number, size: number) =>
             new Float32Array(buffer, byteOffset, size),
     },
@@ -56,7 +62,6 @@ export type ParsedComponentTypeType = ComponentTypeMapping[UnparsedComponentType
 export type ParsedComponentTypeIndexFormat = ComponentTypeMapping[UnparsedComponentType]['indexFormat'];
 export type ParsedComponentTypeView = ReturnType<ComponentTypeMapping[UnparsedComponentType]['createView']>;
 
-// TODO: Support Webgl and offer mapping in userland?
 export const primitiveModeMapping = {
     0: 'point-list',
     1: 'line-list',
@@ -80,8 +85,8 @@ type BufferViewTargetMapping = typeof bufferViewTargetMapping;
 export type UnparsedBufferViewTarget = keyof BufferViewTargetMapping;
 
 export const samplerMagFilterMapping = {
-    9728: 'NEAREST',
-    9729: 'LINEAR',
+    9728: 'nearest',
+    9729: 'linear',
 } as const;
 
 type SamplerMagFilterMapping = typeof samplerMagFilterMapping;
@@ -89,12 +94,12 @@ export type UnparsedSamplerMagFilter = keyof SamplerMagFilterMapping;
 export type ParsedSamplerMagFilter = SamplerMagFilterMapping[UnparsedSamplerMagFilter];
 
 export const samplerMinFilterMapping = {
-    9728: 'NEAREST',
-    9729: 'LINEAR',
-    9984: 'NEAREST_MIPMAP_NEAREST',
-    9985: 'LINEAR_MIPMAP_NEAREST',
-    9986: 'NEAREST_MIPMAP_LINEAR',
-    9987: 'LINEAR_MIPMAP_LINEAR',
+    9728: 'nearest',
+    9729: 'linear',
+    9984: 'nearest', // NEAREST_MIPMAP_NEAREST webgl only
+    9985: 'nearest', // LINEAR_MIPMAP_NEAREST webgl only
+    9986: 'linear', // NEAREST_MIPMAP_LINEAR webgl only
+    9987: 'linear', // LINEAR_MIPMAP_LINEAR webgl only
 } as const;
 
 type SamplerMinFilterMapping = typeof samplerMinFilterMapping;
@@ -102,9 +107,9 @@ export type UnparsedSamplerMinFilter = keyof SamplerMinFilterMapping;
 export type ParsedSamplerMinFilter = SamplerMinFilterMapping[UnparsedSamplerMinFilter];
 
 export const samplerWrapMapping = {
-    33071: 'CLAMP_TO_EDGE',
-    33648: 'MIRRORED_REPEAT',
-    10497: 'REPEAT',
+    33071: 'clamp-to-edge',
+    33648: 'mirror-repeat',
+    10497: 'repeat',
 } as const;
 
 type SamplerWrapMapping = typeof samplerWrapMapping;

@@ -5,14 +5,11 @@ import {
     ParsedGltf2Attributes,
     ParsedGltf2Primitive,
     ParsedGltf2PrimitiveLayout,
-    ParsedGltf2PrimitiveLayoutAttributes,
-    Gltf2Attribute,
     UnparsedGltf2Primitive,
     UnparsedGltf2Result,
 } from './types';
 
-// TODO: Should it also generate the layout directly?
-// https://toji.dev/webgpu-gltf-case-study/#:~:text=we%20still%20need%20to%20treat%20those%20as%20separate%20buffers
+// TODO: rename offset to stride here and in @timefold/webgpu
 export const parsePrimitiveLayout = (
     unparsedGltf: UnparsedGltf2Result,
     primitive: UnparsedGltf2Primitive,
@@ -20,21 +17,41 @@ export const parsePrimitiveLayout = (
     const mode = primitive.mode ? primitiveModeMapping[primitive.mode] : 'triangle-list';
     const attribKeys: string[] = [];
 
-    const attributes = objectKeys(primitive.attributes).reduce((accum, key) => {
-        const accessorIdx = primitive.attributes[key as Gltf2Attribute] as number;
+    const bufferViewSet = new Set<number>();
+
+    const attributeKeys = objectKeys(primitive.attributes);
+    for (const attributeKey of attributeKeys) {
+        const accessorIdx = primitive.attributes[attributeKey] as number;
         const accessor = unparsedGltf.accessors[accessorIdx];
         const mapping = componentTypeMapping[accessor.componentType];
         const format = getFormat(mapping.type, accessor.type, accessor.normalized ?? false);
-        attribKeys.push(`${key}:${format}`);
-        accum[key] = format as never;
-        return accum;
-    }, {} as ParsedGltf2PrimitiveLayoutAttributes);
+        attribKeys.push(`${attributeKey}:${format}`);
+        bufferViewSet.add(accessor.bufferView);
+    }
 
-    const key = `${mode}(${attribKeys.sort().join('|')})`;
+    const isInterleaved = bufferViewSet.size === 1;
+    const modeAndAttribsKey = `${mode}(${attribKeys.sort().join('|')})`;
+    const key = `interleaved(${modeAndAttribsKey})`;
+
+    const attributes = {} as ParsedGltf2PrimitiveLayout['attributes'];
+
+    for (const attributeKey of attributeKeys) {
+        const accessorIdx = primitive.attributes[attributeKey] as number;
+        const accessor = unparsedGltf.accessors[accessorIdx];
+        const bufferView = unparsedGltf.bufferViews[accessor.bufferView];
+        const mapping = componentTypeMapping[accessor.componentType];
+        const format = getFormat(mapping.type, accessor.type, accessor.normalized ?? false);
+
+        const byteOffset = (accessor.byteOffset || 0) + bufferView.byteOffset;
+        const byteSize = mapping.byteSize;
+
+        attributes[attributeKey] = { format: format as never, offset: isInterleaved ? byteOffset / byteSize : 0 };
+    }
 
     return {
         key,
         primitiveLayout: {
+            type: isInterleaved ? 'interleaved' : 'non-interleaved',
             mode,
             attributes,
         },
@@ -46,7 +63,7 @@ const getIndices = (
     buffers: ArrayBuffer[],
     indices: number | undefined,
 ): ParsedGltf2Primitive['indices'] => {
-    if (!indices) return undefined;
+    if (indices === undefined) return undefined;
 
     const accessor = unparsedGltf.accessors[indices];
     const bufferView = unparsedGltf.bufferViews[accessor.bufferView];
@@ -65,12 +82,35 @@ const getIndices = (
 export const parsePrimitive = (
     unparsedGltf: UnparsedGltf2Result,
     buffers: ArrayBuffer[],
-    primitiveLayout: number,
+    primitiveLayout: ParsedGltf2PrimitiveLayout,
+    primitiveLayoutIndex: number,
     mesh: number,
     primitive: UnparsedGltf2Primitive,
 ): ParsedGltf2Primitive => {
+    if (primitiveLayout.type === 'interleaved') {
+        // If the layout is of type "interleaved", we grab the info from the POSITION, but it should be the same for the other attributes
+        const accessorIdx = primitive.attributes.POSITION;
+        const accessor = unparsedGltf.accessors[accessorIdx];
+        const bufferView = unparsedGltf.bufferViews[accessor.bufferView];
+        const arrayBuffer = buffers[bufferView.buffer];
+        const mapping = componentTypeMapping[accessor.componentType];
+        const byteOffset = (accessor.byteOffset || 0) + bufferView.byteOffset;
+        const size = bufferView.byteLength / mapping.byteSize;
+
+        return {
+            type: 'interleaved',
+            primitiveLayout: primitiveLayoutIndex,
+            mesh,
+            material: primitive.material,
+            mode: primitive.mode ? primitiveModeMapping[primitive.mode] : 'triangle-list',
+            vertices: mapping.createView(arrayBuffer, byteOffset, size) as Float32Array,
+            indices: getIndices(unparsedGltf, buffers, primitive.indices),
+        };
+    }
+
     return {
-        primitiveLayout,
+        type: 'non-interleaved',
+        primitiveLayout: primitiveLayoutIndex,
         mesh,
         material: primitive.material,
         mode: primitive.mode ? primitiveModeMapping[primitive.mode] : 'triangle-list',
@@ -82,10 +122,10 @@ export const parsePrimitive = (
             const arrayBuffer = buffers[bufferView.buffer];
             const mapping = componentTypeMapping[accessor.componentType];
 
-            const byteOffset = (accessor.byteOffset || 0) + (bufferView.byteOffset || 0);
+            const byteOffset = (accessor.byteOffset || 0) + bufferView.byteOffset;
             const size = accessor.count * accessorTypeMapping[accessor.type];
 
-            accum[key] = mapping.createView(arrayBuffer, byteOffset, size) as never;
+            accum[key] = mapping.createView(arrayBuffer, byteOffset, size) as Float32Array;
             return accum;
         }, {} as ParsedGltf2Attributes),
         indices: getIndices(unparsedGltf, buffers, primitive.indices),

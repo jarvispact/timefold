@@ -20,7 +20,7 @@ const isImageWithBufferView = (image: UnparsedGltf2Image): image is UnparsedGltf
     'bufferView' in image && typeof image.bufferView === 'number';
 
 const loadImages = async (
-    resolveImageUrl: (uri: string) => string,
+    options: Required<Gltf2ParserOptions>,
     buffers: ArrayBuffer[],
     unparsedGltf: UnparsedGltf2Result,
 ): Promise<ImageBitmap[]> => {
@@ -38,13 +38,13 @@ const loadImages = async (
                 );
 
                 const blob = new Blob([imageData], { type: image.mimeType });
-                imagePromises.push(createImageBitmap(blob));
+                imagePromises.push(createImageBitmap(blob, options.createImageBitmapOptions));
             } else {
-                const url = resolveImageUrl(image.uri);
+                const url = options.resolveImageUrl(image.uri);
                 imagePromises.push(
                     fetch(url)
                         .then((res) => res.blob())
-                        .then((blob) => createImageBitmap(blob)),
+                        .then((blob) => createImageBitmap(blob, options.createImageBitmapOptions)),
                 );
             }
         }
@@ -101,7 +101,16 @@ const parseWithBuffersAndImages = (
                 keyToLayoutIdx[layout.key] = primitiveLayouts.length - 1;
             }
 
-            primitives.push(parsePrimitive(unparsedGltf, buffers, keyToLayoutIdx[layout.key], mi, primitive));
+            primitives.push(
+                parsePrimitive(
+                    unparsedGltf,
+                    buffers,
+                    layout.primitiveLayout,
+                    keyToLayoutIdx[layout.key],
+                    mi,
+                    primitive,
+                ),
+            );
         }
     }
 
@@ -135,13 +144,14 @@ const parseWithBuffersAndImages = (
     };
 };
 
-const defaultGltfParserOptions = {
+const defaultParserOptions = {
+    createImageBitmapOptions: { imageOrientation: 'flipY' },
     resolveBufferUrl: (uri) => uri,
     resolveImageUrl: (uri) => uri,
 } satisfies Gltf2ParserOptions;
 
 export const createGltfParser = (options: Gltf2ParserOptions = {}) => {
-    const opts = { ...defaultGltfParserOptions, ...options };
+    const opts = { ...defaultParserOptions, ...options };
 
     const parse = async (jsonString: string): Promise<ParsedGltf2Result> => {
         const unparsedGltf = JSON.parse(jsonString) as UnparsedGltf2Result;
@@ -156,7 +166,7 @@ export const createGltfParser = (options: Gltf2ParserOptions = {}) => {
         }
 
         const buffers = await Promise.all(bufferPromises);
-        const images = await loadImages(opts.resolveImageUrl, buffers, unparsedGltf);
+        const images = await loadImages(opts, buffers, unparsedGltf);
         return parseWithBuffersAndImages(buffers, images, unparsedGltf);
     };
 
@@ -176,7 +186,7 @@ const GLB_JSON_LENGTH_BYTE_INDEX = 12;
 const GLB_JSON_BYTE_INDEX = 20;
 
 export const createGlbParser = (options: Gltf2ParserOptions = {}) => {
-    const opts = { ...defaultGltfParserOptions, ...options };
+    const opts = { ...defaultParserOptions, ...options };
 
     const parse = async (arrayBuffer: ArrayBuffer): Promise<ParsedGltf2Result> => {
         const magicNumber = new Uint32Array(arrayBuffer, GLB_MAGIC_NUMBER_BYTE_INDEX, 1)[0];
@@ -212,7 +222,7 @@ export const createGlbParser = (options: Gltf2ParserOptions = {}) => {
         }
 
         const buffers = [bin];
-        const images = await loadImages(opts.resolveImageUrl, buffers, unparsedGltf);
+        const images = await loadImages(opts, buffers, unparsedGltf);
         return parseWithBuffersAndImages(buffers, images, unparsedGltf);
     };
 

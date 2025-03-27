@@ -127,7 +127,7 @@ export type UnparsedGltf2BufferView = {
 
 export type UnparsedGltf2Buffer = { byteLength: number; uri: string };
 
-type UnparsedGltf2ImageBase = { mimeType: string; name: string };
+type UnparsedGltf2ImageBase = { mimeType?: string; name?: string };
 export type UnparsedGltf2ImageWithBufferView = UnparsedGltf2ImageBase & { bufferView: number };
 export type UnparsedGltf2ImageWithUri = UnparsedGltf2ImageBase & { uri: string };
 export type UnparsedGltf2Image = UnparsedGltf2ImageWithBufferView | UnparsedGltf2ImageWithUri;
@@ -135,8 +135,8 @@ export type UnparsedGltf2Image = UnparsedGltf2ImageWithBufferView | UnparsedGltf
 export type UnparsedGltf2Texture = { source: number; sampler?: number };
 
 export type UnparsedGltf2Sampler = {
-    magFilter: UnparsedSamplerMagFilter;
-    minFilter: UnparsedSamplerMinFilter;
+    magFilter?: UnparsedSamplerMagFilter;
+    minFilter?: UnparsedSamplerMinFilter;
     wrapS?: UnparsedSamplerWrap;
     wrapT?: UnparsedSamplerWrap;
 };
@@ -159,7 +159,7 @@ export type UnparsedGltf2PbrMetallicRoughnessMaterial = {
     emissiveTexture?: { index: number };
 };
 
-export type UnparsedGltf2Material = UnparsedGltf2PbrMetallicRoughnessMaterial | { name: string }; // union of all the material types
+export type UnparsedGltf2Material = UnparsedGltf2PbrMetallicRoughnessMaterial | { name: string }; // union of all the materials
 
 export type UnparsedGltf2AnimationChannelTarget = {
     node: number;
@@ -204,6 +204,7 @@ export type UnparsedGltf2Result = {
 // Parser Options
 
 export type Gltf2ParserOptions = {
+    createImageBitmapOptions?: ImageBitmapOptions;
     resolveBufferUrl?: (uri: string) => string;
     resolveImageUrl?: (uri: string) => string;
 };
@@ -249,11 +250,14 @@ export type ParsedGltf2MaterialType = {
     doubleSided: boolean;
 };
 
-export type ParsedGltf2PrimitiveLayoutAttributes = Attributes<PositionFormat, Format, Format>;
-
 export type ParsedGltf2PrimitiveLayout = {
+    type: 'interleaved' | 'non-interleaved';
     mode: ParsedGltf2PrimitiveMode;
-    attributes: Attributes<PositionFormat, Format, Format>;
+    attributes: Attributes<
+        { format: PositionFormat; offset: number },
+        { format: Format; offset: number },
+        { format: Format; offset: number }
+    >;
 };
 
 export type ParsedGltf2Attributes = Attributes<
@@ -262,14 +266,25 @@ export type ParsedGltf2Attributes = Attributes<
     ParsedComponentTypeView
 >;
 
-export type ParsedGltf2Primitive = {
+type ParsedGltf2PrimitiveBase = {
     primitiveLayout: number;
     mesh: number;
     material?: number;
     mode: ParsedGltf2PrimitiveMode;
-    attributes: ParsedGltf2Attributes;
     indices?: { format: ParsedComponentTypeIndexFormat; data: Uint16Array | Uint32Array };
 };
+
+export type ParsedGltf2PrimitiveInterleaved = ParsedGltf2PrimitiveBase & {
+    type: 'interleaved';
+    vertices: Float32Array;
+};
+
+export type ParsedGltf2PrimitiveNonInterleaved = ParsedGltf2PrimitiveBase & {
+    type: 'non-interleaved';
+    attributes: ParsedGltf2Attributes;
+};
+
+export type ParsedGltf2Primitive = ParsedGltf2PrimitiveInterleaved | ParsedGltf2PrimitiveNonInterleaved;
 
 export type ParsedGltf2MeshPrimitive = {
     primitive: number;

@@ -57,11 +57,17 @@ const createImageBitmapMock = vi.fn(() => ({
 
 vi.stubGlobal('createImageBitmap', createImageBitmapMock);
 
+const TestLoader = Gltf2Loader.createLoader({
+    parserOptions: {
+        resolveBufferUrl: (uri) => createTestServerPath(uri),
+    },
+});
+
 describe('gltf2-parser', () => {
     describe('gltf', () => {
         describe('non-interleaved primitives', () => {
             it('should parse a single plane with material, without textures', async () => {
-                const { textures, materialTypes, materials, primitiveLayouts, primitives } = await Gltf2Loader.load(
+                const { textures, materialTypes, materials, primitiveLayouts, primitives } = await TestLoader.load(
                     createTestServerPath('single-plane-no-textures.gltf'),
                 );
 
@@ -95,11 +101,12 @@ describe('gltf2-parser', () => {
 
                 const expectedPrimitiveLayouts: ParsedGltf2PrimitiveLayout[] = [
                     {
+                        type: 'non-interleaved',
                         mode: 'triangle-list',
                         attributes: {
-                            POSITION: 'float32x3',
-                            TEXCOORD_0: 'float32x2',
-                            NORMAL: 'float32x3',
+                            POSITION: { format: 'float32x3', offset: 0 },
+                            TEXCOORD_0: { format: 'float32x2', offset: 0 },
+                            NORMAL: { format: 'float32x3', offset: 0 },
                         },
                     },
                 ];
@@ -108,6 +115,7 @@ describe('gltf2-parser', () => {
 
                 const expectedPrimitives: ParsedGltf2Primitive[] = [
                     {
+                        type: 'non-interleaved',
                         primitiveLayout: 0,
                         mesh: 0,
                         material: 0,
@@ -125,17 +133,17 @@ describe('gltf2-parser', () => {
             });
 
             it('should parse a single plane with material, with textures', async () => {
-                const { textures, materialTypes, materials, primitiveLayouts, primitives } = await Gltf2Loader.load(
+                const { textures, materialTypes, materials, primitiveLayouts, primitives } = await TestLoader.load(
                     createTestServerPath('single-plane-with-textures.gltf'),
                 );
 
                 const expectedImage = { width: 1024, height: 1024, close };
 
                 const expectedSampler: ParsedGltf2Sampler = {
-                    magFilter: 'LINEAR',
-                    minFilter: 'LINEAR_MIPMAP_LINEAR',
-                    wrapS: 'CLAMP_TO_EDGE',
-                    wrapT: 'CLAMP_TO_EDGE',
+                    magFilter: 'linear',
+                    minFilter: 'linear',
+                    wrapS: 'clamp-to-edge',
+                    wrapT: 'clamp-to-edge',
                 };
 
                 const expectedTextures: ParsedGltf2Texture[] = [
@@ -186,11 +194,12 @@ describe('gltf2-parser', () => {
 
                 const expectedPrimitiveLayouts: ParsedGltf2PrimitiveLayout[] = [
                     {
+                        type: 'non-interleaved',
                         mode: 'triangle-list',
                         attributes: {
-                            POSITION: 'float32x3',
-                            TEXCOORD_0: 'float32x2',
-                            NORMAL: 'float32x3',
+                            POSITION: { format: 'float32x3', offset: 0 },
+                            TEXCOORD_0: { format: 'float32x2', offset: 0 },
+                            NORMAL: { format: 'float32x3', offset: 0 },
                         },
                     },
                 ];
@@ -199,6 +208,7 @@ describe('gltf2-parser', () => {
 
                 const expectedPrimitives: ParsedGltf2Primitive[] = [
                     {
+                        type: 'non-interleaved',
                         primitiveLayout: 0,
                         mesh: 0,
                         material: 0,
@@ -224,7 +234,7 @@ describe('gltf2-parser', () => {
                     primitives,
                     meshes,
                     meshesForPrimitive: primitiveToMeshes,
-                } = await Gltf2Loader.load(createTestServerPath('multiple-planes-with-and-without-instances.gltf'));
+                } = await TestLoader.load(createTestServerPath('multiple-planes-with-and-without-instances.gltf'));
 
                 expect(textures.length).toEqual(0);
                 expect(materials.map((m) => m.name)).toEqual(['Red', 'Green1', 'Green2', 'Blue', 'Yellow']);
@@ -237,11 +247,12 @@ describe('gltf2-parser', () => {
 
                 const expectedPrimitiveLayouts: ParsedGltf2PrimitiveLayout[] = [
                     {
+                        type: 'non-interleaved',
                         mode: 'triangle-list',
                         attributes: {
-                            POSITION: 'float32x3',
-                            TEXCOORD_0: 'float32x2',
-                            NORMAL: 'float32x3',
+                            POSITION: { format: 'float32x3', offset: 0 },
+                            TEXCOORD_0: { format: 'float32x2', offset: 0 },
+                            NORMAL: { format: 'float32x3', offset: 0 },
                         },
                     },
                 ];
@@ -252,6 +263,7 @@ describe('gltf2-parser', () => {
 
                 const expectedPrimitives: ParsedGltf2Primitive[] = [
                     {
+                        type: 'non-interleaved',
                         primitiveLayout: 0,
                         mesh: 0,
                         material: 0,
@@ -264,6 +276,7 @@ describe('gltf2-parser', () => {
                         indices: { format: 'uint16', data: new Uint16Array([0, 1, 3, 0, 3, 2]) },
                     },
                     {
+                        type: 'non-interleaved',
                         primitiveLayout: 0,
                         mesh: 1,
                         material: 1,
@@ -276,6 +289,7 @@ describe('gltf2-parser', () => {
                         indices: { format: 'uint16', data: new Uint16Array([0, 1, 3, 0, 3, 2]) },
                     },
                     {
+                        type: 'non-interleaved',
                         primitiveLayout: 0,
                         mesh: 2,
                         material: 2,
@@ -288,6 +302,7 @@ describe('gltf2-parser', () => {
                         indices: { format: 'uint16', data: new Uint16Array([0, 1, 3, 0, 3, 2]) },
                     },
                     {
+                        type: 'non-interleaved',
                         primitiveLayout: 0,
                         mesh: 3,
                         material: 3,
@@ -300,6 +315,7 @@ describe('gltf2-parser', () => {
                         indices: { format: 'uint16', data: new Uint16Array([0, 2, 1]) },
                     },
                     {
+                        type: 'non-interleaved',
                         primitiveLayout: 0,
                         mesh: 3,
                         material: 4,
@@ -382,6 +398,280 @@ describe('gltf2-parser', () => {
                 };
 
                 expect(primitiveToMeshes).toEqual(expectedPrimitiveToMeshes);
+            });
+        });
+
+        describe('interleaved primitives', () => {
+            it('should parse a single plane with material, without textures', async () => {
+                const { textures, materialTypes, materials, primitiveLayouts, primitives } = await TestLoader.load(
+                    createTestServerPath('single-plane-no-textures-interleaved.gltf'),
+                );
+
+                expect(textures.length).toEqual(0);
+
+                const expectedMaterialTypes: ParsedGltf2MaterialType[] = [
+                    { type: 'pbr-metallic-roughness', transparent: false, doubleSided: true },
+                ];
+
+                expect(materialTypes).toEqual(expectedMaterialTypes);
+
+                const expectedMaterials: ParsedGltf2Material[] = [
+                    {
+                        type: 'pbr-metallic-roughness',
+                        materialType: 0,
+                        name: 'Material',
+                        baseColor: [0.8000000715255737, 0, 0.005676119588315487],
+                        baseColorTexture: undefined,
+                        metallic: 0,
+                        metallicTexture: undefined,
+                        roughness: 0.5,
+                        roughnessTexture: undefined,
+                        emissive: undefined,
+                        emissiveTexture: undefined,
+                        normalTexture: undefined,
+                        opacity: 1,
+                    },
+                ];
+
+                expect(materials).toEqual(expectedMaterials);
+
+                const expectedPrimitiveLayouts: ParsedGltf2PrimitiveLayout[] = [
+                    {
+                        type: 'interleaved',
+                        mode: 'triangle-list',
+                        attributes: {
+                            POSITION: { format: 'float32x3', offset: 0 },
+                            TEXCOORD_0: { format: 'float32x2', offset: 3 },
+                            NORMAL: { format: 'float32x3', offset: 5 },
+                        },
+                    },
+                ];
+
+                expect(primitiveLayouts).toEqual(expectedPrimitiveLayouts);
+
+                const expectedPrimitives: ParsedGltf2Primitive[] = [
+                    {
+                        type: 'interleaved',
+                        primitiveLayout: 0,
+                        mesh: 0,
+                        material: 0,
+                        mode: 'triangle-list',
+                        vertices: new Float32Array([
+                            -1, 0, 1, 0, 1, 0, 1, -0, 1, 0, 1, 1, 1, 0, 1, -0, -1, 0, -1, 0, 0, 0, 1, -0, 1, 0, -1, 1,
+                            0, 0, 1, -0,
+                        ]),
+                        indices: { format: 'uint16', data: new Uint16Array([0, 1, 3, 0, 3, 2]) },
+                    },
+                ];
+
+                expect(primitives).toEqual(expectedPrimitives);
+            });
+        });
+    });
+
+    describe('gltf + bin', () => {
+        describe('non-interleaved primitives', () => {
+            it('should parse a single plane with material, without textures', async () => {
+                const { textures, materialTypes, materials, primitiveLayouts, primitives } = await TestLoader.load(
+                    createTestServerPath('single-plane-no-textures-separate-bin.gltf'),
+                );
+
+                expect(textures.length).toEqual(0);
+
+                const expectedMaterialTypes: ParsedGltf2MaterialType[] = [
+                    { type: 'pbr-metallic-roughness', transparent: false, doubleSided: true },
+                ];
+
+                expect(materialTypes).toEqual(expectedMaterialTypes);
+
+                const expectedMaterials: ParsedGltf2Material[] = [
+                    {
+                        type: 'pbr-metallic-roughness',
+                        materialType: 0,
+                        name: 'Material',
+                        baseColor: [0.8000000715255737, 0, 0.005676119588315487],
+                        baseColorTexture: undefined,
+                        metallic: 0,
+                        metallicTexture: undefined,
+                        roughness: 0.5,
+                        roughnessTexture: undefined,
+                        emissive: undefined,
+                        emissiveTexture: undefined,
+                        normalTexture: undefined,
+                        opacity: 1,
+                    },
+                ];
+
+                expect(materials).toEqual(expectedMaterials);
+
+                const expectedPrimitiveLayouts: ParsedGltf2PrimitiveLayout[] = [
+                    {
+                        type: 'non-interleaved',
+                        mode: 'triangle-list',
+                        attributes: {
+                            POSITION: { format: 'float32x3', offset: 0 },
+                            TEXCOORD_0: { format: 'float32x2', offset: 0 },
+                            NORMAL: { format: 'float32x3', offset: 0 },
+                        },
+                    },
+                ];
+
+                expect(primitiveLayouts).toEqual(expectedPrimitiveLayouts);
+
+                const expectedPrimitives: ParsedGltf2Primitive[] = [
+                    {
+                        type: 'non-interleaved',
+                        primitiveLayout: 0,
+                        mesh: 0,
+                        material: 0,
+                        mode: 'triangle-list',
+                        attributes: {
+                            POSITION: new Float32Array([-1, 0, 1, 1, 0, 1, -1, 0, -1, 1, 0, -1]),
+                            NORMAL: new Float32Array([0, 1, -0, 0, 1, -0, 0, 1, -0, 0, 1, -0]),
+                            TEXCOORD_0: new Float32Array([0, 1, 1, 1, 0, 0, 1, 0]),
+                        },
+                        indices: { format: 'uint16', data: new Uint16Array([0, 1, 3, 0, 3, 2]) },
+                    },
+                ];
+
+                expect(primitives).toEqual(expectedPrimitives);
+            });
+        });
+
+        describe('interleaved primitives', () => {
+            it('should parse a single plane with material, without textures', async () => {
+                const { textures, materialTypes, materials, primitiveLayouts, primitives } = await TestLoader.load(
+                    createTestServerPath('single-plane-no-textures-interleaved-separate-bin.gltf'),
+                );
+
+                expect(textures.length).toEqual(0);
+
+                const expectedMaterialTypes: ParsedGltf2MaterialType[] = [
+                    { type: 'pbr-metallic-roughness', transparent: false, doubleSided: true },
+                ];
+
+                expect(materialTypes).toEqual(expectedMaterialTypes);
+
+                const expectedMaterials: ParsedGltf2Material[] = [
+                    {
+                        type: 'pbr-metallic-roughness',
+                        materialType: 0,
+                        name: 'Material',
+                        baseColor: [0.8000000715255737, 0, 0.005676119588315487],
+                        baseColorTexture: undefined,
+                        metallic: 0,
+                        metallicTexture: undefined,
+                        roughness: 0.5,
+                        roughnessTexture: undefined,
+                        emissive: undefined,
+                        emissiveTexture: undefined,
+                        normalTexture: undefined,
+                        opacity: 1,
+                    },
+                ];
+
+                expect(materials).toEqual(expectedMaterials);
+
+                const expectedPrimitiveLayouts: ParsedGltf2PrimitiveLayout[] = [
+                    {
+                        type: 'interleaved',
+                        mode: 'triangle-list',
+                        attributes: {
+                            POSITION: { format: 'float32x3', offset: 0 },
+                            TEXCOORD_0: { format: 'float32x2', offset: 3 },
+                            NORMAL: { format: 'float32x3', offset: 5 },
+                        },
+                    },
+                ];
+
+                expect(primitiveLayouts).toEqual(expectedPrimitiveLayouts);
+
+                const expectedPrimitives: ParsedGltf2Primitive[] = [
+                    {
+                        type: 'interleaved',
+                        primitiveLayout: 0,
+                        mesh: 0,
+                        material: 0,
+                        mode: 'triangle-list',
+                        vertices: new Float32Array([
+                            -1, 0, 1, 0, 1, 0, 1, -0, 1, 0, 1, 1, 1, 0, 1, -0, -1, 0, -1, 0, 0, 0, 1, -0, 1, 0, -1, 1,
+                            0, 0, 1, -0,
+                        ]),
+                        indices: { format: 'uint16', data: new Uint16Array([0, 1, 3, 0, 3, 2]) },
+                    },
+                ];
+
+                expect(primitives).toEqual(expectedPrimitives);
+            });
+        });
+    });
+
+    describe('glb', () => {
+        describe('non-interleaved primitives', () => {
+            it('should parse a single plane with material, without textures', async () => {
+                const { textures, materialTypes, materials, primitiveLayouts, primitives } = await TestLoader.load(
+                    createTestServerPath('single-plane-no-textures.glb'),
+                );
+
+                expect(textures.length).toEqual(0);
+
+                const expectedMaterialTypes: ParsedGltf2MaterialType[] = [
+                    { type: 'pbr-metallic-roughness', transparent: false, doubleSided: true },
+                ];
+
+                expect(materialTypes).toEqual(expectedMaterialTypes);
+
+                const expectedMaterials: ParsedGltf2Material[] = [
+                    {
+                        type: 'pbr-metallic-roughness',
+                        materialType: 0,
+                        name: 'Material',
+                        baseColor: [0.8000000715255737, 0, 0.005676119588315487],
+                        baseColorTexture: undefined,
+                        metallic: 0,
+                        metallicTexture: undefined,
+                        roughness: 0.5,
+                        roughnessTexture: undefined,
+                        emissive: undefined,
+                        emissiveTexture: undefined,
+                        normalTexture: undefined,
+                        opacity: 1,
+                    },
+                ];
+
+                expect(materials).toEqual(expectedMaterials);
+
+                const expectedPrimitiveLayouts: ParsedGltf2PrimitiveLayout[] = [
+                    {
+                        type: 'non-interleaved',
+                        mode: 'triangle-list',
+                        attributes: {
+                            POSITION: { format: 'float32x3', offset: 0 },
+                            TEXCOORD_0: { format: 'float32x2', offset: 0 },
+                            NORMAL: { format: 'float32x3', offset: 0 },
+                        },
+                    },
+                ];
+
+                expect(primitiveLayouts).toEqual(expectedPrimitiveLayouts);
+
+                const expectedPrimitives: ParsedGltf2Primitive[] = [
+                    {
+                        type: 'non-interleaved',
+                        primitiveLayout: 0,
+                        mesh: 0,
+                        material: 0,
+                        mode: 'triangle-list',
+                        attributes: {
+                            POSITION: new Float32Array([-1, 0, 1, 1, 0, 1, -1, 0, -1, 1, 0, -1]),
+                            NORMAL: new Float32Array([0, 1, -0, 0, 1, -0, 0, 1, -0, 0, 1, -0]),
+                            TEXCOORD_0: new Float32Array([0, 1, 1, 1, 0, 0, 1, 0]),
+                        },
+                        indices: { format: 'uint16', data: new Uint16Array([0, 1, 3, 0, 3, 2]) },
+                    },
+                ];
+
+                expect(primitives).toEqual(expectedPrimitives);
             });
         });
     });
