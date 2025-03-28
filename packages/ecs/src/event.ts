@@ -3,10 +3,14 @@ import { EntityId } from './misc';
 
 export type GenericEcsEvent = { type: string };
 
-export type DefineEcsEvent<Type extends GenericEcsEvent['type'], Payload = undefined> = {
-    type: Type;
-    payload: Payload;
-};
+export type DefineEcsEvent<Type extends GenericEcsEvent['type'], Payload = undefined> = Payload extends undefined
+    ? {
+          type: Type;
+      }
+    : {
+          type: Type;
+          payload: Payload;
+      };
 
 export type SpawnEntityEcsEvent<Components extends Component[]> = {
     type: 'ecs/spawn-entity';

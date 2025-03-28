@@ -45,9 +45,6 @@ class EcsWorld<
 
     private resources: WorldResources = {} as WorldResources;
 
-    // TODO: Should those ecs events be internal only?
-    // Why would somebody in userland emit this event without spawning a entity
-    // But they should be able to listen to those events
     private subscribers: Record<EcsEvent<Component[]>['type'], Subscriber[]> = {
         'ecs/spawn-entity': [],
         'ecs/despawn-entity': [],
@@ -86,6 +83,10 @@ class EcsWorld<
         eventType: EventType,
         listener: (event: Extract<EcsEvent<Component[]>, { type: EventType }>) => void,
     ) {
+        if (!Array.isArray(this.subscribers[eventType])) {
+            this.subscribers[eventType] = [];
+        }
+
         this.subscribers[eventType].push(listener as Subscriber);
     }
 
@@ -97,13 +98,17 @@ class EcsWorld<
     }
 
     private internalEmit(event: EcsEvent<Component[]>) {
+        if (!Array.isArray(this.subscribers[event.type])) {
+            this.subscribers[event.type] = [];
+        }
+
         for (let i = 0; i < this.subscribers[event.type].length; i++) {
             const subscriber = this.subscribers[event.type][i];
             subscriber(event);
         }
     }
 
-    emit(event: WorldEvent) {
+    emit(event: Exclude<WorldEvent, EcsEvent<WorldComponent[]>>) {
         this.internalEmit(event as never);
     }
 
