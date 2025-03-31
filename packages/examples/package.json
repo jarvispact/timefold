@@ -34,6 +34,9 @@
     "dev:webgpu-textured-triangles": "sed 's/{example-folder}/webgpu-textured-triangles/g' index.html.template > index.html && vite --port 9093",
     "build:webgpu-textured-triangles": "sed 's/{example-folder}/webgpu-textured-triangles/g' index.html.template > index.html && vite build",
 
+    "dev:pong": "sed 's/{example-folder}/pong/g' index.html.template > index.html && vite --port 9093",
+    "build:pong": "sed 's/{example-folder}/pong/g' index.html.template > index.html && vite build",
+
     "preview": "vite preview --port 9191"
   }
 }
