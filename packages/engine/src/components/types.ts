@@ -86,6 +86,8 @@ export type UnlitMaterialType = '@tf/UnlitMaterial';
 export type UnlitMaterialData = {
     color: Vec3Type;
     opacity: ScalarType;
+    useColorMapAlpha: ScalarType;
+    colorMap?: ImageBitmap;
 };
 
 export type UnlitMaterialComponent = Component<UnlitMaterialType, UnlitMaterialData>;

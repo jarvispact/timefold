@@ -18,9 +18,11 @@ export const create = (bundle: UnlitEntityBundle) => {
 
     Vec3.copy(views.material.color, bundle.material.data.color);
     Scalar.copy(views.material.opacity, bundle.material.data.opacity);
+    Scalar.copy(views.material.use_colormap_alpha, bundle.material.data.useColorMapAlpha);
 
     bundle.material.data.color = views.material.color;
     bundle.material.data.opacity = views.material.opacity;
+    bundle.material.data.useColorMapAlpha = views.material.use_colormap_alpha;
 
     return [...Object.values(bundle), dataComponent];
 };

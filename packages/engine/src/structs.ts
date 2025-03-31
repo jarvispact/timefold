@@ -1,6 +1,6 @@
-import { Wgsl } from '@timefold/webgpu';
+import { Uniform, Wgsl } from '@timefold/webgpu';
 
-// scene
+// scene structs
 
 export const CameraStruct = Wgsl.struct('Camera', {
     position: Wgsl.type('vec3<f32>'),
@@ -28,7 +28,13 @@ export const SceneStruct = Wgsl.struct('Scene', {
 
 export type SceneStruct = typeof SceneStruct;
 
-// transform
+// scene uniform group
+
+export const SceneUniformGroup = Uniform.group(0, {
+    scene: Uniform.buffer(0, SceneStruct),
+});
+
+// transform struct
 
 export const TransformStruct = Wgsl.struct('Transform', {
     model_matrix: Wgsl.type('mat4x4<f32>'),
@@ -37,11 +43,12 @@ export const TransformStruct = Wgsl.struct('Transform', {
 
 export type TransformStruct = typeof TransformStruct;
 
-// unlit
+// unlit struct
 
 export const UnlitMaterialStruct = Wgsl.struct('UnlitMaterial', {
     color: Wgsl.type('vec3<f32>'),
     opacity: Wgsl.type('f32'),
+    use_colormap_alpha: Wgsl.type('u32'),
 });
 
 export type UnlitMaterialStruct = typeof UnlitMaterialStruct;
@@ -53,7 +60,15 @@ export const UnlitEntityStruct = Wgsl.struct('Entity', {
 
 export type UnlitEntityStruct = typeof UnlitEntityStruct;
 
-// phong
+// unlit uniform group
+
+export const UnlitEntityUniformGroup = Uniform.group(1, {
+    entity: Uniform.buffer(0, UnlitEntityStruct),
+    color_sampler: Uniform.sampler(1),
+    color_texture: Uniform.texture(2),
+});
+
+// phong struct
 
 export const PhongMaterialStruct = Wgsl.struct('PhongMaterial', {
     diffuse_color: Wgsl.type('vec3<f32>'),

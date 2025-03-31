@@ -11,7 +11,6 @@ export const UpdateCameraFromTransformPlugin = createPlugin<EngineWorld>({
 
         const UpdateCameraSystem = createSystem({
             stage: 'after-update',
-            order: 11,
             fn: () => {
                 for (const { modelMatrix, camera } of query) {
                     if (PerspectiveCamera.isPerspective(camera)) {
