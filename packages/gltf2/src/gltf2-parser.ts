@@ -1,9 +1,11 @@
+import { isCameraNode, parseCameraNode } from './camera';
 import { parseMaterial, parseMaterialType } from './material';
 import { isMeshNode, parseMeshNode } from './mesh';
 import { parsePrimitive, parsePrimitiveLayout } from './primitive';
 import { parseTexture } from './texture';
 import {
     Gltf2ParserOptions,
+    ParsedGltf2Camera,
     ParsedGltf2Material,
     ParsedGltf2MaterialType,
     ParsedGltf2Mesh,
@@ -117,6 +119,8 @@ const parseWithBuffersAndImages = (
     const meshes: ParsedGltf2Mesh[] = [];
     const meshesForPrimitive: Record<number, number[]> = {};
 
+    const cameras: ParsedGltf2Camera[] = [];
+
     for (const node of unparsedGltf.nodes) {
         if (isMeshNode(node)) {
             const parsedMesh = parseMeshNode(unparsedGltf, primitives, node);
@@ -130,6 +134,9 @@ const parseWithBuffersAndImages = (
 
                 meshesForPrimitive[primitive.primitive].push(meshes.length - 1);
             }
+        } else if (isCameraNode(node)) {
+            const parsedCamera = parseCameraNode(unparsedGltf, node);
+            if (parsedCamera) cameras.push(parsedCamera);
         }
     }
 
@@ -141,6 +148,7 @@ const parseWithBuffersAndImages = (
         primitives,
         meshes,
         meshesForPrimitive,
+        cameras,
     };
 };
 

@@ -35,12 +35,13 @@ export type UnparsedGltf2MeshNode = {
     matrix?: Mat4x4;
 };
 
-export type UnparseGltf2CameraNode = {
+export type UnparsedGltf2CameraNode = {
     camera: number;
     name: string;
+    translation?: Vec3;
 };
 
-export type UnparsedGltf2Node = UnparsedGltf2MeshNode | UnparseGltf2CameraNode;
+export type UnparsedGltf2Node = UnparsedGltf2MeshNode | UnparsedGltf2CameraNode;
 
 export type UnparsedGltf2Camera =
     | {
@@ -88,9 +89,10 @@ type Attributes<PositionValue, WithoutPositionValue, OtherValue> = {
     [Name in Gltf2PositionAttribute]: PositionValue;
 } & Partial<{
     [Name in Gltf2AttributeWithoutPosition]: WithoutPositionValue;
-}> & {
+}> &
+    Partial<{
         [Name in `_${string}`]: OtherValue;
-    };
+    }>;
 
 export type UnparsedGltf2PrimitiveAttributes = Attributes<number, number, number>;
 
@@ -260,6 +262,15 @@ export type ParsedGltf2PrimitiveLayout = {
     >;
 };
 
+export type ParsedGltf2PrimitiveLayoutWithAttribs<Attribs extends readonly Gltf2AttributeWithoutPosition[]> =
+    ParsedGltf2PrimitiveLayout & {
+        attributes: {
+            [Name in Gltf2PositionAttribute]: { format: PositionFormat; offset: number };
+        } & {
+            [Name in Attribs[number]]: { format: Format; offset: number };
+        };
+    };
+
 export type ParsedGltf2Attributes = Attributes<
     Gltf2PositionAttributeMap[Gltf2PositionAttribute],
     Gltf2AttributeWithoutPositionMap[Gltf2AttributeWithoutPosition],
@@ -286,6 +297,19 @@ export type ParsedGltf2PrimitiveNonInterleaved = ParsedGltf2PrimitiveBase & {
 
 export type ParsedGltf2Primitive = ParsedGltf2PrimitiveInterleaved | ParsedGltf2PrimitiveNonInterleaved;
 
+export type ParsedGltf2PrimitiveWithIndices<Primitive extends ParsedGltf2Primitive> = Primitive & {
+    indices: { format: ParsedComponentTypeIndexFormat; data: Uint16Array | Uint32Array };
+};
+
+export type ParsedGltf2PrimitiveNonInterleavedWithAttribs<Attribs extends readonly Gltf2AttributeWithoutPosition[]> =
+    ParsedGltf2PrimitiveNonInterleaved & {
+        attributes: {
+            [Name in Gltf2PositionAttribute]: Gltf2PositionAttributeMap[Gltf2PositionAttribute];
+        } & {
+            [Name in Attribs[number]]: Gltf2AttributeWithoutPositionMap[Gltf2AttributeWithoutPosition];
+        };
+    };
+
 export type ParsedGltf2MeshPrimitive = {
     primitive: number;
     material?: number;
@@ -299,6 +323,28 @@ export type ParsedGltf2Mesh = {
     primitives: ParsedGltf2MeshPrimitive[];
 };
 
+type ParsedGltf2CameraBase = {
+    name: string;
+    translation: Vec3;
+};
+
+export type ParsedGltf2CameraPerspective = ParsedGltf2CameraBase & {
+    type: 'perspective';
+    projection: {
+        aspectRatio: number;
+        yfov: number;
+        zfar: number;
+        znear: number;
+    };
+};
+
+export type ParsedGltf2CameraOrthographic = ParsedGltf2CameraBase & {
+    type: 'orthographic';
+    projection: { xmag: number; ymag: number; znear: number; zfar: number };
+};
+
+export type ParsedGltf2Camera = ParsedGltf2CameraPerspective | ParsedGltf2CameraOrthographic;
+
 export type ParsedGltf2Result = {
     textures: ParsedGltf2Texture[];
     materialTypes: ParsedGltf2MaterialType[];
@@ -307,4 +353,5 @@ export type ParsedGltf2Result = {
     primitives: ParsedGltf2Primitive[];
     meshes: ParsedGltf2Mesh[];
     meshesForPrimitive: Record<number, number[]>;
+    cameras: ParsedGltf2Camera[];
 };
