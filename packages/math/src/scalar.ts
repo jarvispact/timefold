@@ -2,6 +2,11 @@ import { ScalarType } from './types';
 
 export const create = (value: number): ScalarType => [value];
 
+export const set = (out: ScalarType, value: number): ScalarType => {
+    out[0] = value;
+    return out;
+};
+
 export const copy = (out: ScalarType, scalar: ScalarType): ScalarType => {
     out[0] = scalar[0];
     return out;
