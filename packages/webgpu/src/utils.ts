@@ -97,6 +97,26 @@ export const createDeviceAndContext = async (
 };
 
 // ===========================================================
+// transparency
+
+export const getBlendState = (mode: 'opaque' | 'transparent'): GPUBlendState | undefined => {
+    if (mode === 'opaque') return undefined;
+
+    return {
+        color: {
+            operation: 'add',
+            srcFactor: 'src-alpha',
+            dstFactor: 'one-minus-src-alpha',
+        },
+        alpha: {
+            operation: 'add',
+            srcFactor: 'one-minus-dst-alpha',
+            dstFactor: 'one',
+        },
+    };
+};
+
+// ===========================================================
 // vertex buffers
 
 // TODO:    Do we even need the offset for non-interleaved buffers?
