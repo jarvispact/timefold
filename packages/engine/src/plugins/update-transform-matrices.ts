@@ -8,7 +8,6 @@ export const UpdateTransformMatricesPlugin = createPlugin<EngineWorld>({
 
         const UpdateSystem = createSystem({
             stage: 'after-update',
-            order: 10,
             fn: () => {
                 for (const [transform] of updateAabbQuery) {
                     Transform.updateMatrices(transform);

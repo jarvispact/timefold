@@ -33,7 +33,7 @@ export const create = (args: CreateArgs): OrthographicCameraComponent => {
 
 type CreateFromGltf2Args = {
     camera: ParsedGltf2CameraOrthographic;
-    aspect: number;
+    aspect?: number;
 };
 
 export const createFromGltf2 = ({ camera, aspect }: CreateFromGltf2Args): OrthographicCameraComponent => {
@@ -50,22 +50,26 @@ export const updateFromModelMatrix = (out: OrthographicCameraComponent, modelMat
 export const updateFromGltf2 = (
     out: OrthographicCameraComponent,
     camera: ParsedGltf2CameraOrthographic,
-    aspect: number,
+    aspect?: number,
 ) => {
     const originalAspect = camera.projection.xmag / camera.projection.ymag;
     let adjustedXmag, adjustedYmag;
 
-    // Adjust magnification based on screen aspect ratio
-    if (aspect > originalAspect) {
-        // Screen is wider than the original camera
-        // Keep ymag constant, adjust xmag
-        adjustedYmag = camera.projection.ymag;
-        adjustedXmag = camera.projection.ymag * aspect;
+    if (aspect !== undefined) {
+        if (aspect > originalAspect) {
+            // Screen is wider than the original camera
+            // Keep ymag constant, adjust xmag
+            adjustedYmag = camera.projection.ymag;
+            adjustedXmag = camera.projection.ymag * aspect;
+        } else {
+            // Screen is taller than the original camera
+            // Keep xmag constant, adjust ymag
+            adjustedXmag = camera.projection.xmag;
+            adjustedYmag = camera.projection.xmag / aspect;
+        }
     } else {
-        // Screen is taller than the original camera
-        // Keep xmag constant, adjust ymag
         adjustedXmag = camera.projection.xmag;
-        adjustedYmag = camera.projection.xmag / aspect;
+        adjustedYmag = camera.projection.ymag;
     }
 
     const left = -adjustedXmag;

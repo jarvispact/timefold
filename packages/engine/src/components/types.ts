@@ -13,6 +13,12 @@ export type AabbData = {
 
 export type AabbComponent = Component<AabbType, AabbData>;
 
+export type AabbCollisionDirection = 'left' | 'right' | 'up' | 'bottom' | 'near' | 'far';
+
+export type AabbCollisionResult =
+    | { collided: false; direction: undefined }
+    | { collided: true; direction: AabbCollisionDirection };
+
 // Clock
 
 export type ClockType = '@tf/Clock';

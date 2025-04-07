@@ -18,7 +18,19 @@ export const UpdateAabbFromTransformPlugin = createPlugin<EngineWorld>({
         const tmpMin = Vec3.zero();
         const tmpMax = Vec3.zero();
 
-        const UpdateAabbSystem = createSystem({
+        const Startup = createSystem({
+            stage: 'startup',
+            fn: () => {
+                for (const { translation, scale, aabb } of updateAabbQuery) {
+                    Vec3.set(tmpHalf, Math.abs(scale[0]), Math.abs(scale[1]), Math.abs(scale[2]));
+                    Vec3.subtraction(tmpMin, translation, tmpHalf);
+                    Vec3.addition(tmpMax, translation, tmpHalf);
+                    Aabb.set(aabb, tmpMin, tmpMax);
+                }
+            },
+        });
+
+        const Update = createSystem({
             stage: 'update',
             fn: () => {
                 for (const { translation, scale, aabb } of updateAabbQuery) {
@@ -30,6 +42,6 @@ export const UpdateAabbFromTransformPlugin = createPlugin<EngineWorld>({
             },
         });
 
-        world.registerSystems(UpdateAabbSystem);
+        world.registerSystems([Startup, Update]);
     },
 });
