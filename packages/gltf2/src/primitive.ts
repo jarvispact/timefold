@@ -31,6 +31,7 @@ export const parsePrimitiveLayout = (
 
     const isInterleaved = bufferViewSet.size === 1;
     const modeAndAttribsKey = `${mode}(${attribKeys.sort().join('|')})`;
+    // TODO: key is wrong. Can be non-interleaved
     const key = `interleaved(${modeAndAttribsKey})`;
 
     const attributes = {} as ParsedGltf2PrimitiveLayout['attributes'];

@@ -3,5 +3,5 @@
 // import './textures';
 // import './suzanne';
 // import './bottle';
-// import './antique-camera';
-import './sponza';
+import './antique-camera';
+// import './sponza';
