@@ -8,12 +8,21 @@ import {
 import { EngineWorld, SceneUniformGroup, UnlitEntityUniformGroup } from '@timefold/engine';
 
 type Args = {
-    canvas: HTMLCanvasElement | OffscreenCanvas;
+    canvas: HTMLCanvasElement;
     primitiveLayout: ParsedGltf2PrimitiveLayoutWithAttribs<['TEXCOORD_0']>;
     primitive: ParsedGltf2PrimitiveWithIndices<ParsedGltf2PrimitiveInterleaved>;
+    onResize?: (args: { width: number; height: number; aspect: number }) => void;
 };
 
-export const createSimpleUnlitRenderPlugin = ({ canvas, primitiveLayout, primitive }: Args) => {
+export const createSimpleUnlitRenderPlugin = ({ canvas, primitiveLayout, primitive, onResize }: Args) => {
+    window.addEventListener('resize', () => {
+        const dpr = window.devicePixelRatio || 1;
+        canvas.width = canvas.clientWidth * dpr;
+        canvas.height = canvas.clientHeight * dpr;
+        const aspect = canvas.width / canvas.height;
+        onResize?.({ width: canvas.width, height: canvas.height, aspect });
+    });
+
     const RenderPlugin = createPlugin<EngineWorld>({
         fn: async (world) => {
             const { device, context, format } = await WebgpuUtils.createDeviceAndContext({ canvas });
