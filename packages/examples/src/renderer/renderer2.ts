@@ -81,6 +81,11 @@ type CreateRendererArgs<
     primitives: Primitives;
 };
 
+const getIndexFormatForIndices = (indices: Uint16Array | Uint32Array) => {
+    if (indices instanceof Uint16Array) return 'uint16';
+    return 'uint32';
+};
+
 export const createRenderer = async <
     Materials extends Record<string, MaterialFactory>,
     Primitives extends Record<string, Primitive>,
@@ -152,19 +157,11 @@ export const createRenderer = async <
             device.queue.writeBuffer(buffer, 0, primitive.vertices);
 
             const indices = primitive.indices
-                ? {
-                      buffer: device.createBuffer({
-                          size: primitive.indices.byteLength,
-                          usage: GPUBufferUsage.INDEX | GPUBufferUsage.COPY_DST,
-                      }),
-                      format: 'uint32' as const,
-                      count: primitive.indices.length,
-                  }
+                ? WebgpuUtils.createIndexBuffer(device, {
+                      data: primitive.indices,
+                      format: getIndexFormatForIndices(primitive.indices),
+                  })
                 : undefined;
-
-            if (indices && primitive.indices) {
-                device.queue.writeBuffer(indices.buffer, 0, primitive.indices);
-            }
 
             pipelinePrimitive = {
                 type: 'interleaved',
@@ -182,19 +179,11 @@ export const createRenderer = async <
             device.queue.writeBuffer(buffer, 0, primitive.position);
 
             const indices = primitive.indices
-                ? {
-                      buffer: device.createBuffer({
-                          size: primitive.indices.byteLength,
-                          usage: GPUBufferUsage.INDEX | GPUBufferUsage.COPY_DST,
-                      }),
-                      format: 'uint32' as const,
-                      count: primitive.indices.length,
-                  }
+                ? WebgpuUtils.createIndexBuffer(device, {
+                      data: primitive.indices,
+                      format: getIndexFormatForIndices(primitive.indices),
+                  })
                 : undefined;
-
-            if (indices && primitive.indices) {
-                device.queue.writeBuffer(indices.buffer, 0, primitive.indices);
-            }
 
             pipelinePrimitive = {
                 type: 'non-interleaved',
@@ -237,6 +226,8 @@ export const createRenderer = async <
     };
 
     const render = () => {
+        console.log(renderTree);
+
         renderPassDescriptor.colorAttachments[0].view = context.getCurrentTexture().createView();
         const encoder = device.createCommandEncoder();
         const pass = encoder.beginRenderPass(renderPassDescriptor);

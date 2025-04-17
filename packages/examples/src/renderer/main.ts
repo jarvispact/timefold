@@ -1,35 +1,40 @@
 import { Mat4x4, MathUtils, Vec3 } from '@timefold/math';
-import { createRenderer } from './renderer';
+import { createRenderer } from './renderer2';
 import { ObjLoader } from '@timefold/obj';
+import { Uniform, WebgpuUtils, Wgsl } from '@timefold/webgpu';
 
 const dpr = window.devicePixelRatio || 1;
 const canvas = document.getElementById('canvas') as HTMLCanvasElement;
 canvas.width = canvas.clientWidth * dpr;
 canvas.height = canvas.clientHeight * dpr;
 
+const SceneStruct = Wgsl.struct('Scene', {
+    view_projection_matrix: Wgsl.type('mat4x4<f32>'),
+});
+
+const EntityStruct = Wgsl.struct('Entity', {
+    model_matrix: Wgsl.type('mat4x4<f32>'),
+    color: Wgsl.type('vec3<f32>'),
+});
+
+const SceneUniformGroup = Uniform.group(0, { scene: Uniform.buffer(0, SceneStruct) });
+const EntityUniformGroup = Uniform.group(1, { entity: Uniform.buffer(0, EntityStruct) });
+
+const Vertex = WebgpuUtils.createVertexBufferLayout('non-interleaved', {
+    position: { format: 'float32x3' },
+});
+
 const shaderCode = /* wgsl */ `
-struct Vertex {
-   @location(0) position: vec3<f32>,
-}
+${Vertex.wgsl}
 
-struct Scene {
-   view_projection_matrix: mat4x4<f32>,
-}
-
-struct Entity {
-   model_matrix: mat4x4<f32>,
-   color: vec3<f32>,
-}
-
-@group(0) @binding(0) var<uniform> scene: Scene;
-@group(1) @binding(0) var<uniform> entity: Entity;
+${Uniform.getWgslFromGroups([SceneUniformGroup, EntityUniformGroup])}
 
 @vertex fn vs(vert: Vertex) -> @builtin(position) vec4f {
-   return scene.view_projection_matrix * entity.model_matrix * vec4f(vert.position, 1.0);
+    return scene.view_projection_matrix * entity.model_matrix * vec4f(vert.position, 1.0);
 }
 
 @fragment fn fs() -> @location(0) vec4f {
-   return vec4f(entity.color, 1.0);
+    return vec4f(entity.color, 1.0);
 }
 `.trim();
 
@@ -54,60 +59,42 @@ const main = async () => {
             unlit: ({ device }) => {
                 const module = device.createShaderModule({ code: shaderCode });
 
-                const sceneLayout = device.createBindGroupLayout({
-                    entries: [
-                        {
-                            binding: 0,
-                            visibility: GPUShaderStage.VERTEX | GPUShaderStage.FRAGMENT,
-                            buffer: { type: 'uniform' },
-                        },
-                    ],
+                const PipelineLayout = WebgpuUtils.createPipelineLayout({
+                    device,
+                    uniformGroups: [SceneUniformGroup, EntityUniformGroup],
                 });
 
-                const entityLayout = device.createBindGroupLayout({
-                    entries: [
-                        {
-                            binding: 0,
-                            visibility: GPUShaderStage.VERTEX | GPUShaderStage.FRAGMENT,
-                            buffer: { type: 'uniform' },
-                        },
-                    ],
+                const Scene = PipelineLayout.createBindGroups(0, {
+                    scene: WebgpuUtils.createBufferDescriptor(),
                 });
 
-                const layout = device.createPipelineLayout({
-                    bindGroupLayouts: [sceneLayout, entityLayout],
-                });
+                const sceneData = SceneStruct.create();
 
-                const bufferLayout = [
-                    {
-                        stepMode: 'vertex' as const,
-                        arrayStride: 3 * Float32Array.BYTES_PER_ELEMENT,
-                        attributes: [
-                            {
-                                format: 'float32x3' as const,
-                                offset: 0,
-                                shaderLocation: 0,
-                            },
-                        ],
-                    },
-                ];
-
-                const sceneUniforms = new ArrayBuffer(16 * Float32Array.BYTES_PER_ELEMENT);
-                const viewProjectionMatrix = new Float32Array(sceneUniforms, 0, 16);
-                const view = Mat4x4.createLookAt([2, 5, 10], Vec3.zero(), Vec3.up());
+                const view = Mat4x4.createLookAt([0, 5, 10], Vec3.zero(), Vec3.up());
                 const proj = Mat4x4.createPerspective(MathUtils.degreesToRadians(65), canvas.width / canvas.height, 0);
-                Mat4x4.multiplication(viewProjectionMatrix, proj, view);
+                Mat4x4.multiplication(sceneData.views.view_projection_matrix, proj, view);
 
                 return {
                     module,
-                    layout,
-                    sceneLayout,
-                    entityLayout,
-                    bufferLayout,
-                    sceneUniforms,
+                    layout: PipelineLayout.layout,
+                    bufferLayout: Vertex.layout,
+                    sceneBindgroup: Scene.bindGroup,
+                    sceneBuffer: Scene.buffers.scene,
+                    sceneUniforms: sceneData.buffer,
+                    createEntityBindGroupAndBuffer: () => {
+                        const Entity = PipelineLayout.createBindGroups(1, {
+                            entity: WebgpuUtils.createBufferDescriptor(),
+                        });
+
+                        return {
+                            bindgroup: Entity.bindGroup,
+                            buffer: Entity.buffers.entity,
+                        };
+                    },
                 };
             },
         },
+        primitives: {},
     });
 
     renderer.registerPrimitive('unlit', 'test0', {
@@ -134,49 +121,43 @@ const main = async () => {
         attributes: {},
     });
 
-    const entity0 = new ArrayBuffer(16 * Float32Array.BYTES_PER_ELEMENT + 4 * Float32Array.BYTES_PER_ELEMENT);
-    {
-        const modelMatrix = new Float32Array(entity0, 0, 16);
-        const color = new Float32Array(entity0, 16 * Float32Array.BYTES_PER_ELEMENT, 3);
-        Mat4x4.fromTranslation(modelMatrix, [-1, 0, -1]);
-        Vec3.copy(color, [1, 0, 0]);
-    }
+    const entity0 = EntityStruct.create();
+    const entity1 = EntityStruct.create();
+    const entity2 = EntityStruct.create();
+    const entity3 = EntityStruct.create();
 
-    const entity1 = new ArrayBuffer(16 * Float32Array.BYTES_PER_ELEMENT + 4 * Float32Array.BYTES_PER_ELEMENT);
-    {
-        const modelMatrix = new Float32Array(entity1, 0, 16);
-        const color = new Float32Array(entity1, 16 * Float32Array.BYTES_PER_ELEMENT, 3);
-        Mat4x4.fromTranslation(modelMatrix, [1, 0, -1]);
-        Vec3.copy(color, [0, 1, 0]);
-    }
+    // Uses the same primitive but with different uniforms
+    // Could be instances as well.
+    const entity4 = EntityStruct.create();
 
-    const entity2 = new ArrayBuffer(16 * Float32Array.BYTES_PER_ELEMENT + 4 * Float32Array.BYTES_PER_ELEMENT);
-    {
-        const modelMatrix = new Float32Array(entity2, 0, 16);
-        const color = new Float32Array(entity2, 16 * Float32Array.BYTES_PER_ELEMENT, 3);
-        Mat4x4.fromTranslation(modelMatrix, [-1, 0, 1]);
-        Vec3.copy(color, [0, 0, 1]);
-    }
+    Mat4x4.fromTranslation(entity0.views.model_matrix, [-1, 0, -1]);
+    Vec3.copy(entity0.views.color, [1, 0, 0]);
 
-    const entity3 = new ArrayBuffer(16 * Float32Array.BYTES_PER_ELEMENT + 4 * Float32Array.BYTES_PER_ELEMENT);
-    {
-        const modelMatrix = new Float32Array(entity3, 0, 16);
-        const color = new Float32Array(entity3, 16 * Float32Array.BYTES_PER_ELEMENT, 3);
-        Mat4x4.fromTranslation(modelMatrix, [1, 0, 1]);
-        Vec3.copy(color, [1, 1, 0]);
-    }
+    Mat4x4.fromTranslation(entity1.views.model_matrix, [1, 0, -1]);
+    Vec3.copy(entity1.views.color, [0, 1, 0]);
 
-    renderer.addEntity('unlit', 'test0', entity0);
-    renderer.addEntity('unlit', 'test1', entity1);
-    renderer.addEntity('unlit', 'test2', entity2);
-    renderer.addEntity('unlit', 'test3', entity3);
+    Mat4x4.fromTranslation(entity2.views.model_matrix, [-1, 0, 1]);
+    Vec3.copy(entity2.views.color, [0, 0, 1]);
 
-    const tick = () => {
-        renderer.render();
-        requestAnimationFrame(tick);
-    };
+    Mat4x4.fromTranslation(entity3.views.model_matrix, [1, 0, 1]);
+    Vec3.copy(entity3.views.color, [1, 1, 0]);
 
-    requestAnimationFrame(tick);
+    Mat4x4.fromTranslation(entity4.views.model_matrix, [1, 0, 3]);
+    Vec3.copy(entity4.views.color, [0, 1, 1]);
+
+    renderer.addEntity('unlit', 'test0', entity0.buffer);
+    renderer.addEntity('unlit', 'test1', entity1.buffer);
+    renderer.addEntity('unlit', 'test2', entity2.buffer);
+    renderer.addEntity('unlit', 'test3', entity3.buffer);
+    renderer.addEntity('unlit', 'test3', entity4.buffer);
+
+    // const tick = () => {
+    //     renderer.render();
+    //     requestAnimationFrame(tick);
+    // };
+
+    // requestAnimationFrame(tick);
+    renderer.render();
 };
 
 void main();
