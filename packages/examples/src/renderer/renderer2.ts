@@ -49,8 +49,7 @@ type UniformGroup = {
 type RenderTree = {
     pipelines: {
         pipeline: GPURenderPipeline;
-        sceneLayout: GPUBindGroupLayout;
-        entityLayout: GPUBindGroupLayout;
+        createEntityBindGroupAndBuffer: () => { bindgroup: GPUBindGroup; buffer: GPUBuffer };
         uniformGroup: UniformGroup;
         primitives: {
             primitive: PipelinePrimitive;
@@ -64,23 +63,32 @@ type RenderTree = {
 type Material = {
     module: GPUShaderModule;
     layout: GPUPipelineLayout;
-    sceneLayout: GPUBindGroupLayout;
-    entityLayout: GPUBindGroupLayout;
+    sceneBuffer: GPUBuffer;
+    sceneBindgroup: GPUBindGroup;
     bufferLayout: GPUVertexBufferLayout[];
     sceneUniforms: ArrayBufferLike;
+    createEntityBindGroupAndBuffer: () => { bindgroup: GPUBindGroup; buffer: GPUBuffer };
 };
 
 type MaterialFactory = (args: { device: GPUDevice }) => Material;
 
-type CreateRendererArgs<Materials extends Record<string, MaterialFactory>> = {
+type CreateRendererArgs<
+    Materials extends Record<string, MaterialFactory>,
+    Primitives extends Record<string, Primitive>,
+> = {
     canvas: HTMLCanvasElement;
     materials: Materials;
+    primitives: Primitives;
 };
 
-export const createRenderer = async <Materials extends Record<string, MaterialFactory>>({
+export const createRenderer = async <
+    Materials extends Record<string, MaterialFactory>,
+    Primitives extends Record<string, Primitive>,
+>({
     canvas,
     materials,
-}: CreateRendererArgs<Materials>) => {
+    // primitives,
+}: CreateRendererArgs<Materials, Primitives>) => {
     const { device, context, format } = await WebgpuUtils.createDeviceAndContext({ canvas });
 
     const renderTree: RenderTree = {
@@ -106,23 +114,16 @@ export const createRenderer = async <Materials extends Record<string, MaterialFa
             },
         });
 
-        const buffer = device.createBuffer({
-            size: material.sceneUniforms.byteLength,
-            usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
-        });
-
-        const bindgroup = device.createBindGroup({
-            layout: material.sceneLayout,
-            entries: [{ binding: 0, resource: { buffer } }],
-        });
-
         renderTree.pipelines.push({
             pipeline,
-            sceneLayout: material.sceneLayout,
-            entityLayout: material.entityLayout,
             primitives: [],
             primitiveIdToIdx: {},
-            uniformGroup: { bindgroupIndex: 0, bindgroup, uniforms: [{ buffer, data: material.sceneUniforms }] },
+            uniformGroup: {
+                bindgroupIndex: 0,
+                bindgroup: material.sceneBindgroup,
+                uniforms: [{ buffer: material.sceneBuffer, data: material.sceneUniforms }],
+            },
+            createEntityBindGroupAndBuffer: material.createEntityBindGroupAndBuffer,
         });
 
         renderTree.pipelineIdToIdx[materialKey] = renderTree.pipelines.length - 1;
@@ -222,20 +223,12 @@ export const createRenderer = async <Materials extends Record<string, MaterialFa
         const primitiveIdx = pipeline.primitiveIdToIdx[primitiveId];
         if (primitiveIdx === undefined) return;
 
-        const uniformBuffer = device.createBuffer({
-            size: uniforms.byteLength,
-            usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
-        });
-
-        const bindgroup = device.createBindGroup({
-            layout: pipeline.entityLayout,
-            entries: [{ binding: 0, resource: { buffer: uniformBuffer } }],
-        });
+        const { bindgroup, buffer } = pipeline.createEntityBindGroupAndBuffer();
 
         pipeline.primitives[primitiveIdx].entities.push({
             bindgroupIndex: 1,
             bindgroup,
-            uniforms: [{ buffer: uniformBuffer, data: uniforms }],
+            uniforms: [{ buffer, data: uniforms }],
         });
     };
 

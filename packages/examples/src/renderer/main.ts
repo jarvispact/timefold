@@ -1,28 +1,11 @@
 import { Mat4x4, MathUtils, Vec3 } from '@timefold/math';
 import { createRenderer } from './renderer';
+import { ObjLoader } from '@timefold/obj';
 
 const dpr = window.devicePixelRatio || 1;
 const canvas = document.getElementById('canvas') as HTMLCanvasElement;
 canvas.width = canvas.clientWidth * dpr;
 canvas.height = canvas.clientHeight * dpr;
-
-/* eslint-disable prettier/prettier */
-const triangle = new Float32Array([
-    1.0, -1.0, 0.0,
-    0.0,  1.0, 0.0,
-   -1.0, -1.0, 0.0,
-]);
-
-const quad = new Float32Array([
-    1.0, -1.0, 0.0,
-   -1.0, -1.0, 0.0,
-   -1.0,  1.0, 0.0,
-
-    1.0, -1.0, 0.0,
-    1.0,  1.0, 0.0,
-   -1.0,  1.0, 0.0,
-]);
-/* eslint-enable prettier/prettier */
 
 const shaderCode = /* wgsl */ `
 struct Vertex {
@@ -51,10 +34,24 @@ struct Entity {
 `.trim();
 
 const main = async () => {
+    const interleavedTypedArrayLoader = ObjLoader.createLoader({ mode: 'interleaved-typed-array' });
+    const interleavedTypedArrayIndexedLoader = ObjLoader.createLoader({ mode: 'interleaved-typed-array-indexed' });
+    const nonInterleavedTypedArrayLoader = ObjLoader.createLoader({ mode: 'non-interleaved-typed-array' });
+    const nonInterleavedTypedArrayIndexedLoader = ObjLoader.createLoader({
+        mode: 'non-interleaved-typed-array-indexed',
+    });
+
+    const objResults = await Promise.all([
+        interleavedTypedArrayLoader.load('./webgpu-plane-pos-only.obj'),
+        interleavedTypedArrayIndexedLoader.load('./webgpu-plane-pos-only.obj'),
+        nonInterleavedTypedArrayLoader.load('./webgpu-plane-pos-only.obj'),
+        nonInterleavedTypedArrayIndexedLoader.load('./webgpu-plane-pos-only.obj'),
+    ]);
+
     const renderer = await createRenderer({
         canvas,
         materials: {
-            default: (device) => {
+            unlit: ({ device }) => {
                 const module = device.createShaderModule({ code: shaderCode });
 
                 const sceneLayout = device.createBindGroupLayout({
@@ -97,7 +94,7 @@ const main = async () => {
 
                 const sceneUniforms = new ArrayBuffer(16 * Float32Array.BYTES_PER_ELEMENT);
                 const viewProjectionMatrix = new Float32Array(sceneUniforms, 0, 16);
-                const view = Mat4x4.createLookAt([2, 2, 5], Vec3.zero(), Vec3.up());
+                const view = Mat4x4.createLookAt([2, 5, 10], Vec3.zero(), Vec3.up());
                 const proj = Mat4x4.createPerspective(MathUtils.degreesToRadians(65), canvas.width / canvas.height, 0);
                 Mat4x4.multiplication(viewProjectionMatrix, proj, view);
 
@@ -113,27 +110,66 @@ const main = async () => {
         },
     });
 
-    renderer.registerPrimitive('default', 'triangle', triangle);
-    renderer.registerPrimitive('default', 'quad', quad);
+    renderer.registerPrimitive('unlit', 'test0', {
+        type: 'interleaved',
+        vertices: objResults[0].objects.Plane.primitives.default.vertices,
+    });
+
+    renderer.registerPrimitive('unlit', 'test1', {
+        type: 'interleaved',
+        vertices: objResults[1].objects.Plane.primitives.default.vertices,
+        indices: objResults[1].objects.Plane.primitives.default.indices,
+    });
+
+    renderer.registerPrimitive('unlit', 'test2', {
+        type: 'non-interleaved',
+        position: objResults[2].objects.Plane.primitives.default.positions,
+        attributes: {},
+    });
+
+    renderer.registerPrimitive('unlit', 'test3', {
+        type: 'non-interleaved',
+        position: objResults[3].objects.Plane.primitives.default.positions,
+        indices: objResults[3].objects.Plane.primitives.default.indices,
+        attributes: {},
+    });
+
+    const entity0 = new ArrayBuffer(16 * Float32Array.BYTES_PER_ELEMENT + 4 * Float32Array.BYTES_PER_ELEMENT);
+    {
+        const modelMatrix = new Float32Array(entity0, 0, 16);
+        const color = new Float32Array(entity0, 16 * Float32Array.BYTES_PER_ELEMENT, 3);
+        Mat4x4.fromTranslation(modelMatrix, [-1, 0, -1]);
+        Vec3.copy(color, [1, 0, 0]);
+    }
 
     const entity1 = new ArrayBuffer(16 * Float32Array.BYTES_PER_ELEMENT + 4 * Float32Array.BYTES_PER_ELEMENT);
     {
         const modelMatrix = new Float32Array(entity1, 0, 16);
         const color = new Float32Array(entity1, 16 * Float32Array.BYTES_PER_ELEMENT, 3);
-        Mat4x4.fromTranslation(modelMatrix, [-2, 0, 0]);
-        Vec3.copy(color, [1, 0, 0]);
+        Mat4x4.fromTranslation(modelMatrix, [1, 0, -1]);
+        Vec3.copy(color, [0, 1, 0]);
     }
 
     const entity2 = new ArrayBuffer(16 * Float32Array.BYTES_PER_ELEMENT + 4 * Float32Array.BYTES_PER_ELEMENT);
     {
         const modelMatrix = new Float32Array(entity2, 0, 16);
         const color = new Float32Array(entity2, 16 * Float32Array.BYTES_PER_ELEMENT, 3);
-        Mat4x4.fromTranslation(modelMatrix, [2, 0, 0]);
-        Vec3.copy(color, [0, 1, 0]);
+        Mat4x4.fromTranslation(modelMatrix, [-1, 0, 1]);
+        Vec3.copy(color, [0, 0, 1]);
     }
 
-    renderer.addEntity('default', 'quad', entity1);
-    renderer.addEntity('default', 'triangle', entity2);
+    const entity3 = new ArrayBuffer(16 * Float32Array.BYTES_PER_ELEMENT + 4 * Float32Array.BYTES_PER_ELEMENT);
+    {
+        const modelMatrix = new Float32Array(entity3, 0, 16);
+        const color = new Float32Array(entity3, 16 * Float32Array.BYTES_PER_ELEMENT, 3);
+        Mat4x4.fromTranslation(modelMatrix, [1, 0, 1]);
+        Vec3.copy(color, [1, 1, 0]);
+    }
+
+    renderer.addEntity('unlit', 'test0', entity0);
+    renderer.addEntity('unlit', 'test1', entity1);
+    renderer.addEntity('unlit', 'test2', entity2);
+    renderer.addEntity('unlit', 'test3', entity3);
 
     const tick = () => {
         renderer.render();

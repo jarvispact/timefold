@@ -185,7 +185,7 @@ describe('obj-parser', () => {
             const parse = createParser();
             const result = parse('');
 
-            expectTypeOf(result).toMatchTypeOf<{
+            expectTypeOf(result).toMatchObjectType<{
                 objects: Record<
                     string,
                     {
@@ -207,7 +207,7 @@ describe('obj-parser', () => {
             const parse = createParser({});
             const result = parse('');
 
-            expectTypeOf(result).toMatchTypeOf<{
+            expectTypeOf(result).toMatchObjectType<{
                 objects: Record<
                     string,
                     {
@@ -229,7 +229,7 @@ describe('obj-parser', () => {
             const parse = createParser({ mode: 'interleaved-typed-array-indexed' });
             const result = parse('');
 
-            expectTypeOf(result).toMatchTypeOf<{
+            expectTypeOf(result).toMatchObjectType<{
                 objects: Record<
                     string,
                     {
@@ -251,7 +251,7 @@ describe('obj-parser', () => {
             const parse = createParser({ mode: 'interleaved-number-array' });
             const result = parse('');
 
-            expectTypeOf(result).toMatchTypeOf<{
+            expectTypeOf(result).toMatchObjectType<{
                 objects: Record<
                     string,
                     {
@@ -272,7 +272,7 @@ describe('obj-parser', () => {
             const parse = createParser({ mode: 'interleaved-number-array-indexed' });
             const result = parse('');
 
-            expectTypeOf(result).toMatchTypeOf<{
+            expectTypeOf(result).toMatchObjectType<{
                 objects: Record<
                     string,
                     {
@@ -294,7 +294,7 @@ describe('obj-parser', () => {
             const parse = createParser({ mode: 'interleaved-typed-array' });
             const result = parse('');
 
-            expectTypeOf(result).toMatchTypeOf<{
+            expectTypeOf(result).toMatchObjectType<{
                 objects: Record<
                     string,
                     {
@@ -315,7 +315,7 @@ describe('obj-parser', () => {
             const parse = createParser({ mode: 'interleaved-typed-array-indexed' });
             const result = parse('');
 
-            expectTypeOf(result).toMatchTypeOf<{
+            expectTypeOf(result).toMatchObjectType<{
                 objects: Record<
                     string,
                     {
@@ -337,7 +337,7 @@ describe('obj-parser', () => {
             const parse = createParser({ mode: 'non-interleaved-number-array' });
             const result = parse('');
 
-            expectTypeOf(result).toMatchTypeOf<{
+            expectTypeOf(result).toMatchObjectType<{
                 objects: Record<
                     string,
                     {
@@ -360,7 +360,7 @@ describe('obj-parser', () => {
             const parse = createParser({ mode: 'non-interleaved-number-array-indexed' });
             const result = parse('');
 
-            expectTypeOf(result).toMatchTypeOf<{
+            expectTypeOf(result).toMatchObjectType<{
                 objects: Record<
                     string,
                     {
@@ -384,7 +384,7 @@ describe('obj-parser', () => {
             const parse = createParser({ mode: 'non-interleaved-typed-array' });
             const result = parse('');
 
-            expectTypeOf(result).toMatchTypeOf<{
+            expectTypeOf(result).toMatchObjectType<{
                 objects: Record<
                     string,
                     {
@@ -407,7 +407,7 @@ describe('obj-parser', () => {
             const parse = createParser({ mode: 'non-interleaved-typed-array-indexed' });
             const result = parse('');
 
-            expectTypeOf(result).toMatchTypeOf<{
+            expectTypeOf(result).toMatchObjectType<{
                 objects: Record<
                     string,
                     {
