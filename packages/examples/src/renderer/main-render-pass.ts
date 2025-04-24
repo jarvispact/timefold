@@ -1,7 +1,7 @@
 import { Mat4x4, MathUtils, Vec3 } from '@timefold/math';
 import { InterleavedInfo, InterleavedObjPrimitiveIndexed } from '@timefold/obj';
 import { Uniform, WebgpuUtils, Wgsl } from '@timefold/webgpu';
-import { defineRenderPass, RenderPipelineContext } from './renderer5';
+import { defineRenderPass, RenderPipelineContext } from './render-pipeline';
 
 const LightStruct = Wgsl.struct('Light', {
     direction: Wgsl.type('vec3<f32>'),

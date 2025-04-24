@@ -1,6 +1,6 @@
 import { InterleavedInfo, InterleavedObjPrimitiveIndexed, ObjLoader } from '@timefold/obj';
 import { WebgpuUtils } from '@timefold/webgpu';
-import { createRenderPipeline, defineRenderPass, RenderPipelineContext } from './renderer5';
+import { createRenderPipeline, defineRenderPass, RenderPipelineContext } from './render-pipeline';
 import { PostProcessingRenderPass } from './post-processing-pass';
 import { createUnlitRenderer } from './unlit-renderer';
 import { createPhongRenderer } from './phong-renderer';

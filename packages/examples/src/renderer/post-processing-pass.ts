@@ -1,5 +1,5 @@
 import { Uniform, WebgpuUtils } from '@timefold/webgpu';
-import { defineRenderPass, RenderPipelineContext } from './renderer5';
+import { defineRenderPass, RenderPipelineContext } from './render-pipeline';
 import { MainRenderPass } from './main-render-pass';
 
 const UniformGroup = Uniform.group(0, {

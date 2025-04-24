@@ -36,6 +36,7 @@ const PhongEntityStruct = Wgsl.struct('PhongEntityStruct', {
 // TODO: Use a record instead of array indices for Uniform.group
 // Then we can define a full set of uniforms at once.
 // group and binding numbers could be generated internally
+// also we could generate the wgsl without a reference to the device
 
 const LightUniformGroup = Uniform.group(0, { light: Uniform.buffer(0, LightStruct) });
 const CameraUniformGroup = Uniform.group(1, { camera: Uniform.buffer(0, CameraStruct) });
@@ -59,9 +60,6 @@ const main = async () => {
     });
 
     const { device, context, format } = await WebgpuUtils.createDeviceAndContext({ canvas });
-
-    // TODO: Split WebgpuUtils.createPipelineLayout into 2 functions
-    // so that the layout can be generated without dependency to the device?
 
     // =======================================
     // Unlit
