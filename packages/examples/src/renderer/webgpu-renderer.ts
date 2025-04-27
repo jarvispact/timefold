@@ -7,15 +7,23 @@ type AssumeString<T> = Assume<T, string>;
 // ========================================
 // MaterialTemplates and PrimitiveTemplates
 
-type MaterialTemplate<Buffers extends Record<string, GPUBuffer>> = {
+type MaterialTemplate<
+    FrameBuffers extends Record<string, GPUBuffer>,
+    EntityBuffers extends Record<string, GPUBuffer>,
+> = {
     layout: GPUPipelineLayout;
-    materialBindGroups: {
+    frameBindGroups: {
         group: number;
         bindGroup: GPUBindGroup;
-        buffers: Buffers;
+        buffers: FrameBuffers;
     };
+    frameUniforms: { [K in keyof FrameBuffers]: ArrayBufferLike };
     module: GPUShaderModule;
-    uniforms: { [K in keyof Buffers]: ArrayBufferLike };
+    createEntityBindGroups: () => {
+        group: number;
+        bindGroup: GPUBindGroup;
+        buffers: EntityBuffers;
+    };
 };
 
 type PrimitiveTemplate = {
@@ -24,11 +32,15 @@ type PrimitiveTemplate = {
     layout: GPUVertexBufferLayout[];
 };
 
-type GenericMaterialTemplates = Record<string, MaterialTemplate<Record<string, GPUBuffer>>>;
+type GenericMaterialTemplates = Record<string, MaterialTemplate<Record<string, GPUBuffer>, Record<string, GPUBuffer>>>;
 type GenericPrimitiveTemplates = Record<string, PrimitiveTemplate>;
 
-export const defineMaterialTemplate = <Buffers extends Record<string, GPUBuffer>>(args: MaterialTemplate<Buffers>) =>
-    args;
+export const defineMaterialTemplate = <
+    FrameBuffers extends Record<string, GPUBuffer>,
+    EntityBuffers extends Record<string, GPUBuffer>,
+>(
+    args: MaterialTemplate<FrameBuffers, EntityBuffers>,
+) => args;
 
 type DefinePrimitiveTemplateArgs = {
     topology?: GPUPrimitiveTopology;
@@ -61,8 +73,8 @@ export type CreateRendererArgs<
 type VertexBuffer = { slot: number; buffer: GPUBuffer };
 type Index = { buffer: GPUBuffer; format: GPUIndexFormat; count: number };
 
-type Mesh<MaterialTemplate, PrimitiveTemplate> = {
-    material: { template: MaterialTemplate; transparent?: boolean };
+type Mesh<MaterialTemplate, PrimitiveTemplate, Uniforms> = {
+    material: { template: MaterialTemplate; uniforms: Uniforms };
     primitive: {
         template: PrimitiveTemplate;
         vertex: GenericVertexBufferResult;
@@ -71,18 +83,20 @@ type Mesh<MaterialTemplate, PrimitiveTemplate> = {
 };
 
 type Entity<
-    Buffers extends Record<string, GPUBuffer>,
+    EntityBuffers extends Record<string, GPUBuffer>,
     MaterialTemplate extends string,
     PrimitiveTemplate extends string,
 > = {
     id: string | number;
-    entityBindGroups: {
-        group: number;
-        bindGroup: GPUBindGroup;
-        buffers: Buffers;
-    };
-    uniforms: { [K in keyof Buffers]: ArrayBufferLike };
-    mesh: Mesh<MaterialTemplate, PrimitiveTemplate> | Mesh<MaterialTemplate, PrimitiveTemplate>[];
+    // entityBindGroups: {
+    //     group: number;
+    //     bindGroup: GPUBindGroup;
+    //     buffers: Buffers;
+    // };
+    // uniforms: { [K in keyof EntityBuffers]: ArrayBufferLike };
+    mesh:
+        | Mesh<MaterialTemplate, PrimitiveTemplate, { [K in keyof EntityBuffers]: ArrayBufferLike }>
+        | Mesh<MaterialTemplate, PrimitiveTemplate, { [K in keyof EntityBuffers]: ArrayBufferLike }>[];
 };
 
 type RenderEntity = {
@@ -100,7 +114,7 @@ type RenderEntity = {
 type RenderTree = {
     pipelines: {
         pipeline: GPURenderPipeline;
-        materialTemplate: {
+        frame: {
             group: number;
             bindGroup: GPUBindGroup;
             uniforms: { buffer: GPUBuffer; data: ArrayBufferLike }[];
@@ -145,12 +159,12 @@ export const createRenderer = <
 
             renderTree.pipelines.push({
                 pipeline,
-                materialTemplate: {
-                    group: materialTemplate.materialBindGroups.group,
-                    bindGroup: materialTemplate.materialBindGroups.bindGroup,
-                    uniforms: Object.keys(materialTemplate.materialBindGroups.buffers).map((bufferKey) => ({
-                        buffer: materialTemplate.materialBindGroups.buffers[bufferKey],
-                        data: materialTemplate.uniforms[bufferKey],
+                frame: {
+                    group: materialTemplate.frameBindGroups.group,
+                    bindGroup: materialTemplate.frameBindGroups.bindGroup,
+                    uniforms: Object.keys(materialTemplate.frameBindGroups.buffers).map((bufferKey) => ({
+                        buffer: materialTemplate.frameBindGroups.buffers[bufferKey],
+                        data: materialTemplate.frameUniforms[bufferKey],
                     })),
                 },
                 entities: [],
@@ -160,12 +174,18 @@ export const createRenderer = <
         }
     }
 
-    const addEntity = <Buffers extends Record<string, GPUBuffer>>(
-        entity: Entity<Buffers, AssumeString<keyof MaterialTemplates>, AssumeString<keyof PrimitiveTemplates>>,
+    const addEntity = <MaterialTemplate extends keyof MaterialTemplates>(
+        entity: Entity<
+            ReturnType<MaterialTemplates[MaterialTemplate]['createEntityBindGroups']>['buffers'],
+            AssumeString<MaterialTemplate>,
+            AssumeString<keyof PrimitiveTemplates>
+        >,
     ) => {
         const meshArray = Array.isArray(entity.mesh) ? entity.mesh : [entity.mesh];
 
         for (const meshPart of meshArray) {
+            const materialTemplate = args.materialTemplates[meshPart.material.template];
+
             const pipelineId = `${meshPart.material.template}-${meshPart.primitive.template}`;
             const pipelineIdx = renderTree.pipelineIdToIdx[pipelineId];
             if (pipelineIdx === undefined) return;
@@ -189,13 +209,15 @@ export const createRenderer = <
                 }
             }
 
+            const entityBindGroups = materialTemplate.createEntityBindGroups();
+
             renderTree.pipelines[pipelineIdx].entities.push({
                 entity: {
-                    group: entity.entityBindGroups.group,
-                    bindGroup: entity.entityBindGroups.bindGroup,
-                    uniforms: Object.keys(entity.entityBindGroups.buffers).map((bufferKey) => ({
-                        buffer: entity.entityBindGroups.buffers[bufferKey],
-                        data: entity.uniforms[bufferKey],
+                    group: entityBindGroups.group,
+                    bindGroup: entityBindGroups.bindGroup,
+                    uniforms: Object.keys(entityBindGroups.buffers).map((bufferKey) => ({
+                        buffer: entityBindGroups.buffers[bufferKey],
+                        data: meshPart.material.uniforms[bufferKey],
                     })),
                 },
                 mesh: { vertex: { buffers, count }, index: meshPart.primitive.index },
@@ -210,8 +232,8 @@ export const createRenderer = <
         for (const pipeline of renderTree.pipelines) {
             pass.setPipeline(pipeline.pipeline);
 
-            pass.setBindGroup(pipeline.materialTemplate.group, pipeline.materialTemplate.bindGroup);
-            for (const uniform of pipeline.materialTemplate.uniforms) {
+            pass.setBindGroup(pipeline.frame.group, pipeline.frame.bindGroup);
+            for (const uniform of pipeline.frame.uniforms) {
                 args.device.queue.writeBuffer(uniform.buffer, 0, uniform.data);
             }
 
