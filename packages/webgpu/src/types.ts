@@ -249,27 +249,58 @@ export type CreateVertexBufferLayoutDefinition<Mode extends CreateVertexBufferMo
           position: { format: SupportedPositionFormat };
       } & Record<string, { format: SupportedFormat }>;
 
+// export type InterleavedCreateBuffer = (
+//     device: GPUDevice,
+//     data: Float32Array,
+// ) => { slot: number; buffer: GPUBuffer; count: number };
+
 export type InterleavedCreateBuffer = (
     device: GPUDevice,
     data: Float32Array,
-) => { slot: number; buffer: GPUBuffer; count: number };
+) => { mode: InterleavedMode; slot: number; buffer: GPUBuffer; count: number };
 
-type NonInterleavedCreateBuffer<Definition extends CreateVertexBufferLayoutDefinition<NonInterleavedMode>> = <
+// type NonInterleavedCreateBuffer<Definition extends CreateVertexBufferLayoutDefinition<NonInterleavedMode>> = <
+//     Name extends keyof Definition,
+// >(
+//     device: GPUDevice,
+//     name: Name,
+//     data: InstanceType<FormatMap[Definition[Name]['format']]['View']>,
+// ) => { slot: number; buffer: GPUBuffer } & (Name extends 'position' ? { count: number } : NonNullable<unknown>);
+
+export type NonInterleavedCreateBuffer<Definition extends CreateVertexBufferLayoutDefinition<NonInterleavedMode>> = <
     Name extends keyof Definition,
 >(
     device: GPUDevice,
     name: Name,
     data: InstanceType<FormatMap[Definition[Name]['format']]['View']>,
-) => { slot: number; buffer: GPUBuffer } & (Name extends 'position' ? { count: number } : NonNullable<unknown>);
+) => { mode: NonInterleavedMode; slot: number; buffer: GPUBuffer } & (Name extends 'position'
+    ? { count: number }
+    : NonNullable<unknown>);
 
-type NonInterleavedCreateBuffers<Definition extends CreateVertexBufferLayoutDefinition<NonInterleavedMode>> = (
+// type NonInterleavedCreateBuffers<Definition extends CreateVertexBufferLayoutDefinition<NonInterleavedMode>> = (
+//     device: GPUDevice,
+//     attribs: { [K in keyof Definition]: InstanceType<FormatMap[Definition[K]['format']]['View']> },
+// ) => {
+//     [K in keyof Definition]: { slot: number; buffer: GPUBuffer } & (K extends 'position'
+//         ? { count: number }
+//         : NonNullable<unknown>);
+// };
+
+export type NonInterleavedCreateBuffers<Definition extends CreateVertexBufferLayoutDefinition<NonInterleavedMode>> = (
     device: GPUDevice,
     attribs: { [K in keyof Definition]: InstanceType<FormatMap[Definition[K]['format']]['View']> },
 ) => {
-    [K in keyof Definition]: { slot: number; buffer: GPUBuffer } & (K extends 'position'
-        ? { count: number }
-        : NonNullable<unknown>);
+    mode: NonInterleavedMode;
+    attribs: {
+        [K in keyof Definition]: { slot: number; buffer: GPUBuffer } & (K extends 'position'
+            ? { count: number }
+            : NonNullable<unknown>);
+    };
 };
+
+export type GenericVertexBufferResult =
+    | ReturnType<InterleavedCreateBuffer>
+    | ReturnType<NonInterleavedCreateBuffers<CreateVertexBufferLayoutDefinition<NonInterleavedMode>>>;
 
 export type CreateVertexBufferLayoutResult<
     Mode extends CreateVertexBufferMode,

@@ -176,6 +176,7 @@ export const createVertexBufferLayout = <
             buffer.unmap();
 
             return {
+                mode: 'non-interleaved',
                 // slot is actually the index into the layout (GPUVertexBufferLayout[])
                 // but in our case it always matches the shader location as well
                 slot: locationByName[name.toString()],
@@ -188,13 +189,16 @@ export const createVertexBufferLayout = <
             device: GPUDevice,
             attribs: { [K in keyof Definition]: InstanceType<GenericTypedArrayConstructor> },
         ) => {
-            return Object.keys(attribs).reduce(
-                (accum, key: keyof Definition) => {
-                    accum[key] = createBuffer(device, key, attribs[key]);
-                    return accum;
-                },
-                {} as { [K in keyof Definition]: { slot: number; buffer: GPUBuffer; count?: number } },
-            );
+            return {
+                mode: 'non-interleaved',
+                attribs: Object.keys(attribs).reduce(
+                    (accum, key: keyof Definition) => {
+                        accum[key] = createBuffer(device, key, attribs[key]);
+                        return accum;
+                    },
+                    {} as { [K in keyof Definition]: { slot: number; buffer: GPUBuffer; count?: number } },
+                ),
+            };
         };
 
         return {
@@ -243,6 +247,7 @@ export const createVertexBufferLayout = <
         buffer.unmap();
 
         return {
+            mode: 'interleaved',
             slot: 0,
             buffer,
             count: data.length / totalStride,

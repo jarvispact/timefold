@@ -1,6 +1,6 @@
 import { Uniform, WebgpuUtils } from '@timefold/webgpu';
+import { MultiMaterialRenderPass } from './multi-material-render-pass';
 import { defineRenderPass, RenderPipelineContext } from './render-pipeline';
-import { MainRenderPass } from './main-render-pass';
 
 const UniformGroup = Uniform.group(0, {
     color_sampler: Uniform.sampler(0),
@@ -50,9 +50,9 @@ struct VsOut {
 
 export const PostProcessingRenderPass = defineRenderPass({
     name: 'PostProcessing',
-    fn: (ctx: RenderPipelineContext<[typeof MainRenderPass]>) => {
+    fn: (ctx: RenderPipelineContext<[typeof MultiMaterialRenderPass]>) => {
         const { device, context, format } = ctx.args;
-        const { renderTexture } = ctx.MainRenderPass;
+        const { renderTexture } = ctx.MultiMaterialRenderPass;
 
         const Layout = WebgpuUtils.createPipelineLayout({
             device,
