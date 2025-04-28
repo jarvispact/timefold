@@ -23,7 +23,7 @@ export const MAX_DIR_LIGHTS = 3;
 
 export const SceneStruct = Wgsl.struct('Scene', {
     camera: CameraStruct,
-    dirLights: Wgsl.array(DirLightStruct, MAX_DIR_LIGHTS),
+    dir_lights: Wgsl.array(DirLightStruct, MAX_DIR_LIGHTS),
 });
 
 export type SceneStruct = typeof SceneStruct;
@@ -84,3 +84,9 @@ export const PhongEntityStruct = Wgsl.struct('Entity', {
 });
 
 export type PhongEntityStruct = typeof PhongEntityStruct;
+
+// unlit uniform group
+
+export const PhongEntityUniformGroup = Uniform.group(1, {
+    entity: Uniform.buffer(0, PhongEntityStruct),
+});

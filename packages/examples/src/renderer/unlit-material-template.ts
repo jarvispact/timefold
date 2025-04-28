@@ -1,7 +1,7 @@
-import { UnlitEntityStruct } from '@timefold/engine';
+import { CameraStruct, UnlitEntityStruct } from '@timefold/engine';
 import { Mat4x4, MathUtils, Vec3 } from '@timefold/math';
 import { InterleavedInfo, InterleavedObjPrimitiveIndexed } from '@timefold/obj';
-import { Uniform, WebgpuUtils, Wgsl } from '@timefold/webgpu';
+import { Uniform, WebgpuUtils } from '@timefold/webgpu';
 import { defineMaterialTemplate } from './webgpu-renderer';
 
 type Args = {
@@ -13,11 +13,6 @@ type Args = {
 };
 
 export const createUnlitMaterialTemplate = (args: Args) => {
-    const CameraStruct = Wgsl.struct('Camera', {
-        translation: Wgsl.type('vec3<f32>'),
-        view_projection_matrix: Wgsl.type('mat4x4<f32>'),
-    });
-
     const FrameUniformGroup = Uniform.group(0, { camera: Uniform.buffer(0, CameraStruct) });
     const UnlitEntityUniformGroup = Uniform.group(1, { entity: Uniform.buffer(0, UnlitEntityStruct) });
 
