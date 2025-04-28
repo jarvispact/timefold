@@ -1,7 +1,8 @@
+import { PhongEntityStruct } from '@timefold/engine';
+import { Mat4x4, MathUtils, Vec3 } from '@timefold/math';
+import { InterleavedInfo, InterleavedObjPrimitiveIndexed } from '@timefold/obj';
 import { Uniform, WebgpuUtils, Wgsl } from '@timefold/webgpu';
 import { defineMaterialTemplate } from './webgpu-renderer';
-import { InterleavedInfo, InterleavedObjPrimitiveIndexed } from '@timefold/obj';
-import { Mat4x4, MathUtils, Vec3 } from '@timefold/math';
 
 type Args = {
     device: GPUDevice;
@@ -22,20 +23,13 @@ export const createPhongMaterialTemplate = (args: Args) => {
         view_projection_matrix: Wgsl.type('mat4x4<f32>'),
     });
 
-    const EntityStruct = Wgsl.struct('EntityStruct', {
-        model_matrix: Wgsl.type('mat4x4<f32>'),
-        normal_matrix: Wgsl.type('mat4x4<f32>'),
-        diffuse_color: Wgsl.type('vec3<f32>'),
-        specular_color: Wgsl.type('vec3<f32>'),
-    });
-
     const FrameUniformGroup = Uniform.group(0, {
         light: Uniform.buffer(0, LightStruct),
         camera: Uniform.buffer(1, CameraStruct),
     });
 
     const PhongEntityUniformGroup = Uniform.group(1, {
-        entity: Uniform.buffer(0, EntityStruct),
+        entity: Uniform.buffer(0, PhongEntityStruct),
     });
 
     const PipelineLayout = WebgpuUtils.createPipelineLayout({
@@ -56,18 +50,18 @@ export const createPhongMaterialTemplate = (args: Args) => {
     
         @vertex fn vs(vert: Vertex) -> VSOutput {
             var vsOut: VSOutput;
-            vsOut.position = camera.view_projection_matrix * entity.model_matrix * vec4f(vert.position, 1.0);
+            vsOut.position = camera.view_projection_matrix * entity.transform.model_matrix * vec4f(vert.position, 1.0);
             vsOut.uv = vert.uv;
-            vsOut.normal = (entity.normal_matrix * vec4f(vert.normal, 0.0)).xyz;
+            vsOut.normal = (entity.transform.normal_matrix * vec4f(vert.normal, 0.0)).xyz;
             return vsOut;
         }
     
         @fragment fn fs(vsOut: VSOutput) -> @location(0) vec4f {
             let N = normalize(vsOut.normal);
             let L = normalize(light.direction);
-            let ambient = entity.diffuse_color * 0.1;
+            let ambient = entity.material.diffuse_color * 0.1;
             let diff = max(dot(N, L), 0.0);
-            let diffuse = diff * light.color * entity.diffuse_color;
+            let diffuse = diff * light.color * entity.material.diffuse_color;
             return vec4f(ambient + diffuse, 1.0);
         }
     `.trim();
@@ -92,20 +86,17 @@ export const createPhongMaterialTemplate = (args: Args) => {
     );
     Mat4x4.multiplication(camera.views.view_projection_matrix, proj, view);
 
-    return {
-        materialTemplate: defineMaterialTemplate({
-            layout: PipelineLayout.layout,
-            frameBindGroups: Light,
-            frameUniforms: {
-                light: light.buffer,
-                camera: camera.buffer,
-            },
-            module,
-            createEntityBindGroups: () =>
-                PipelineLayout.createBindGroups(1, {
-                    entity: WebgpuUtils.createBufferDescriptor(),
-                }),
-        }),
-        EntityStruct,
-    };
+    return defineMaterialTemplate({
+        layout: PipelineLayout.layout,
+        frameBindGroups: Light,
+        frameUniforms: {
+            light: light.buffer,
+            camera: camera.buffer,
+        },
+        module,
+        createEntityBindGroups: () =>
+            PipelineLayout.createBindGroups(1, {
+                entity: WebgpuUtils.createBufferDescriptor(),
+            }),
+    });
 };

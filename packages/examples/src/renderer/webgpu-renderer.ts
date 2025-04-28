@@ -88,12 +88,6 @@ type Entity<
     PrimitiveTemplate extends string,
 > = {
     id: string | number;
-    // entityBindGroups: {
-    //     group: number;
-    //     bindGroup: GPUBindGroup;
-    //     buffers: Buffers;
-    // };
-    // uniforms: { [K in keyof EntityBuffers]: ArrayBufferLike };
     mesh:
         | Mesh<MaterialTemplate, PrimitiveTemplate, { [K in keyof EntityBuffers]: ArrayBufferLike }>
         | Mesh<MaterialTemplate, PrimitiveTemplate, { [K in keyof EntityBuffers]: ArrayBufferLike }>[];

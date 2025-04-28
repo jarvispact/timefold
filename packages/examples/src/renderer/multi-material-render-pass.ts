@@ -1,10 +1,11 @@
+import { PhongEntityStruct, UnlitEntityStruct } from '@timefold/engine';
 import { Mat4x4, Vec3 } from '@timefold/math';
 import { InterleavedInfo, InterleavedObjPrimitiveIndexed } from '@timefold/obj';
 import { RenderPassDescriptor, WebgpuUtils } from '@timefold/webgpu';
+import { createPhongMaterialTemplate } from './phong-material-template';
 import { defineRenderPass, RenderPipelineContext } from './render-pipeline';
 import { createUnlitMaterialTemplate } from './unlit-material-template';
 import { createRenderer, definePrimitiveTemplate } from './webgpu-renderer';
-import { createPhongMaterialTemplate } from './phong-material-template';
 
 type AdditionalContext = {
     info: InterleavedInfo;
@@ -37,93 +38,61 @@ export const MultiMaterialRenderPass = defineRenderPass({
             normal: { format: 'float32x3', offset: info.normalOffset },
         });
 
-        const Unlit = createUnlitMaterialTemplate({
-            device,
-            info,
-            planePrimitive,
-            renderTexture,
-            vertexWgsl: Vertex.wgsl,
-        });
-
-        const Phong = createPhongMaterialTemplate({
-            device,
-            info,
-            planePrimitive,
-            renderTexture,
-            vertexWgsl: Vertex.wgsl,
-        });
-
         const renderer = createRenderer({
             ...ctx.args,
             renderPassDescriptor,
             materialTemplates: {
-                unlit: Unlit.materialTemplate,
-                phong: Phong.materialTemplate,
+                unlit: createUnlitMaterialTemplate({
+                    device,
+                    info,
+                    planePrimitive,
+                    renderTexture,
+                    vertexWgsl: Vertex.wgsl,
+                }),
+                phong: createPhongMaterialTemplate({
+                    device,
+                    info,
+                    planePrimitive,
+                    renderTexture,
+                    vertexWgsl: Vertex.wgsl,
+                }),
             },
             primitiveTemplates: {
                 default: definePrimitiveTemplate(Vertex),
             },
         });
 
-        const unlitEntity = Unlit.EntityStruct.create();
-        Mat4x4.fromTranslation(unlitEntity.views.model_matrix, [-2, 0, 0]);
-        Vec3.copy(unlitEntity.views.color, [1, 0, 0]);
-
-        // renderer.addEntity({
-        //     id: 'unlit',
-        //     mesh: {
-        //         material: { template: 'unlit', uniforms: { entity: unlitEntity.buffer } },
-        //         primitive: {
-        //             template: 'default',
-        //             vertex: Vertex.createBuffer(device, planePrimitive.vertices),
-        //             index: WebgpuUtils.createIndexBuffer(device, { format: 'uint32', data: planePrimitive.indices }),
-        //         },
-        //     },
-        // });
-
-        const phongEntity = Phong.EntityStruct.create();
-        Mat4x4.fromTranslation(phongEntity.views.model_matrix, [2, 0, 0]);
-        Mat4x4.modelToNormal(phongEntity.views.normal_matrix, phongEntity.views.model_matrix);
-        Vec3.copy(phongEntity.views.diffuse_color, [1, 0, 0]);
-
-        // renderer.addEntity({
-        //     id: 'phong',
-        //     mesh: {
-        //         material: { template: 'phong', uniforms: { entity: phongEntity.buffer } },
-        //         primitive: {
-        //             template: 'default',
-        //             vertex: Vertex.createBuffer(device, planePrimitive.vertices),
-        //             index: WebgpuUtils.createIndexBuffer(device, { format: 'uint32', data: planePrimitive.indices }),
-        //         },
-        //     },
-        // });
+        const unlitEntity = UnlitEntityStruct.create();
+        Mat4x4.fromTranslation(unlitEntity.views.transform.model_matrix, [-2, 0, 0]);
+        Vec3.copy(unlitEntity.views.material.color, [1, 0, 0]);
 
         renderer.addEntity({
-            id: 'test',
-            mesh: [
-                {
-                    material: { template: 'unlit', uniforms: { entity: unlitEntity.buffer } },
-                    primitive: {
-                        template: 'default',
-                        vertex: Vertex.createBuffer(device, planePrimitive.vertices),
-                        index: WebgpuUtils.createIndexBuffer(device, {
-                            format: 'uint32',
-                            data: planePrimitive.indices,
-                        }),
-                    },
+            id: 'unlit',
+            mesh: {
+                material: { template: 'unlit', uniforms: { entity: unlitEntity.buffer } },
+                primitive: {
+                    template: 'default',
+                    vertex: Vertex.createBuffer(device, planePrimitive.vertices),
+                    index: WebgpuUtils.createIndexBuffer(device, { format: 'uint32', data: planePrimitive.indices }),
                 },
-                {
-                    material: { template: 'phong', uniforms: { entity: phongEntity.buffer } },
-                    primitive: {
-                        template: 'default',
-                        vertex: Vertex.createBuffer(device, planePrimitive.vertices),
-                        index: WebgpuUtils.createIndexBuffer(device, {
-                            format: 'uint32',
-                            data: planePrimitive.indices,
-                        }),
-                    },
+            },
+        });
+
+        const phongEntity = PhongEntityStruct.create();
+        Mat4x4.fromTranslation(phongEntity.views.transform.model_matrix, [2, 0, 0]);
+        Mat4x4.modelToNormal(phongEntity.views.transform.normal_matrix, phongEntity.views.transform.model_matrix);
+        Vec3.copy(phongEntity.views.material.diffuse_color, [1, 0, 0]);
+
+        renderer.addEntity({
+            id: 'phong',
+            mesh: {
+                material: { template: 'phong', uniforms: { entity: phongEntity.buffer } },
+                primitive: {
+                    template: 'default',
+                    vertex: Vertex.createBuffer(device, planePrimitive.vertices),
+                    index: WebgpuUtils.createIndexBuffer(device, { format: 'uint32', data: planePrimitive.indices }),
                 },
-            ],
+            },
         });
 
         return {

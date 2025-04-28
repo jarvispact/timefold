@@ -1,7 +1,8 @@
+import { UnlitEntityStruct } from '@timefold/engine';
+import { Mat4x4, MathUtils, Vec3 } from '@timefold/math';
+import { InterleavedInfo, InterleavedObjPrimitiveIndexed } from '@timefold/obj';
 import { Uniform, WebgpuUtils, Wgsl } from '@timefold/webgpu';
 import { defineMaterialTemplate } from './webgpu-renderer';
-import { InterleavedInfo, InterleavedObjPrimitiveIndexed } from '@timefold/obj';
-import { Mat4x4, MathUtils, Vec3 } from '@timefold/math';
 
 type Args = {
     device: GPUDevice;
@@ -17,13 +18,8 @@ export const createUnlitMaterialTemplate = (args: Args) => {
         view_projection_matrix: Wgsl.type('mat4x4<f32>'),
     });
 
-    const EntityStruct = Wgsl.struct('EntityStruct', {
-        model_matrix: Wgsl.type('mat4x4<f32>'),
-        color: Wgsl.type('vec3<f32>'),
-    });
-
     const FrameUniformGroup = Uniform.group(0, { camera: Uniform.buffer(0, CameraStruct) });
-    const UnlitEntityUniformGroup = Uniform.group(1, { entity: Uniform.buffer(0, EntityStruct) });
+    const UnlitEntityUniformGroup = Uniform.group(1, { entity: Uniform.buffer(0, UnlitEntityStruct) });
 
     const PipelineLayout = WebgpuUtils.createPipelineLayout({
         device: args.device,
@@ -49,27 +45,24 @@ export const createUnlitMaterialTemplate = (args: Args) => {
         ${Uniform.getWgslFromGroups([FrameUniformGroup, UnlitEntityUniformGroup])}
 
         @vertex fn vs(vert: Vertex) -> @builtin(position) vec4f {
-            return camera.view_projection_matrix * entity.model_matrix * vec4f(vert.position, 1.0);
+            return camera.view_projection_matrix * entity.transform.model_matrix * vec4f(vert.position, 1.0);
         }
 
         @fragment fn fs() -> @location(0) vec4f {
-            return vec4f(entity.color, 1.0);
+            return vec4f(entity.material.color, 1.0);
         }
     `.trim();
 
-    return {
-        materialTemplate: defineMaterialTemplate({
-            layout: PipelineLayout.layout,
-            frameBindGroups,
-            frameUniforms: {
-                camera: camera.buffer,
-            },
-            module: args.device.createShaderModule({ code }),
-            createEntityBindGroups: () =>
-                PipelineLayout.createBindGroups(1, {
-                    entity: WebgpuUtils.createBufferDescriptor(),
-                }),
-        }),
-        EntityStruct,
-    };
+    return defineMaterialTemplate({
+        layout: PipelineLayout.layout,
+        frameBindGroups,
+        frameUniforms: {
+            camera: camera.buffer,
+        },
+        module: args.device.createShaderModule({ code }),
+        createEntityBindGroups: () =>
+            PipelineLayout.createBindGroups(1, {
+                entity: WebgpuUtils.createBufferDescriptor(),
+            }),
+    });
 };
