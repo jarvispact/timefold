@@ -119,13 +119,6 @@ export const getBlendState = (mode: 'opaque' | 'transparent'): GPUBlendState | u
 // ===========================================================
 // vertex buffers
 
-// TODO:    Do we even need the offset for non-interleaved buffers?
-//          The format already encodes it. Or maybe make it optional?
-//          Also stride would be a better name?
-//    !!!   But then it will depend on the order of the attributes?
-
-// TODO:    Stricter TypedArray Views based on the format?
-//          Probably does not play well with generic gltf2.
 export const createVertexBufferLayout = <
     Mode extends CreateVertexBufferMode,
     Definition extends CreateVertexBufferLayoutDefinition<Mode>,
@@ -176,7 +169,6 @@ export const createVertexBufferLayout = <
             buffer.unmap();
 
             return {
-                mode: 'non-interleaved',
                 // slot is actually the index into the layout (GPUVertexBufferLayout[])
                 // but in our case it always matches the shader location as well
                 slot: locationByName[name.toString()],
@@ -190,7 +182,6 @@ export const createVertexBufferLayout = <
             attribs: { [K in keyof Definition]: InstanceType<GenericTypedArrayConstructor> },
         ) => {
             return {
-                mode: 'non-interleaved',
                 attribs: Object.keys(attribs).reduce(
                     (accum, key: keyof Definition) => {
                         accum[key] = createBuffer(device, key, attribs[key]);
@@ -202,7 +193,6 @@ export const createVertexBufferLayout = <
         };
 
         return {
-            mode: 'non-interleaved',
             layout,
             wgsl,
             createBuffer,
@@ -247,7 +237,6 @@ export const createVertexBufferLayout = <
         buffer.unmap();
 
         return {
-            mode: 'interleaved',
             slot: 0,
             buffer,
             count: data.length / totalStride,
@@ -255,7 +244,6 @@ export const createVertexBufferLayout = <
     };
 
     return {
-        mode: 'interleaved',
         layout,
         wgsl,
         createBuffer,

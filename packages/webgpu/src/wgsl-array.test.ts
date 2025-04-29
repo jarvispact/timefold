@@ -5,11 +5,11 @@ describe('Wgsl.array(Wgsl.type, number)', () => {
     it('should return the correct tuple type', () => {
         {
             const { views } = Wgsl.array(Wgsl.type('vec3<u32>'), 2).create({ mode: 'number-tuple' });
-            expectTypeOf(views).toMatchTypeOf<[[number, number, number], [number, number, number]]>();
+            expectTypeOf(views).toExtend<[[number, number, number], [number, number, number]]>();
         }
         {
             const { views } = Wgsl.array(Wgsl.type('vec4<f32>'), 2).create({ mode: 'number-tuple' });
-            expectTypeOf(views).toMatchTypeOf<[[number, number, number, number], [number, number, number, number]]>();
+            expectTypeOf(views).toExtend<[[number, number, number, number], [number, number, number, number]]>();
         }
     });
 
@@ -57,22 +57,22 @@ describe('Wgsl.array(Wgsl.type, number)', () => {
 
             {
                 const { buffer, views } = type.create();
-                expectTypeOf(buffer).toMatchTypeOf<ArrayBuffer>();
-                expectTypeOf(views).toMatchTypeOf<[Int32Array, Int32Array]>();
+                expectTypeOf(buffer).toExtend<ArrayBuffer>();
+                expectTypeOf(views).toExtend<[Int32Array, Int32Array]>();
                 expect(buffer).toEqual(expectedBuffer);
                 expect(views).toEqual(expectedViews);
             }
             {
                 const { buffer, views } = type.create({ mode: 'array-buffer' });
-                expectTypeOf(buffer).toMatchTypeOf<ArrayBuffer>();
-                expectTypeOf(views).toMatchTypeOf<[Int32Array, Int32Array]>();
+                expectTypeOf(buffer).toExtend<ArrayBuffer>();
+                expectTypeOf(views).toExtend<[Int32Array, Int32Array]>();
                 expect(buffer).toEqual(expectedBuffer);
                 expect(views).toEqual(expectedViews);
             }
             {
                 const { buffer, views } = type.create({ mode: 'shared-array-buffer' });
-                expectTypeOf(buffer).toMatchTypeOf<SharedArrayBuffer>();
-                expectTypeOf(views).toMatchTypeOf<[Int32Array, Int32Array]>();
+                expectTypeOf(buffer).toExtend<SharedArrayBuffer>();
+                expectTypeOf(views).toExtend<[Int32Array, Int32Array]>();
                 expect(buffer).toEqual(expectedSharedBuffer);
                 expect(views).toEqual(expectedSharedViews);
             }
@@ -127,22 +127,22 @@ describe('Wgsl.array(Wgsl.type, number)', () => {
 
             {
                 const { buffer, views } = type.create();
-                expectTypeOf(buffer).toMatchTypeOf<ArrayBuffer>();
-                expectTypeOf(views).toMatchTypeOf<[Uint32Array, Uint32Array]>();
+                expectTypeOf(buffer).toExtend<ArrayBuffer>();
+                expectTypeOf(views).toExtend<[Uint32Array, Uint32Array]>();
                 expect(buffer).toEqual(expectedBuffer);
                 expect(views).toEqual(expectedViews);
             }
             {
                 const { buffer, views } = type.create({ mode: 'array-buffer' });
-                expectTypeOf(buffer).toMatchTypeOf<ArrayBuffer>();
-                expectTypeOf(views).toMatchTypeOf<[Uint32Array, Uint32Array]>();
+                expectTypeOf(buffer).toExtend<ArrayBuffer>();
+                expectTypeOf(views).toExtend<[Uint32Array, Uint32Array]>();
                 expect(buffer).toEqual(expectedBuffer);
                 expect(views).toEqual(expectedViews);
             }
             {
                 const { buffer, views } = type.create({ mode: 'shared-array-buffer' });
-                expectTypeOf(buffer).toMatchTypeOf<SharedArrayBuffer>();
-                expectTypeOf(views).toMatchTypeOf<[Uint32Array, Uint32Array]>();
+                expectTypeOf(buffer).toExtend<SharedArrayBuffer>();
+                expectTypeOf(views).toExtend<[Uint32Array, Uint32Array]>();
                 expect(buffer).toEqual(expectedSharedBuffer);
                 expect(views).toEqual(expectedSharedViews);
             }
@@ -216,22 +216,22 @@ describe('Wgsl.array(Wgsl.type, number)', () => {
 
             {
                 const { buffer, views } = type.create();
-                expectTypeOf(buffer).toMatchTypeOf<ArrayBuffer>();
-                expectTypeOf(views).toMatchTypeOf<[Float32Array, Float32Array]>();
+                expectTypeOf(buffer).toExtend<ArrayBuffer>();
+                expectTypeOf(views).toExtend<[Float32Array, Float32Array]>();
                 expect(buffer).toEqual(expectedBuffer);
                 expect(views).toEqual(expectedViews);
             }
             {
                 const { buffer, views } = type.create({ mode: 'array-buffer' });
-                expectTypeOf(buffer).toMatchTypeOf<ArrayBuffer>();
-                expectTypeOf(views).toMatchTypeOf<[Float32Array, Float32Array]>();
+                expectTypeOf(buffer).toExtend<ArrayBuffer>();
+                expectTypeOf(views).toExtend<[Float32Array, Float32Array]>();
                 expect(buffer).toEqual(expectedBuffer);
                 expect(views).toEqual(expectedViews);
             }
             {
                 const { buffer, views } = type.create({ mode: 'shared-array-buffer' });
-                expectTypeOf(buffer).toMatchTypeOf<SharedArrayBuffer>();
-                expectTypeOf(views).toMatchTypeOf<[Float32Array, Float32Array]>();
+                expectTypeOf(buffer).toExtend<SharedArrayBuffer>();
+                expectTypeOf(views).toExtend<[Float32Array, Float32Array]>();
                 expect(buffer).toEqual(expectedSharedBuffer);
                 expect(views).toEqual(expectedSharedViews);
             }

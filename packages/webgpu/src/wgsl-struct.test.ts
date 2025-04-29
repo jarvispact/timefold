@@ -9,7 +9,7 @@ describe('Wgsl.type', () => {
                 two: Wgsl.type('vec2<i32>'),
             }).create({ mode: 'number-tuple' });
 
-            expectTypeOf(views).toMatchTypeOf<{ one: number; two: [number, number] }>();
+            expectTypeOf(views).toMatchObjectType<{ one: number; two: [number, number] }>();
         }
         {
             const { views } = Wgsl.struct('Test', {
@@ -17,7 +17,7 @@ describe('Wgsl.type', () => {
                 two: Wgsl.type('vec3<f32>'),
             }).create({ mode: 'number-tuple' });
 
-            expectTypeOf(views).toMatchTypeOf<{ one: [number, number]; two: [number, number, number] }>();
+            expectTypeOf(views).toMatchObjectType<{ one: [number, number]; two: [number, number, number] }>();
         }
         {
             const { views } = Wgsl.struct('Test', {
@@ -25,7 +25,7 @@ describe('Wgsl.type', () => {
                 two: Wgsl.type('mat2x2<f32>'),
             }).create({ mode: 'number-tuple' });
 
-            expectTypeOf(views).toMatchTypeOf<{
+            expectTypeOf(views).toMatchObjectType<{
                 one: [number, number, number];
                 two: [number, number, number, number];
             }>();
@@ -44,7 +44,7 @@ describe('Wgsl.type', () => {
                 }),
             }).create({ mode: 'number-tuple' });
 
-            expectTypeOf(views).toMatchTypeOf<{
+            expectTypeOf(views).toMatchObjectType<{
                 one: [number, number, number];
                 two: [number, number, number, number];
                 three: {
