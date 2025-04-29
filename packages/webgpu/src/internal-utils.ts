@@ -235,10 +235,6 @@ export type FormatMap = typeof formatMap;
 export type SupportedFormat = keyof FormatMap;
 export type SupportedPositionFormat = 'float32x2' | 'float32x3' | 'float32x4';
 
-export type InterleavedMode = 'interleaved';
-export type NonInterleavedMode = 'non-interleaved';
-export type CreateVertexBufferMode = InterleavedMode | NonInterleavedMode;
-
 // index
 
 export type IndexFormatToTypedArray = {

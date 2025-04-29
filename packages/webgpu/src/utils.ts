@@ -1,10 +1,4 @@
-import {
-    CreateVertexBufferMode,
-    formatMap,
-    GenericTypedArrayConstructor,
-    SupportedFormat,
-    TupleIndices,
-} from './internal-utils';
+import { formatMap, GenericTypedArrayConstructor, SupportedFormat, TupleIndices } from './internal-utils';
 import {
     BindingsForGroup,
     BuffersByBindingKey,
@@ -16,6 +10,7 @@ import {
     CreatePipelineLayoutResult,
     CreateVertexBufferLayoutDefinition,
     CreateVertexBufferLayoutResult,
+    CreateVertexBufferMode,
     GenericBinding,
     InterleavedCreateBuffer,
     UniformGroup,
@@ -169,6 +164,7 @@ export const createVertexBufferLayout = <
             buffer.unmap();
 
             return {
+                mode,
                 // slot is actually the index into the layout (GPUVertexBufferLayout[])
                 // but in our case it always matches the shader location as well
                 slot: locationByName[name.toString()],
@@ -182,6 +178,7 @@ export const createVertexBufferLayout = <
             attribs: { [K in keyof Definition]: InstanceType<GenericTypedArrayConstructor> },
         ) => {
             return {
+                mode,
                 attribs: Object.keys(attribs).reduce(
                     (accum, key: keyof Definition) => {
                         accum[key] = createBuffer(device, key, attribs[key]);
@@ -193,9 +190,11 @@ export const createVertexBufferLayout = <
         };
 
         return {
+            mode,
             layout,
             wgsl,
-            createBuffer,
+            // TODO: Do we still need this?
+            // createBuffer,
             createBuffers,
         } as unknown as CreateVertexBufferLayoutResult<Mode, Definition>;
     }
@@ -237,6 +236,7 @@ export const createVertexBufferLayout = <
         buffer.unmap();
 
         return {
+            mode,
             slot: 0,
             buffer,
             count: data.length / totalStride,
@@ -244,6 +244,7 @@ export const createVertexBufferLayout = <
     };
 
     return {
+        mode,
         layout,
         wgsl,
         createBuffer,

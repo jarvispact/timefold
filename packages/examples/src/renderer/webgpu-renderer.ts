@@ -1,4 +1,4 @@
-import { GenericVertexBufferResult, RenderPassDescriptor } from '@timefold/webgpu';
+import { GenericVertexBufferResult, RenderPassDescriptor, CreateVertexBufferMode } from '@timefold/webgpu';
 import { CreateRenderPipelineArgs } from './render-pipeline';
 
 // ========================================
@@ -30,6 +30,7 @@ type MaterialTemplate<
 };
 
 type PrimitiveTemplate = {
+    mode: CreateVertexBufferMode;
     topology: GPUPrimitiveTopology;
     cullMode: GPUCullMode;
     layout: GPUVertexBufferLayout[];
@@ -51,6 +52,7 @@ export const defineMaterialTemplate = <
 type DefinePrimitiveTemplateArgs = {
     topology?: GPUPrimitiveTopology;
     cullMode?: GPUCullMode;
+    mode: CreateVertexBufferMode;
     layout: GPUVertexBufferLayout[];
 };
 
@@ -58,6 +60,7 @@ export const definePrimitiveTemplate = (args: DefinePrimitiveTemplateArgs): Prim
     return {
         topology: args.topology ?? 'triangle-list',
         cullMode: args.cullMode ?? 'back',
+        mode: args.mode,
         layout: args.layout,
     };
 };
@@ -190,6 +193,13 @@ export const createRenderer = <
 
         for (const meshPart of meshArray) {
             const materialTemplate = args.materialTemplates[meshPart.material.template];
+            const primitiveTemplate = args.primitiveTemplates[meshPart.primitive.template];
+
+            if (primitiveTemplate.mode !== meshPart.primitive.vertex.mode) {
+                throw new Error(
+                    `The primitive template: "${meshPart.primitive.template.toString()}" defines mode: "${primitiveTemplate.mode}" but the vertex of this mesh defines mode: "${meshPart.primitive.vertex.mode}".`,
+                );
+            }
 
             const pipelineId = `${meshPart.material.template.toString()}-${meshPart.primitive.template.toString()}`;
             const pipelineIdx = renderTree.pipelineIdToIdx[pipelineId];
