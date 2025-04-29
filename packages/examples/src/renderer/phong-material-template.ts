@@ -1,14 +1,10 @@
-import { PhongEntityUniformGroup, SceneStruct, SceneUniformGroup } from '@timefold/engine';
-import { Mat4x4, MathUtils, Vec3 } from '@timefold/math';
-import { InterleavedInfo, InterleavedObjPrimitiveIndexed } from '@timefold/obj';
+import { PhongEntityUniformGroup, SceneUniformGroup } from '@timefold/engine';
 import { Uniform, WebgpuUtils } from '@timefold/webgpu';
 import { defineMaterialTemplate } from './webgpu-renderer';
 
 type Args = {
     device: GPUDevice;
-    renderTexture: GPUTexture;
-    info: InterleavedInfo;
-    planePrimitive: InterleavedObjPrimitiveIndexed<Float32Array, Uint32Array>;
+    sceneUniforms: { scene: ArrayBufferLike };
     vertexWgsl: string;
 };
 
@@ -49,29 +45,14 @@ export const createPhongMaterialTemplate = (args: Args) => {
 
     const module = args.device.createShaderModule({ code: phongShaderCode });
 
-    const frameBindGroups = PipelineLayout.createBindGroups(0, {
+    const sceneBindGroups = PipelineLayout.createBindGroups(0, {
         scene: WebgpuUtils.createBufferDescriptor(),
     });
 
-    const scene = SceneStruct.create();
-
-    Vec3.copy(scene.views.dir_lights[0].direction, Vec3.normalize([2, 3, 5]));
-    Vec3.copy(scene.views.dir_lights[0].color, [1, 1, 1]);
-
-    const view = Mat4x4.createLookAt([2, 5, 10], Vec3.zero(), Vec3.up());
-    const proj = Mat4x4.createPerspective(
-        MathUtils.degreesToRadians(65),
-        args.renderTexture.width / args.renderTexture.height,
-        0,
-    );
-    Mat4x4.multiplication(scene.views.camera.view_projection_matrix, proj, view);
-
     return defineMaterialTemplate({
         layout: PipelineLayout.layout,
-        frameBindGroups,
-        frameUniforms: {
-            scene: scene.buffer,
-        },
+        sceneBindGroups,
+        sceneUniforms: args.sceneUniforms,
         module,
         createEntityBindGroups: () =>
             PipelineLayout.createBindGroups(1, {

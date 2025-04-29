@@ -1,43 +1,29 @@
-import { CameraStruct, UnlitEntityStruct } from '@timefold/engine';
-import { Mat4x4, MathUtils, Vec3 } from '@timefold/math';
-import { InterleavedInfo, InterleavedObjPrimitiveIndexed } from '@timefold/obj';
+import { CameraUniformGroup, UnlitEntityStruct } from '@timefold/engine';
 import { Uniform, WebgpuUtils } from '@timefold/webgpu';
 import { defineMaterialTemplate } from './webgpu-renderer';
 
 type Args = {
     device: GPUDevice;
-    renderTexture: GPUTexture;
-    info: InterleavedInfo;
-    planePrimitive: InterleavedObjPrimitiveIndexed<Float32Array, Uint32Array>;
+    sceneUniforms: { camera: ArrayBufferLike };
     vertexWgsl: string;
 };
 
 export const createUnlitMaterialTemplate = (args: Args) => {
-    const FrameUniformGroup = Uniform.group(0, { camera: Uniform.buffer(0, CameraStruct) });
     const UnlitEntityUniformGroup = Uniform.group(1, { entity: Uniform.buffer(0, UnlitEntityStruct) });
 
     const PipelineLayout = WebgpuUtils.createPipelineLayout({
         device: args.device,
-        uniformGroups: [FrameUniformGroup, UnlitEntityUniformGroup],
+        uniformGroups: [CameraUniformGroup, UnlitEntityUniformGroup],
     });
 
-    const frameBindGroups = PipelineLayout.createBindGroups(0, {
+    const sceneBindGroups = PipelineLayout.createBindGroups(0, {
         camera: WebgpuUtils.createBufferDescriptor(),
     });
-
-    const camera = CameraStruct.create();
-    const view = Mat4x4.createLookAt([2, 5, 10], Vec3.zero(), Vec3.up());
-    const proj = Mat4x4.createPerspective(
-        MathUtils.degreesToRadians(65),
-        args.renderTexture.width / args.renderTexture.height,
-        0,
-    );
-    Mat4x4.multiplication(camera.views.view_projection_matrix, proj, view);
 
     const code = /* wgsl */ `
         ${args.vertexWgsl}
 
-        ${Uniform.getWgslFromGroups([FrameUniformGroup, UnlitEntityUniformGroup])}
+        ${Uniform.getWgslFromGroups([CameraUniformGroup, UnlitEntityUniformGroup])}
 
         @vertex fn vs(vert: Vertex) -> @builtin(position) vec4f {
             return camera.view_projection_matrix * entity.transform.model_matrix * vec4f(vert.position, 1.0);
@@ -50,10 +36,8 @@ export const createUnlitMaterialTemplate = (args: Args) => {
 
     return defineMaterialTemplate({
         layout: PipelineLayout.layout,
-        frameBindGroups,
-        frameUniforms: {
-            camera: camera.buffer,
-        },
+        sceneBindGroups,
+        sceneUniforms: args.sceneUniforms,
         module: args.device.createShaderModule({ code }),
         createEntityBindGroups: () =>
             PipelineLayout.createBindGroups(1, {

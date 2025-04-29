@@ -1,1 +1,1 @@
-import './main6';
+import './main2';

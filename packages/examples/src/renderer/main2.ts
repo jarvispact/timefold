@@ -1,163 +1,124 @@
-import { Mat4x4, MathUtils, Vec3 } from '@timefold/math';
-import { createRenderer } from './renderer2';
 import { ObjLoader } from '@timefold/obj';
-import { Uniform, WebgpuUtils, Wgsl } from '@timefold/webgpu';
-
-const dpr = window.devicePixelRatio || 1;
-const canvas = document.getElementById('canvas') as HTMLCanvasElement;
-canvas.width = canvas.clientWidth * dpr;
-canvas.height = canvas.clientHeight * dpr;
-
-const SceneStruct = Wgsl.struct('Scene', {
-    view_projection_matrix: Wgsl.type('mat4x4<f32>'),
-});
-
-const EntityStruct = Wgsl.struct('Entity', {
-    model_matrix: Wgsl.type('mat4x4<f32>'),
-    color: Wgsl.type('vec3<f32>'),
-});
-
-const SceneUniformGroup = Uniform.group(0, { scene: Uniform.buffer(0, SceneStruct) });
-const EntityUniformGroup = Uniform.group(1, { entity: Uniform.buffer(0, EntityStruct) });
-
-const Vertex = WebgpuUtils.createVertexBufferLayout('non-interleaved', {
-    position: { format: 'float32x3' },
-});
-
-const shaderCode = /* wgsl */ `
-${Vertex.wgsl}
-
-${Uniform.getWgslFromGroups([SceneUniformGroup, EntityUniformGroup])}
-
-@vertex fn vs(vert: Vertex) -> @builtin(position) vec4f {
-    return scene.view_projection_matrix * entity.model_matrix * vec4f(vert.position, 1.0);
-}
-
-@fragment fn fs() -> @location(0) vec4f {
-    return vec4f(entity.color, 1.0);
-}
-`.trim();
+import { RenderPassDescriptor, WebgpuUtils } from '@timefold/webgpu';
+import { createPhongMaterialTemplate } from './phong-material-template';
+import { createUnlitMaterialTemplate } from './unlit-material-template';
+import { createRenderer, definePrimitiveTemplate } from './webgpu-renderer';
+import { CameraStruct, PhongEntityStruct, SceneStruct, UnlitEntityStruct } from '@timefold/engine';
+import { Mat4x4, MathUtils, Vec3 } from '@timefold/math';
 
 const main = async () => {
-    const interleavedTypedArrayLoader = ObjLoader.createLoader({ mode: 'interleaved-typed-array' });
-    const interleavedTypedArrayIndexedLoader = ObjLoader.createLoader({ mode: 'interleaved-typed-array-indexed' });
-    const nonInterleavedTypedArrayLoader = ObjLoader.createLoader({ mode: 'non-interleaved-typed-array' });
-    const nonInterleavedTypedArrayIndexedLoader = ObjLoader.createLoader({
-        mode: 'non-interleaved-typed-array-indexed',
+    // =========================
+    // Load and prepare Geometry
+
+    const { info, objects } = await ObjLoader.load('./webgpu-plane.obj');
+    const planePrimitive = objects.Plane.primitives.default;
+
+    // ================================
+    // Setup canvas and webgpu
+
+    const dpr = window.devicePixelRatio || 1;
+    const canvas = document.getElementById('canvas') as HTMLCanvasElement;
+    canvas.width = canvas.clientWidth * dpr;
+    canvas.height = canvas.clientHeight * dpr;
+
+    const { device, context, format } = await WebgpuUtils.createDeviceAndContext({ canvas });
+
+    const renderPassDescriptor: RenderPassDescriptor = {
+        colorAttachments: [WebgpuUtils.createColorAttachmentFromView(context.getCurrentTexture().createView())],
+    };
+
+    // ====================
+    // Define vertex
+
+    const Vertex = WebgpuUtils.createVertexBufferLayout('interleaved', {
+        position: { format: 'float32x3', offset: info.positionOffset },
+        uv: { format: 'float32x2', offset: info.uvOffset },
+        normal: { format: 'float32x3', offset: info.normalOffset },
     });
 
-    const objResults = await Promise.all([
-        interleavedTypedArrayLoader.load('./webgpu-plane-pos-only.obj'),
-        interleavedTypedArrayIndexedLoader.load('./webgpu-plane-pos-only.obj'),
-        nonInterleavedTypedArrayLoader.load('./webgpu-plane-pos-only.obj'),
-        nonInterleavedTypedArrayIndexedLoader.load('./webgpu-plane-pos-only.obj'),
-    ]);
+    // ====================
+    // scene uniforms
 
-    const renderer = await createRenderer({
+    const scene = SceneStruct.create();
+    const camera = CameraStruct.create();
+
+    Vec3.copy(scene.views.dir_lights[0].direction, Vec3.normalize([2, 3, 5]));
+    Vec3.copy(scene.views.dir_lights[0].color, [1, 1, 1]);
+
+    const view = Mat4x4.createLookAt([2, 5, 10], Vec3.zero(), Vec3.up());
+    const proj = Mat4x4.createPerspective(MathUtils.degreesToRadians(65), canvas.width / canvas.height, 0);
+    Mat4x4.multiplication(camera.views.view_projection_matrix, proj, view);
+    Mat4x4.multiplication(scene.views.camera.view_projection_matrix, proj, view);
+
+    // ===================
+    // renderer
+
+    const renderer = createRenderer({
         canvas,
-        materials: {
-            unlit: ({ device }) => {
-                const module = device.createShaderModule({ code: shaderCode });
+        device,
+        context,
+        format,
+        renderPassDescriptor,
+        materialTemplates: {
+            unlit: createUnlitMaterialTemplate({
+                device,
+                sceneUniforms: { camera: camera.buffer },
+                vertexWgsl: Vertex.wgsl,
+            }),
+            phong: createPhongMaterialTemplate({
+                device,
+                sceneUniforms: { scene: scene.buffer },
+                vertexWgsl: Vertex.wgsl,
+            }),
+        },
+        primitiveTemplates: {
+            default: definePrimitiveTemplate(Vertex),
+        },
+    });
 
-                const PipelineLayout = WebgpuUtils.createPipelineLayout({
-                    device,
-                    uniformGroups: [SceneUniformGroup, EntityUniformGroup],
-                });
+    // ====================
+    // entities
 
-                const Scene = PipelineLayout.createBindGroups(0, {
-                    scene: WebgpuUtils.createBufferDescriptor(),
-                });
+    const unlitEntity = UnlitEntityStruct.create();
+    Mat4x4.fromTranslation(unlitEntity.views.transform.model_matrix, [-2, 0, 0]);
+    Vec3.copy(unlitEntity.views.material.color, [1, 0, 0]);
 
-                const sceneData = SceneStruct.create();
-
-                const view = Mat4x4.createLookAt([0, 5, 10], Vec3.zero(), Vec3.up());
-                const proj = Mat4x4.createPerspective(MathUtils.degreesToRadians(65), canvas.width / canvas.height, 0);
-                Mat4x4.multiplication(sceneData.views.view_projection_matrix, proj, view);
-
-                return {
-                    module,
-                    layout: PipelineLayout.layout,
-                    bufferLayout: Vertex.layout,
-                    sceneBindgroup: Scene.bindGroup,
-                    sceneBuffer: Scene.buffers.scene,
-                    sceneUniforms: sceneData.buffer,
-                    createEntityBindGroupAndBuffer: () => {
-                        const Entity = PipelineLayout.createBindGroups(1, {
-                            entity: WebgpuUtils.createBufferDescriptor(),
-                        });
-
-                        return {
-                            bindgroup: Entity.bindGroup,
-                            buffer: Entity.buffers.entity,
-                        };
-                    },
-                };
+    renderer.addEntity({
+        id: 'unlit',
+        mesh: {
+            material: { template: 'unlit', uniforms: { entity: unlitEntity.buffer } },
+            primitive: {
+                template: 'default',
+                vertex: Vertex.createBuffer(device, planePrimitive.vertices),
+                index: WebgpuUtils.createIndexBuffer(device, { format: 'uint32', data: planePrimitive.indices }),
             },
         },
-        primitives: {},
     });
 
-    renderer.registerPrimitive('unlit', 'test0', {
-        type: 'interleaved',
-        vertices: objResults[0].objects.Plane.primitives.default.vertices,
+    const phongEntity = PhongEntityStruct.create();
+    Mat4x4.fromTranslation(phongEntity.views.transform.model_matrix, [2, 0, 0]);
+    Mat4x4.modelToNormal(phongEntity.views.transform.normal_matrix, phongEntity.views.transform.model_matrix);
+    Vec3.copy(phongEntity.views.material.diffuse_color, [1, 0, 0]);
+
+    renderer.addEntity({
+        id: 'phong',
+        mesh: {
+            material: { template: 'phong', uniforms: { entity: phongEntity.buffer } },
+            primitive: {
+                template: 'default',
+                vertex: Vertex.createBuffer(device, planePrimitive.vertices),
+                index: WebgpuUtils.createIndexBuffer(device, { format: 'uint32', data: planePrimitive.indices }),
+            },
+        },
     });
 
-    renderer.registerPrimitive('unlit', 'test1', {
-        type: 'interleaved',
-        vertices: objResults[1].objects.Plane.primitives.default.vertices,
-        indices: objResults[1].objects.Plane.primitives.default.indices,
-    });
+    const tick = () => {
+        renderPassDescriptor.colorAttachments[0].view = context.getCurrentTexture().createView();
+        renderer.render();
+        window.requestAnimationFrame(tick);
+    };
 
-    renderer.registerPrimitive('unlit', 'test2', {
-        type: 'non-interleaved',
-        position: objResults[2].objects.Plane.primitives.default.positions,
-        attributes: {},
-    });
-
-    renderer.registerPrimitive('unlit', 'test3', {
-        type: 'non-interleaved',
-        position: objResults[3].objects.Plane.primitives.default.positions,
-        indices: objResults[3].objects.Plane.primitives.default.indices,
-        attributes: {},
-    });
-
-    const entity0 = EntityStruct.create();
-    const entity1 = EntityStruct.create();
-    const entity2 = EntityStruct.create();
-    const entity3 = EntityStruct.create();
-
-    // Uses the same primitive but with different uniforms
-    // Could be instances as well.
-    const entity4 = EntityStruct.create();
-
-    Mat4x4.fromTranslation(entity0.views.model_matrix, [-1, 0, -1]);
-    Vec3.copy(entity0.views.color, [1, 0, 0]);
-
-    Mat4x4.fromTranslation(entity1.views.model_matrix, [1, 0, -1]);
-    Vec3.copy(entity1.views.color, [0, 1, 0]);
-
-    Mat4x4.fromTranslation(entity2.views.model_matrix, [-1, 0, 1]);
-    Vec3.copy(entity2.views.color, [0, 0, 1]);
-
-    Mat4x4.fromTranslation(entity3.views.model_matrix, [1, 0, 1]);
-    Vec3.copy(entity3.views.color, [1, 1, 0]);
-
-    Mat4x4.fromTranslation(entity4.views.model_matrix, [1, 0, 3]);
-    Vec3.copy(entity4.views.color, [0, 1, 1]);
-
-    renderer.addEntity('unlit', 'test0', entity0.buffer);
-    renderer.addEntity('unlit', 'test1', entity1.buffer);
-    renderer.addEntity('unlit', 'test2', entity2.buffer);
-    renderer.addEntity('unlit', 'test3', entity3.buffer);
-    renderer.addEntity('unlit', 'test3', entity4.buffer);
-
-    // const tick = () => {
-    //     renderer.render();
-    //     requestAnimationFrame(tick);
-    // };
-
-    // requestAnimationFrame(tick);
-    renderer.render();
+    window.requestAnimationFrame(tick);
 };
 
 void main();

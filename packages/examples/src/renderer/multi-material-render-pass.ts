@@ -1,5 +1,5 @@
-import { PhongEntityStruct, UnlitEntityStruct } from '@timefold/engine';
-import { Mat4x4, Vec3 } from '@timefold/math';
+import { CameraStruct, PhongEntityStruct, SceneStruct, UnlitEntityStruct } from '@timefold/engine';
+import { Mat4x4, MathUtils, Vec3 } from '@timefold/math';
 import { InterleavedInfo, InterleavedObjPrimitiveIndexed } from '@timefold/obj';
 import { RenderPassDescriptor, WebgpuUtils } from '@timefold/webgpu';
 import { createPhongMaterialTemplate } from './phong-material-template';
@@ -38,22 +38,29 @@ export const MultiMaterialRenderPass = defineRenderPass({
             normal: { format: 'float32x3', offset: info.normalOffset },
         });
 
+        const scene = SceneStruct.create();
+        const camera = CameraStruct.create();
+
+        Vec3.copy(scene.views.dir_lights[0].direction, Vec3.normalize([2, 3, 5]));
+        Vec3.copy(scene.views.dir_lights[0].color, [1, 1, 1]);
+
+        const view = Mat4x4.createLookAt([2, 5, 10], Vec3.zero(), Vec3.up());
+        const proj = Mat4x4.createPerspective(MathUtils.degreesToRadians(65), canvas.width / canvas.height, 0);
+        Mat4x4.multiplication(camera.views.view_projection_matrix, proj, view);
+        Mat4x4.multiplication(scene.views.camera.view_projection_matrix, proj, view);
+
         const renderer = createRenderer({
             ...ctx.args,
             renderPassDescriptor,
             materialTemplates: {
                 unlit: createUnlitMaterialTemplate({
                     device,
-                    info,
-                    planePrimitive,
-                    renderTexture,
+                    sceneUniforms: { camera: camera.buffer },
                     vertexWgsl: Vertex.wgsl,
                 }),
                 phong: createPhongMaterialTemplate({
                     device,
-                    info,
-                    planePrimitive,
-                    renderTexture,
+                    sceneUniforms: { scene: scene.buffer },
                     vertexWgsl: Vertex.wgsl,
                 }),
             },
