@@ -4,17 +4,23 @@ import { CreateRenderPipelineArgs } from './render-pipeline';
 // ========================================
 // MaterialTemplates and PrimitiveTemplates
 
+type MaterialTemplateBindGroup = {
+    group: number;
+    bindGroup: GPUBindGroup;
+    buffers: Record<string, GPUBuffer>;
+};
+
 type MaterialTemplate<
-    FrameBuffers extends Record<string, GPUBuffer>,
+    BindGroups extends Record<string, MaterialTemplateBindGroup>,
     EntityBuffers extends Record<string, GPUBuffer>,
 > = {
     layout: GPUPipelineLayout;
-    sceneBindGroups: {
-        group: number;
-        bindGroup: GPUBindGroup;
-        buffers: FrameBuffers;
+    bindGroups: BindGroups;
+    uniforms: {
+        [GroupKey in keyof BindGroups]: {
+            [BindingKey in keyof BindGroups[GroupKey]['buffers']]: ArrayBufferLike;
+        };
     };
-    sceneUniforms: { [K in keyof FrameBuffers]: ArrayBufferLike };
     module: GPUShaderModule;
     createEntityBindGroups: () => {
         group: number;
@@ -29,14 +35,17 @@ type PrimitiveTemplate = {
     layout: GPUVertexBufferLayout[];
 };
 
-type GenericMaterialTemplates = Record<string, MaterialTemplate<Record<string, GPUBuffer>, Record<string, GPUBuffer>>>;
+type GenericMaterialTemplates = Record<
+    string,
+    MaterialTemplate<Record<string, MaterialTemplateBindGroup>, Record<string, GPUBuffer>>
+>;
 type GenericPrimitiveTemplates = Record<string, PrimitiveTemplate>;
 
 export const defineMaterialTemplate = <
-    FrameBuffers extends Record<string, GPUBuffer>,
+    BindGroups extends Record<string, MaterialTemplateBindGroup>,
     EntityBuffers extends Record<string, GPUBuffer>,
 >(
-    args: MaterialTemplate<FrameBuffers, EntityBuffers>,
+    args: MaterialTemplate<BindGroups, EntityBuffers>,
 ) => args;
 
 type DefinePrimitiveTemplateArgs = {
@@ -108,14 +117,16 @@ type RenderEntity = {
     };
 };
 
+type RenderPipelineBindGroup = {
+    group: number;
+    bindGroup: GPUBindGroup;
+    uniforms: { buffer: GPUBuffer; data: ArrayBufferLike }[];
+};
+
 type RenderTree = {
     pipelines: {
         pipeline: GPURenderPipeline;
-        scene: {
-            group: number;
-            bindGroup: GPUBindGroup;
-            uniforms: { buffer: GPUBuffer; data: ArrayBufferLike }[];
-        };
+        bindGroups: RenderPipelineBindGroup[];
         entities: RenderEntity[];
     }[];
     pipelineIdToIdx: Record<string, number | undefined>;
@@ -156,14 +167,17 @@ export const createRenderer = <
 
             renderTree.pipelines.push({
                 pipeline,
-                scene: {
-                    group: materialTemplate.sceneBindGroups.group,
-                    bindGroup: materialTemplate.sceneBindGroups.bindGroup,
-                    uniforms: Object.keys(materialTemplate.sceneBindGroups.buffers).map((bufferKey) => ({
-                        buffer: materialTemplate.sceneBindGroups.buffers[bufferKey],
-                        data: materialTemplate.sceneUniforms[bufferKey],
-                    })),
-                },
+                bindGroups: Object.keys(materialTemplate.bindGroups).map((groupKey) => {
+                    const bindGroup = materialTemplate.bindGroups[groupKey];
+                    return {
+                        group: bindGroup.group,
+                        bindGroup: bindGroup.bindGroup,
+                        uniforms: Object.keys(bindGroup.buffers).map((bindingKey) => ({
+                            buffer: bindGroup.buffers[bindingKey],
+                            data: materialTemplate.uniforms[groupKey][bindingKey],
+                        })),
+                    };
+                }),
                 entities: [],
             });
             const pipelineId = `${materialTemplateKey}-${primitiveTemplateKey}`;
@@ -223,9 +237,11 @@ export const createRenderer = <
         for (const pipeline of renderTree.pipelines) {
             pass.setPipeline(pipeline.pipeline);
 
-            pass.setBindGroup(pipeline.scene.group, pipeline.scene.bindGroup);
-            for (const uniform of pipeline.scene.uniforms) {
-                args.device.queue.writeBuffer(uniform.buffer, 0, uniform.data);
+            for (const bindGroup of pipeline.bindGroups) {
+                pass.setBindGroup(bindGroup.group, bindGroup.bindGroup);
+                for (const uniform of bindGroup.uniforms) {
+                    args.device.queue.writeBuffer(uniform.buffer, 0, uniform.data);
+                }
             }
 
             for (const entity of pipeline.entities) {

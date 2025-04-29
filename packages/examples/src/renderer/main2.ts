@@ -1,9 +1,9 @@
 import { ObjLoader } from '@timefold/obj';
 import { RenderPassDescriptor, WebgpuUtils } from '@timefold/webgpu';
-import { createPhongMaterialTemplate } from './phong-material-template';
-import { createUnlitMaterialTemplate } from './unlit-material-template';
+import { definePhongMaterialTemplate } from './phong-material-template';
+import { defineUnlitMaterialTemplate } from './unlit-material-template';
 import { createRenderer, definePrimitiveTemplate } from './webgpu-renderer';
-import { CameraStruct, PhongEntityStruct, SceneStruct, UnlitEntityStruct } from '@timefold/engine';
+import { CameraStruct, DirLightStructArray, PhongEntityStruct, UnlitEntityStruct } from '@timefold/engine';
 import { Mat4x4, MathUtils, Vec3 } from '@timefold/math';
 
 const main = async () => {
@@ -39,16 +39,15 @@ const main = async () => {
     // ====================
     // scene uniforms
 
-    const scene = SceneStruct.create();
+    const lights = DirLightStructArray.create();
     const camera = CameraStruct.create();
 
-    Vec3.copy(scene.views.dir_lights[0].direction, Vec3.normalize([2, 3, 5]));
-    Vec3.copy(scene.views.dir_lights[0].color, [1, 1, 1]);
+    Vec3.copy(lights.views[0].direction, Vec3.normalize([2, 3, 5]));
+    Vec3.copy(lights.views[0].color, [1, 1, 1]);
 
     const view = Mat4x4.createLookAt([2, 5, 10], Vec3.zero(), Vec3.up());
     const proj = Mat4x4.createPerspective(MathUtils.degreesToRadians(65), canvas.width / canvas.height, 0);
     Mat4x4.multiplication(camera.views.view_projection_matrix, proj, view);
-    Mat4x4.multiplication(scene.views.camera.view_projection_matrix, proj, view);
 
     // ===================
     // renderer
@@ -60,14 +59,14 @@ const main = async () => {
         format,
         renderPassDescriptor,
         materialTemplates: {
-            unlit: createUnlitMaterialTemplate({
+            unlit: defineUnlitMaterialTemplate({
                 device,
-                sceneUniforms: { camera: camera.buffer },
+                uniforms: { camera: camera.buffer },
                 vertexWgsl: Vertex.wgsl,
             }),
-            phong: createPhongMaterialTemplate({
+            phong: definePhongMaterialTemplate({
                 device,
-                sceneUniforms: { scene: scene.buffer },
+                uniforms: { lights: lights.buffer, camera: camera.buffer },
                 vertexWgsl: Vertex.wgsl,
             }),
         },

@@ -122,9 +122,15 @@ export const getWgslFromGroups = (groups: UniformGroup<number, Record<string, Ge
 
         for (const binding of bindingValues) {
             if (binding.type !== 'buffer') continue;
-            if (!isStruct(binding.uniformType)) continue;
-            resolveUniqueStructs(structsByName, binding.uniformType.definition);
-            structsByName[binding.uniformType.wgsl.type] = binding.uniformType.wgsl.declaration;
+            if (isStruct(binding.uniformType)) {
+                resolveUniqueStructs(structsByName, binding.uniformType.definition);
+                structsByName[binding.uniformType.wgsl.type] = binding.uniformType.wgsl.declaration;
+            } else if (isArray(binding.uniformType)) {
+                if (isStruct(binding.uniformType.element)) {
+                    resolveUniqueStructs(structsByName, binding.uniformType.element.definition);
+                    structsByName[binding.uniformType.element.wgsl.type] = binding.uniformType.element.wgsl.declaration;
+                }
+            }
         }
     }
 

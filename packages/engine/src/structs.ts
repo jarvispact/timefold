@@ -1,4 +1,4 @@
-import { Uniform, Wgsl } from '@timefold/webgpu';
+import { Wgsl } from '@timefold/webgpu';
 
 // lights
 
@@ -12,6 +12,10 @@ export type DirLightStruct = typeof DirLightStruct;
 
 export const MAX_DIR_LIGHTS = 3;
 
+export const DirLightStructArray = Wgsl.array(DirLightStruct, MAX_DIR_LIGHTS);
+
+export type DirLightStructArray = typeof DirLightStructArray;
+
 // camera
 
 export const CameraStruct = Wgsl.struct('Camera', {
@@ -23,10 +27,6 @@ export const CameraStruct = Wgsl.struct('Camera', {
 
 export type CameraStruct = typeof CameraStruct;
 
-export const CameraUniformGroup = Uniform.group(0, {
-    camera: Uniform.buffer(0, CameraStruct),
-});
-
 // scene
 
 export const SceneStruct = Wgsl.struct('Scene', {
@@ -35,10 +35,6 @@ export const SceneStruct = Wgsl.struct('Scene', {
 });
 
 export type SceneStruct = typeof SceneStruct;
-
-export const SceneUniformGroup = Uniform.group(0, {
-    scene: Uniform.buffer(0, SceneStruct),
-});
 
 // transform
 
@@ -66,12 +62,6 @@ export const UnlitEntityStruct = Wgsl.struct('Entity', {
 
 export type UnlitEntityStruct = typeof UnlitEntityStruct;
 
-export const UnlitEntityUniformGroup = Uniform.group(1, {
-    entity: Uniform.buffer(0, UnlitEntityStruct),
-    color_sampler: Uniform.sampler(1),
-    color_texture: Uniform.texture(2),
-});
-
 // phong
 
 export const PhongMaterialStruct = Wgsl.struct('PhongMaterial', {
@@ -88,7 +78,3 @@ export const PhongEntityStruct = Wgsl.struct('Entity', {
 });
 
 export type PhongEntityStruct = typeof PhongEntityStruct;
-
-export const PhongEntityUniformGroup = Uniform.group(1, {
-    entity: Uniform.buffer(0, PhongEntityStruct),
-});
