@@ -43,9 +43,7 @@ export const createAndLookAt = ({ translation, target, up = Vec3.up() }: CreateA
     Mat4x4.targetTo(modelMatrix, translation, target, up);
     Mat4x4.extractRotation(rotation, modelMatrix);
 
-    const normalMatrix = Mat4x4.create();
-    Mat4x4.transpose(normalMatrix, modelMatrix);
-    Mat4x4.inverted(normalMatrix);
+    const normalMatrix = Mat4x4.createNormalFromModel(modelMatrix);
 
     return createComponent(type, {
         translation,

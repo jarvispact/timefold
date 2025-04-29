@@ -8,11 +8,6 @@ export const objectKeys = <Obj extends Record<string, unknown>>(obj: Obj) => Obj
 export const isPromise = (value: unknown): value is Promise<unknown> =>
     !!value && typeof value === 'object' && 'then' in value && typeof value.then === 'function';
 
-export const arrayOfAll =
-    <T>() =>
-    <U extends T[]>(array: U & ([T] extends [U[number]] ? unknown : 'Invalid')) =>
-        array;
-
 export type ComponentsByType = Record<Component['type'], Component | undefined>;
 
 export type Subscriber = (event: GenericEcsEvent) => void;

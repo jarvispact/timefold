@@ -97,7 +97,7 @@ describe('world', () => {
             const world = createWorld<WorldComponent>();
 
             const query = world.createQuery({ query: { includeId: true, tuple: [] } });
-            expectTypeOf(query).toMatchTypeOf<[string][]>();
+            expectTypeOf(query).toExtend<[string][]>();
             expect(query).toEqual([]);
 
             const a = createComponent('A', 'a');
@@ -133,7 +133,7 @@ describe('world', () => {
                 },
             });
 
-            expectTypeOf(query).toMatchTypeOf<[string, A, C][]>();
+            expectTypeOf(query).toExtend<[string, A, C][]>();
             expect(query).toEqual([]);
 
             const a = createComponent('A', 'a');
@@ -170,7 +170,7 @@ describe('world', () => {
                 query: { tuple: [{ has: 'A' }, { has: 'C' }] },
             });
 
-            expectTypeOf(query).toMatchTypeOf<[A, C][]>();
+            expectTypeOf(query).toExtend<[A, C][]>();
             expect(query).toEqual([]);
 
             const a = createComponent('A', 'a');
@@ -208,7 +208,7 @@ describe('world', () => {
                 map: (tuple) => ({ a: tuple[0].data, c: tuple[1].data }),
             });
 
-            expectTypeOf(query).toMatchTypeOf<{ a: string; c: boolean }[]>();
+            expectTypeOf(query).toExtend<{ a: string; c: boolean }[]>();
             expect(query).toEqual([]);
 
             const a = createComponent('A', 'a');
@@ -248,7 +248,7 @@ describe('world', () => {
                 },
             });
 
-            expectTypeOf(query).toMatchTypeOf<[string, A][]>();
+            expectTypeOf(query).toExtend<[string, A][]>();
             expect(query).toEqual([]);
 
             const a = createComponent('A', 'a');
@@ -288,7 +288,7 @@ describe('world', () => {
                 },
             });
 
-            expectTypeOf(query).toMatchTypeOf<[string, A, C | undefined][]>();
+            expectTypeOf(query).toExtend<[string, A, C | undefined][]>();
             expect(query).toEqual([]);
 
             const a = createComponent('A', 'a');
@@ -331,7 +331,7 @@ describe('world', () => {
                 },
             });
 
-            expectTypeOf(query).toMatchTypeOf<[string, A | C][]>();
+            expectTypeOf(query).toExtend<[string, A | C][]>();
             expect(query).toEqual([]);
 
             const a = createComponent('A', 'a');
@@ -379,7 +379,7 @@ describe('world', () => {
                 map: (tuple) => ({ a: tuple[0], c: tuple[1].data }),
             });
 
-            expectTypeOf(query).toMatchTypeOf<{ a: string; c: string | boolean }[]>();
+            expectTypeOf(query).toExtend<{ a: string; c: string | boolean }[]>();
             expect(query).toEqual([]);
 
             const a = createComponent('A', 'a');
@@ -422,7 +422,7 @@ describe('world', () => {
             const world = createWorld<WorldComponent>();
 
             const query = world.createQuery({ query: { includeId: true, tuple: [] } });
-            expectTypeOf(query).toMatchTypeOf<[string][]>();
+            expectTypeOf(query).toExtend<[string][]>();
             expect(query).toEqual([]);
 
             const a = createComponent('A', 'a');
@@ -468,7 +468,7 @@ describe('world', () => {
                 },
             });
 
-            expectTypeOf(query).toMatchTypeOf<[string, A, C][]>();
+            expectTypeOf(query).toExtend<[string, A, C][]>();
             expect(query).toEqual([]);
 
             const a = createComponent('A', 'a');
@@ -535,7 +535,7 @@ describe('world', () => {
                 },
             });
 
-            expectTypeOf(query).toMatchTypeOf<[A, C][]>();
+            expectTypeOf(query).toExtend<[A, C][]>();
             expect(query).toEqual([]);
 
             const a = createComponent('A', 'a');
@@ -599,7 +599,7 @@ describe('world', () => {
             const world = createWorld<WorldComponent>();
 
             const query = world.createQuery({ query: { includeId: true, tuple: [{ has: 'A' }] } });
-            expectTypeOf(query).toMatchTypeOf<[string, A][]>();
+            expectTypeOf(query).toExtend<[string, A][]>();
             expect(query).toEqual([]);
 
             const a = createComponent('A', 'a');
@@ -647,7 +647,7 @@ describe('world', () => {
                 },
             });
 
-            expectTypeOf(query).toMatchTypeOf<[string, A, B][]>();
+            expectTypeOf(query).toExtend<[string, A, B][]>();
             expect(query).toEqual([]);
 
             const a = createComponent('A', 'a');
@@ -695,7 +695,7 @@ describe('world', () => {
                 },
             });
 
-            expectTypeOf(query).toMatchTypeOf<[string, A, B | C, D | undefined][]>();
+            expectTypeOf(query).toExtend<[string, A, B | C, D | undefined][]>();
             expect(query).toEqual([]);
 
             const a = createComponent('A', 'a');

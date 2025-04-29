@@ -33,12 +33,6 @@ const getMapKey = (
     nz: number | undefined,
 ) => `${px}/${py}/${pz}/${nx}/${ny}/${nz}/${u}/${v}`;
 
-// https://github.com/gpuweb/gpuweb/issues/4966
-// const getTypedArrayForIndices = (indices: number[] | Uint32Array) => {
-//     if (indices.length <= 65535) return new Uint16Array(indices);
-//     return new Uint32Array(indices);
-// };
-
 const createInterleavedPrimitive = (name: string): InterleavedObjPrimitive<number[]> => {
     return {
         name: name,
