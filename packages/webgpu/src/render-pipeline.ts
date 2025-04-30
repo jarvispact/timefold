@@ -13,7 +13,7 @@ type RenderFn = () => void;
 type RenderPassFnResult = { render: RenderFn; context?: unknown };
 type RenderPassFn<Context> = (context: Context) => RenderPassFnResult | Promise<RenderPassFnResult>;
 
-type RenderPass<Name extends string, Context> = {
+export type RenderPass<Name extends string, Context> = {
     name: Name;
     fn: RenderPassFn<Context>;
 };
@@ -23,7 +23,7 @@ export const defineRenderPass = <const Pass extends RenderPass<string, any>>(ren
 // ==============================
 // PipelineContext
 
-type InferContextFromRenderPass<Pass extends RenderPass<string, any>> = Record<
+export type InferContextFromRenderPass<Pass extends RenderPass<string, any>> = Record<
     Pass['name'],
     Awaited<ReturnType<Pass['fn']>>['context']
 >;

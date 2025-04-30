@@ -1,6 +1,5 @@
 import { CameraStruct, DirLightStructArray, PhongEntityStruct } from '@timefold/engine';
-import { Uniform, WebgpuUtils } from '@timefold/webgpu';
-import { defineMaterialTemplate } from './webgpu-renderer';
+import { Uniform, WebgpuUtils, defineMaterialTemplate } from '@timefold/webgpu';
 
 type Args = {
     device: GPUDevice;

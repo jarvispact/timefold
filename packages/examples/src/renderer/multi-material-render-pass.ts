@@ -1,11 +1,16 @@
 import { CameraStruct, DirLightStructArray, PhongEntityStruct, UnlitEntityStruct } from '@timefold/engine';
 import { Mat4x4, MathUtils, Vec3 } from '@timefold/math';
 import { InterleavedInfo, InterleavedObjPrimitiveIndexed } from '@timefold/obj';
-import { RenderPassDescriptor, WebgpuUtils } from '@timefold/webgpu';
+import {
+    RenderPassDescriptor,
+    WebgpuUtils,
+    defineRenderPass,
+    RenderPipelineContext,
+    createRenderer,
+    definePrimitiveTemplate,
+} from '@timefold/webgpu';
 import { definePhongMaterialTemplate } from './phong-material-template';
-import { defineRenderPass, RenderPipelineContext } from './render-pipeline';
 import { defineUnlitMaterialTemplate } from './unlit-material-template';
-import { createRenderer, definePrimitiveTemplate } from './webgpu-renderer';
 
 type AdditionalContext = {
     info: InterleavedInfo;

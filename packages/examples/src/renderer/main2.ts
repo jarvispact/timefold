@@ -1,8 +1,7 @@
 import { ObjLoader } from '@timefold/obj';
-import { RenderPassDescriptor, WebgpuUtils } from '@timefold/webgpu';
+import { RenderPassDescriptor, WebgpuUtils, createRenderer, definePrimitiveTemplate } from '@timefold/webgpu';
 import { definePhongMaterialTemplate } from './phong-material-template';
 import { defineUnlitMaterialTemplate } from './unlit-material-template';
-import { createRenderer, definePrimitiveTemplate } from './webgpu-renderer';
 import { CameraStruct, DirLightStructArray, PhongEntityStruct, UnlitEntityStruct } from '@timefold/engine';
 import { Mat4x4, MathUtils, Vec3 } from '@timefold/math';
 

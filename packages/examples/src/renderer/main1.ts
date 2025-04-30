@@ -1,8 +1,7 @@
 import { ObjLoader } from '@timefold/obj';
-import { WebgpuUtils } from '@timefold/webgpu';
+import { WebgpuUtils, createRenderPipeline } from '@timefold/webgpu';
 import { MultiMaterialRenderPass } from './multi-material-render-pass';
 import { PostProcessingRenderPass } from './post-processing-pass';
-import { createRenderPipeline } from './render-pipeline';
 
 const main = async () => {
     // =========================

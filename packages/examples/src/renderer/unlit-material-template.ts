@@ -1,5 +1,4 @@
-import { Uniform, WebgpuUtils } from '@timefold/webgpu';
-import { defineMaterialTemplate } from './webgpu-renderer';
+import { Uniform, WebgpuUtils, defineMaterialTemplate } from '@timefold/webgpu';
 import { CameraStruct, UnlitEntityStruct } from '@timefold/engine';
 
 type Args = {

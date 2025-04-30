@@ -1,6 +1,5 @@
-import { Uniform, WebgpuUtils } from '@timefold/webgpu';
+import { Uniform, WebgpuUtils, defineRenderPass, RenderPipelineContext } from '@timefold/webgpu';
 import { MultiMaterialRenderPass } from './multi-material-render-pass';
-import { defineRenderPass, RenderPipelineContext } from './render-pipeline';
 
 const UniformGroup = Uniform.group(0, {
     color_sampler: Uniform.sampler(0),

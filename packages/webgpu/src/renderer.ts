@@ -1,5 +1,4 @@
-import { GenericVertexBufferResult, RenderPassDescriptor, CreateVertexBufferMode } from '@timefold/webgpu';
-import { CreateRenderPipelineArgs } from './render-pipeline';
+import { CreateVertexBufferMode, GenericVertexBufferResult, RenderPassDescriptor } from './types';
 
 // ========================================
 // MaterialTemplates and PrimitiveTemplates
@@ -10,7 +9,7 @@ type MaterialTemplateBindGroup = {
     buffers: Record<string, GPUBuffer>;
 };
 
-type MaterialTemplate<
+export type MaterialTemplate<
     BindGroups extends Record<string, MaterialTemplateBindGroup>,
     EntityBuffers extends Record<string, GPUBuffer>,
 > = {
@@ -29,7 +28,7 @@ type MaterialTemplate<
     };
 };
 
-type PrimitiveTemplate = {
+export type PrimitiveTemplate = {
     mode: CreateVertexBufferMode;
     topology: GPUPrimitiveTopology;
     cullMode: GPUCullMode;
@@ -72,8 +71,10 @@ export type CreateRendererArgs<
     MaterialTemplates extends GenericMaterialTemplates,
     PrimitiveTemplates extends GenericPrimitiveTemplates,
 > = {
-    [K in keyof CreateRenderPipelineArgs]: CreateRenderPipelineArgs[K];
-} & {
+    canvas: HTMLCanvasElement | OffscreenCanvas;
+    device: GPUDevice;
+    context: GPUCanvasContext;
+    format: GPUTextureFormat;
     renderPassDescriptor: RenderPassDescriptor;
     materialTemplates: MaterialTemplates;
     primitiveTemplates: PrimitiveTemplates;
