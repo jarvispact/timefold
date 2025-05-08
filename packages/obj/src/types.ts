@@ -26,6 +26,7 @@ type GenericIndices = number[] | Uint32Array;
 
 export type InterleavedObjPrimitive<Vertices extends GenericVertices = GenericVertices> = {
     name: string;
+    mode: 'interleaved';
     vertices: Vertices;
 };
 
@@ -38,6 +39,7 @@ export type InterleavedObjPrimitiveIndexed<
 
 export type NonInterleavedObjPrimitive<Vertices extends GenericVertices = GenericVertices> = {
     name: string;
+    mode: 'non-interleaved';
     positions: Vertices;
     uvs: Vertices;
     normals: Vertices;
@@ -50,13 +52,13 @@ export type NonInterleavedObjPrimitiveIndexed<
     indices: Indices;
 };
 
-type GenericPrimitive =
+export type GenericObjPrimitive =
     | InterleavedObjPrimitive
     | InterleavedObjPrimitiveIndexed
     | NonInterleavedObjPrimitive
     | NonInterleavedObjPrimitiveIndexed;
 
-export type ObjObject<Primitive extends GenericPrimitive = GenericPrimitive> = {
+export type ObjObject<Primitive extends GenericObjPrimitive = GenericObjPrimitive> = {
     name: string;
     primitives: Record<string, Primitive>;
 };

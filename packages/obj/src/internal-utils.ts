@@ -36,6 +36,7 @@ const getMapKey = (
 const createInterleavedPrimitive = (name: string): InterleavedObjPrimitive<number[]> => {
     return {
         name: name,
+        mode: 'interleaved',
         vertices: [],
     };
 };
@@ -43,6 +44,7 @@ const createInterleavedPrimitive = (name: string): InterleavedObjPrimitive<numbe
 const createNonInterleavedPrimitive = (name: string): NonInterleavedObjPrimitive<number[]> => {
     return {
         name: name,
+        mode: 'non-interleaved',
         positions: [],
         uvs: [],
         normals: [],
@@ -58,6 +60,7 @@ export const convertInterleavedToTypedArray = <
     : InterleavedObjPrimitive<Float32Array> => {
     return {
         name: primitive.name,
+        mode: 'interleaved',
         vertices: new Float32Array(primitive.vertices),
         ...('indices' in primitive ? { indices: new Uint32Array(primitive.indices) } : {}),
     } as never;
@@ -72,6 +75,7 @@ export const convertNonInterleavedToTypedArray = <
     : NonInterleavedObjPrimitive<Float32Array> => {
     return {
         name: primitive.name,
+        mode: 'non-interleaved',
         positions: new Float32Array(primitive.positions),
         uvs: new Float32Array(primitive.uvs),
         normals: new Float32Array(primitive.normals),
@@ -124,6 +128,7 @@ export const convertInterleavedToIndexed = (
 
     return {
         name: primitive.name,
+        mode: 'interleaved',
         vertices,
         indices,
     };
@@ -169,6 +174,7 @@ export const convertNonInterleavedToIndexed = (
 
     return {
         name: primitive.name,
+        mode: 'non-interleaved',
         positions,
         uvs,
         normals,

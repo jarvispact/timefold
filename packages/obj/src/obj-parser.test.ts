@@ -194,6 +194,7 @@ describe('obj-parser', () => {
                             string,
                             {
                                 name: string;
+                                mode: 'interleaved';
                                 vertices: Float32Array;
                                 indices: Uint32Array;
                             }
@@ -216,6 +217,7 @@ describe('obj-parser', () => {
                             string,
                             {
                                 name: string;
+                                mode: 'interleaved';
                                 vertices: Float32Array;
                                 indices: Uint32Array;
                             }
@@ -238,6 +240,7 @@ describe('obj-parser', () => {
                             string,
                             {
                                 name: string;
+                                mode: 'interleaved';
                                 vertices: Float32Array;
                                 indices: Uint32Array;
                             }
@@ -260,6 +263,7 @@ describe('obj-parser', () => {
                             string,
                             {
                                 name: string;
+                                mode: 'interleaved';
                                 vertices: number[];
                             }
                         >;
@@ -281,6 +285,7 @@ describe('obj-parser', () => {
                             string,
                             {
                                 name: string;
+                                mode: 'interleaved';
                                 vertices: number[];
                                 indices: number[];
                             }
@@ -303,6 +308,7 @@ describe('obj-parser', () => {
                             string,
                             {
                                 name: string;
+                                mode: 'interleaved';
                                 vertices: Float32Array;
                             }
                         >;
@@ -324,6 +330,7 @@ describe('obj-parser', () => {
                             string,
                             {
                                 name: string;
+                                mode: 'interleaved';
                                 vertices: Float32Array;
                                 indices: Uint32Array;
                             }
@@ -346,6 +353,7 @@ describe('obj-parser', () => {
                             string,
                             {
                                 name: string;
+                                mode: 'non-interleaved';
                                 positions: number[];
                                 uvs: number[];
                                 normals: number[];
@@ -369,6 +377,7 @@ describe('obj-parser', () => {
                             string,
                             {
                                 name: string;
+                                mode: 'non-interleaved';
                                 positions: number[];
                                 uvs: number[];
                                 normals: number[];
@@ -393,6 +402,7 @@ describe('obj-parser', () => {
                             string,
                             {
                                 name: string;
+                                mode: 'non-interleaved';
                                 positions: Float32Array;
                                 uvs: Float32Array;
                                 normals: Float32Array;
@@ -416,6 +426,7 @@ describe('obj-parser', () => {
                             string,
                             {
                                 name: string;
+                                mode: 'non-interleaved';
                                 positions: Float32Array;
                                 uvs: Float32Array;
                                 normals: Float32Array;
@@ -435,6 +446,7 @@ describe('obj-parser', () => {
 
             expect(objects.Plane.primitives.default).toEqual({
                 name: 'default',
+                mode: 'interleaved',
                 vertices: [
                     -1, 0, 1, 0, 0, -0, 1, -0, 1, 0, 1, 1, 0, -0, 1, -0, 1, 0, -1, 1, 1, -0, 1, -0, -1, 0, 1, 0, 0, -0,
                     1, -0, 1, 0, -1, 1, 1, -0, 1, -0, -1, 0, -1, 0, 1, -0, 1, -0,
@@ -455,6 +467,7 @@ describe('obj-parser', () => {
 
             expect(objects.Plane.primitives.default).toEqual({
                 name: 'default',
+                mode: 'interleaved',
                 vertices: [
                     -1, 0, 1, 0, 0, 1, 0, 1, 1, 0, 1, 0, -1, 1, 1, -1, 0, 1, 0, 0, 1, 0, -1, 1, 1, -1, 0, -1, 0, 1,
                 ],
@@ -474,6 +487,7 @@ describe('obj-parser', () => {
 
             expect(objects.Plane.primitives.default).toEqual({
                 name: 'default',
+                mode: 'interleaved',
                 vertices: [
                     -1, 0, 1, -0, 1, -0, 1, 0, 1, -0, 1, -0, 1, 0, -1, -0, 1, -0, -1, 0, 1, -0, 1, -0, 1, 0, -1, -0, 1,
                     -0, -1, 0, -1, -0, 1, -0,
@@ -494,6 +508,7 @@ describe('obj-parser', () => {
 
             expect(objects.Plane.primitives.default).toEqual({
                 name: 'default',
+                mode: 'interleaved',
                 vertices: [-1, 0, 1, 1, 0, 1, 1, 0, -1, -1, 0, 1, 1, 0, -1, -1, 0, -1],
             });
 
@@ -513,6 +528,7 @@ describe('obj-parser', () => {
 
             expect(objects.Plane.primitives.default).toEqual({
                 name: 'default',
+                mode: 'interleaved',
                 vertices: new Float32Array([
                     -1, 0, 1, 0, 0, -0, 1, -0, 1, 0, 1, 1, 0, -0, 1, -0, 1, 0, -1, 1, 1, -0, 1, -0, -1, 0, 1, 0, 0, -0,
                     1, -0, 1, 0, -1, 1, 1, -0, 1, -0, -1, 0, -1, 0, 1, -0, 1, -0,
@@ -533,6 +549,7 @@ describe('obj-parser', () => {
 
             expect(objects.Plane.primitives.default).toEqual({
                 name: 'default',
+                mode: 'interleaved',
                 vertices: new Float32Array([
                     -1, 0, 1, 0, 0, 1, 0, 1, 1, 0, 1, 0, -1, 1, 1, -1, 0, 1, 0, 0, 1, 0, -1, 1, 1, -1, 0, -1, 0, 1,
                 ]),
@@ -552,6 +569,7 @@ describe('obj-parser', () => {
 
             expect(objects.Plane.primitives.default).toEqual({
                 name: 'default',
+                mode: 'interleaved',
                 vertices: new Float32Array([
                     -1, 0, 1, -0, 1, -0, 1, 0, 1, -0, 1, -0, 1, 0, -1, -0, 1, -0, -1, 0, 1, -0, 1, -0, 1, 0, -1, -0, 1,
                     -0, -1, 0, -1, -0, 1, -0,
@@ -572,6 +590,7 @@ describe('obj-parser', () => {
 
             expect(objects.Plane.primitives.default).toEqual({
                 name: 'default',
+                mode: 'interleaved',
                 vertices: new Float32Array([-1, 0, 1, 1, 0, 1, 1, 0, -1, -1, 0, 1, 1, 0, -1, -1, 0, -1]),
             });
 
@@ -591,6 +610,7 @@ describe('obj-parser', () => {
 
             expect(objects.Plane.primitives.default).toEqual({
                 name: 'default',
+                mode: 'interleaved',
                 vertices: [
                     -1, 0, 1, 0, 0, -0, 1, -0, 1, 0, 1, 1, 0, -0, 1, -0, 1, 0, -1, 1, 1, -0, 1, -0, -1, 0, 1, 0, 0, -0,
                     1, -0, -1, 0, -1, 0, 1, -0, 1, -0,
@@ -612,6 +632,7 @@ describe('obj-parser', () => {
 
             expect(objects.Plane.primitives.default).toEqual({
                 name: 'default',
+                mode: 'interleaved',
                 vertices: [-1, 0, 1, 0, 0, 1, 0, 1, 1, 0, 1, 0, -1, 1, 1, -1, 0, 1, 0, 0, -1, 0, -1, 0, 1],
                 indices: [0, 1, 2, 3, 2, 4],
             });
@@ -630,6 +651,7 @@ describe('obj-parser', () => {
 
             expect(objects.Plane.primitives.default).toEqual({
                 name: 'default',
+                mode: 'interleaved',
                 vertices: [
                     -1, 0, 1, -0, 1, -0, 1, 0, 1, -0, 1, -0, 1, 0, -1, -0, 1, -0, -1, 0, 1, -0, 1, -0, -1, 0, -1, -0, 1,
                     -0,
@@ -651,6 +673,7 @@ describe('obj-parser', () => {
 
             expect(objects.Plane.primitives.default).toEqual({
                 name: 'default',
+                mode: 'interleaved',
                 vertices: [-1, 0, 1, 1, 0, 1, 1, 0, -1, -1, 0, 1, -1, 0, -1],
                 indices: [0, 1, 2, 3, 2, 4],
             });
@@ -671,6 +694,7 @@ describe('obj-parser', () => {
 
             expect(objects.Plane.primitives.default).toEqual({
                 name: 'default',
+                mode: 'interleaved',
                 vertices: new Float32Array([
                     -1, 0, 1, 0, 0, -0, 1, -0, 1, 0, 1, 1, 0, -0, 1, -0, 1, 0, -1, 1, 1, -0, 1, -0, -1, 0, 1, 0, 0, -0,
                     1, -0, -1, 0, -1, 0, 1, -0, 1, -0,
@@ -692,6 +716,7 @@ describe('obj-parser', () => {
 
             expect(objects.Plane.primitives.default).toEqual({
                 name: 'default',
+                mode: 'interleaved',
                 vertices: new Float32Array([
                     -1, 0, 1, 0, 0, 1, 0, 1, 1, 0, 1, 0, -1, 1, 1, -1, 0, 1, 0, 0, -1, 0, -1, 0, 1,
                 ]),
@@ -712,6 +737,7 @@ describe('obj-parser', () => {
 
             expect(objects.Plane.primitives.default).toEqual({
                 name: 'default',
+                mode: 'interleaved',
                 vertices: new Float32Array([
                     -1, 0, 1, -0, 1, -0, 1, 0, 1, -0, 1, -0, 1, 0, -1, -0, 1, -0, -1, 0, 1, -0, 1, -0, -1, 0, -1, -0, 1,
                     -0,
@@ -733,6 +759,7 @@ describe('obj-parser', () => {
 
             expect(objects.Plane.primitives.default).toEqual({
                 name: 'default',
+                mode: 'interleaved',
                 vertices: new Float32Array([-1, 0, 1, 1, 0, 1, 1, 0, -1, -1, 0, 1, -1, 0, -1]),
                 indices: new Uint32Array([0, 1, 2, 3, 2, 4]),
             });
@@ -753,6 +780,7 @@ describe('obj-parser', () => {
 
             expect(objects.Plane.primitives.default).toEqual({
                 name: 'default',
+                mode: 'non-interleaved',
                 positions: [-1, 0, 1, 1, 0, 1, 1, 0, -1, -1, 0, 1, 1, 0, -1, -1, 0, -1],
                 uvs: [0, 0, 1, 0, 1, 1, 0, 0, 1, 1, 0, 1],
                 normals: [-0, 1, -0, -0, 1, -0, -0, 1, -0, -0, 1, -0, -0, 1, -0, -0, 1, -0],
@@ -765,6 +793,7 @@ describe('obj-parser', () => {
 
             expect(objects.Plane.primitives.default).toEqual({
                 name: 'default',
+                mode: 'non-interleaved',
                 positions: [-1, 0, 1, 1, 0, 1, 1, 0, -1, -1, 0, 1, 1, 0, -1, -1, 0, -1],
                 uvs: [0, 0, 1, 0, 1, 1, 0, 0, 1, 1, 0, 1],
                 normals: [],
@@ -777,6 +806,7 @@ describe('obj-parser', () => {
 
             expect(objects.Plane.primitives.default).toEqual({
                 name: 'default',
+                mode: 'non-interleaved',
                 positions: [-1, 0, 1, 1, 0, 1, 1, 0, -1, -1, 0, 1, 1, 0, -1, -1, 0, -1],
                 uvs: [],
                 normals: [-0, 1, -0, -0, 1, -0, -0, 1, -0, -0, 1, -0, -0, 1, -0, -0, 1, -0],
@@ -789,6 +819,7 @@ describe('obj-parser', () => {
 
             expect(objects.Plane.primitives.default).toEqual({
                 name: 'default',
+                mode: 'non-interleaved',
                 positions: [-1, 0, 1, 1, 0, 1, 1, 0, -1, -1, 0, 1, 1, 0, -1, -1, 0, -1],
                 uvs: [],
                 normals: [],
@@ -803,6 +834,7 @@ describe('obj-parser', () => {
 
             expect(objects.Plane.primitives.default).toEqual({
                 name: 'default',
+                mode: 'non-interleaved',
                 positions: new Float32Array([-1, 0, 1, 1, 0, 1, 1, 0, -1, -1, 0, 1, 1, 0, -1, -1, 0, -1]),
                 uvs: new Float32Array([0, 0, 1, 0, 1, 1, 0, 0, 1, 1, 0, 1]),
                 normals: new Float32Array([-0, 1, -0, -0, 1, -0, -0, 1, -0, -0, 1, -0, -0, 1, -0, -0, 1, -0]),
@@ -815,6 +847,7 @@ describe('obj-parser', () => {
 
             expect(objects.Plane.primitives.default).toEqual({
                 name: 'default',
+                mode: 'non-interleaved',
                 positions: new Float32Array([-1, 0, 1, 1, 0, 1, 1, 0, -1, -1, 0, 1, 1, 0, -1, -1, 0, -1]),
                 uvs: new Float32Array([0, 0, 1, 0, 1, 1, 0, 0, 1, 1, 0, 1]),
                 normals: new Float32Array([]),
@@ -827,6 +860,7 @@ describe('obj-parser', () => {
 
             expect(objects.Plane.primitives.default).toEqual({
                 name: 'default',
+                mode: 'non-interleaved',
                 positions: new Float32Array([-1, 0, 1, 1, 0, 1, 1, 0, -1, -1, 0, 1, 1, 0, -1, -1, 0, -1]),
                 uvs: new Float32Array([]),
                 normals: new Float32Array([-0, 1, -0, -0, 1, -0, -0, 1, -0, -0, 1, -0, -0, 1, -0, -0, 1, -0]),
@@ -839,6 +873,7 @@ describe('obj-parser', () => {
 
             expect(objects.Plane.primitives.default).toEqual({
                 name: 'default',
+                mode: 'non-interleaved',
                 positions: new Float32Array([-1, 0, 1, 1, 0, 1, 1, 0, -1, -1, 0, 1, 1, 0, -1, -1, 0, -1]),
                 uvs: new Float32Array([]),
                 normals: new Float32Array([]),
@@ -853,6 +888,7 @@ describe('obj-parser', () => {
 
             expect(objects.Plane.primitives.default).toEqual({
                 name: 'default',
+                mode: 'non-interleaved',
                 positions: [-1, 0, 1, 1, 0, 1, 1, 0, -1, -1, 0, 1, -1, 0, -1],
                 uvs: [0, 0, 1, 0, 1, 1, 0, 0, 0, 1],
                 normals: [-0, 1, -0, -0, 1, -0, -0, 1, -0, -0, 1, -0, -0, 1, -0],
@@ -866,6 +902,7 @@ describe('obj-parser', () => {
 
             expect(objects.Plane.primitives.default).toEqual({
                 name: 'default',
+                mode: 'non-interleaved',
                 positions: [-1, 0, 1, 1, 0, 1, 1, 0, -1, -1, 0, 1, -1, 0, -1],
                 uvs: [0, 0, 1, 0, 1, 1, 0, 0, 0, 1],
                 normals: [],
@@ -879,6 +916,7 @@ describe('obj-parser', () => {
 
             expect(objects.Plane.primitives.default).toEqual({
                 name: 'default',
+                mode: 'non-interleaved',
                 positions: [-1, 0, 1, 1, 0, 1, 1, 0, -1, -1, 0, 1, -1, 0, -1],
                 uvs: [],
                 normals: [-0, 1, -0, -0, 1, -0, -0, 1, -0, -0, 1, -0, -0, 1, -0],
@@ -892,6 +930,7 @@ describe('obj-parser', () => {
 
             expect(objects.Plane.primitives.default).toEqual({
                 name: 'default',
+                mode: 'non-interleaved',
                 positions: [-1, 0, 1, 1, 0, 1, 1, 0, -1, -1, 0, 1, -1, 0, -1],
                 uvs: [],
                 normals: [],
@@ -907,6 +946,7 @@ describe('obj-parser', () => {
 
             expect(objects.Plane.primitives.default).toEqual({
                 name: 'default',
+                mode: 'non-interleaved',
                 positions: new Float32Array([-1, 0, 1, 1, 0, 1, 1, 0, -1, -1, 0, 1, -1, 0, -1]),
                 uvs: new Float32Array([0, 0, 1, 0, 1, 1, 0, 0, 0, 1]),
                 normals: new Float32Array([-0, 1, -0, -0, 1, -0, -0, 1, -0, -0, 1, -0, -0, 1, -0]),
@@ -920,6 +960,7 @@ describe('obj-parser', () => {
 
             expect(objects.Plane.primitives.default).toEqual({
                 name: 'default',
+                mode: 'non-interleaved',
                 positions: new Float32Array([-1, 0, 1, 1, 0, 1, 1, 0, -1, -1, 0, 1, -1, 0, -1]),
                 uvs: new Float32Array([0, 0, 1, 0, 1, 1, 0, 0, 0, 1]),
                 normals: new Float32Array([]),
@@ -933,6 +974,7 @@ describe('obj-parser', () => {
 
             expect(objects.Plane.primitives.default).toEqual({
                 name: 'default',
+                mode: 'non-interleaved',
                 positions: new Float32Array([-1, 0, 1, 1, 0, 1, 1, 0, -1, -1, 0, 1, -1, 0, -1]),
                 uvs: new Float32Array([]),
                 normals: new Float32Array([-0, 1, -0, -0, 1, -0, -0, 1, -0, -0, 1, -0, -0, 1, -0]),
@@ -946,6 +988,7 @@ describe('obj-parser', () => {
 
             expect(objects.Plane.primitives.default).toEqual({
                 name: 'default',
+                mode: 'non-interleaved',
                 positions: new Float32Array([-1, 0, 1, 1, 0, 1, 1, 0, -1, -1, 0, 1, -1, 0, -1]),
                 uvs: new Float32Array([]),
                 normals: new Float32Array([]),
@@ -970,12 +1013,14 @@ describe('obj-parser', () => {
                     primitives: {
                         'Material.001': {
                             name: 'Material.001',
+                            mode: 'non-interleaved',
                             positions: [-1, 0, -1, 1, 0, -1, 1, 0, -3, -1, 0, -1, 1, 0, -3, -1, 0, -3],
                             uvs: [0, 0, 1, 0, 1, 1, 0, 0, 1, 1, 0, 1],
                             normals: [-0, 1, -0, -0, 1, -0, -0, 1, -0, -0, 1, -0, -0, 1, -0, -0, 1, -0],
                         },
                         'Material.002': {
                             name: 'Material.002',
+                            mode: 'non-interleaved',
                             positions: [-1, 0, 3, 1, 0, 3, 1, 0, 1, -1, 0, 3, 1, 0, 1, -1, 0, 1],
                             uvs: [0, 0, 1, 0, 1, 1, 0, 0, 1, 1, 0, 1],
                             normals: [-0, 1, -0, -0, 1, -0, -0, 1, -0, -0, 1, -0, -0, 1, -0, -0, 1, -0],
@@ -996,6 +1041,7 @@ describe('obj-parser', () => {
                     primitives: {
                         default: {
                             name: 'default',
+                            mode: 'non-interleaved',
                             positions: [-1, 0, -1, 1, 0, -1, 1, 0, -3, -1, 0, -1, 1, 0, -3, -1, 0, -3],
                             uvs: [0, 0, 1, 0, 1, 1, 0, 0, 1, 1, 0, 1],
                             normals: [-0, 1, -0, -0, 1, -0, -0, 1, -0, -0, 1, -0, -0, 1, -0, -0, 1, -0],
@@ -1007,6 +1053,7 @@ describe('obj-parser', () => {
                     primitives: {
                         default: {
                             name: 'default',
+                            mode: 'non-interleaved',
                             positions: [-1, 0, 3, 1, 0, 3, 1, 0, 1, -1, 0, 3, 1, 0, 1, -1, 0, 1],
                             uvs: [0, 0, 1, 0, 1, 1, 0, 0, 1, 1, 0, 1],
                             normals: [-0, 1, -0, -0, 1, -0, -0, 1, -0, -0, 1, -0, -0, 1, -0, -0, 1, -0],
@@ -1018,6 +1065,7 @@ describe('obj-parser', () => {
                     primitives: {
                         default: {
                             name: 'default',
+                            mode: 'non-interleaved',
                             positions: [1, 0, 1, 3, 0, 1, 3, 0, -1, 1, 0, 1, 3, 0, -1, 1, 0, -1],
                             uvs: [0, 0, 1, 0, 1, 1, 0, 0, 1, 1, 0, 1],
                             normals: [-0, 1, -0, -0, 1, -0, -0, 1, -0, -0, 1, -0, -0, 1, -0, -0, 1, -0],
@@ -1029,6 +1077,7 @@ describe('obj-parser', () => {
                     primitives: {
                         default: {
                             name: 'default',
+                            mode: 'non-interleaved',
                             positions: [-3, 0, 1, -1, 0, 1, -1, 0, -1, -3, 0, 1, -1, 0, -1, -3, 0, -1],
                             uvs: [0, 0, 1, 0, 1, 1, 0, 0, 1, 1, 0, 1],
                             normals: [-0, 1, -0, -0, 1, -0, -0, 1, -0, -0, 1, -0, -0, 1, -0, -0, 1, -0],
@@ -1045,6 +1094,7 @@ describe('obj-parser', () => {
             const { objects } = parse(groups);
             expect(objects['Plane_Plane'].primitives.default).toEqual({
                 name: 'default',
+                mode: 'non-interleaved',
                 positions: [-1, 0, 1, 1, 0, 1, 1, 0, -1, -1, 0, 1, 1, 0, -1, -1, 0, -1],
                 uvs: [0, 0, 1, 0, 1, 1, 0, 0, 1, 1, 0, 1],
                 normals: [-0, 1, -0, -0, 1, -0, -0, 1, -0, -0, 1, -0, -0, 1, -0, -0, 1, -0],
