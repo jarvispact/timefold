@@ -224,19 +224,29 @@ class EcsWorld<
     }
 
     createQuery<const QueryDef extends QueryDefinition<WorldComponent>, MapResult>(
-        args: { query: QueryDef } & { map?: (tuple: QueryTuple<WorldComponent, QueryDef>) => MapResult },
+        args: { query: QueryDef } & {
+            map?: (tuple: QueryTuple<WorldComponent, QueryDef>) => MapResult;
+            onAdd?: (item: unknown extends MapResult ? QueryTuple<WorldComponent, QueryDef> : MapResult) => void;
+            onRemove?: (id: string) => void;
+        },
     ) {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-return
         const map = (args.map ?? ((val) => val)) as (val: any) => any;
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const onAdd = (args.onAdd ?? (() => {})) as (val: any) => any;
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const onRemove = (args.onRemove ?? (() => {})) as (val: any) => any;
 
         const queryResult: unknown[][] = [];
         const entityIdQueryResultIdx: EntityId[] = [];
         const entityIdToQueryResultIdx: Record<EntityId, number | undefined> = {};
 
         const addToQueryResult = (tuple: unknown[], entityId: EntityId) => {
-            queryResult.push(map(tuple) as never);
+            const mappedTuple = map(tuple) as never;
+            queryResult.push(mappedTuple);
             entityIdQueryResultIdx.push(entityId);
             entityIdToQueryResultIdx[entityId] = queryResult.length - 1;
+            onAdd(mappedTuple);
         };
 
         const removeFromQueryResult = (entityId: EntityId) => {
@@ -252,6 +262,7 @@ class EcsWorld<
                 // order matters here!!!
                 entityIdToQueryResultIdx[lastEntityId] = idx;
                 entityIdToQueryResultIdx[entityId] = undefined;
+                onRemove(entityId);
             }
         };
 
