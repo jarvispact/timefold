@@ -244,8 +244,8 @@ export type CreateVertexBufferMode = InterleavedMode | NonInterleavedMode;
 
 export type CreateVertexBufferLayoutDefinition<Mode extends CreateVertexBufferMode> = Mode extends InterleavedMode
     ? {
-          position: { format: SupportedPositionFormat; offset: number };
-      } & Record<string, { format: SupportedFormat; offset: number }>
+          position: { format: SupportedPositionFormat; stride: number };
+      } & Record<string, { format: SupportedFormat; stride: number }>
     : {
           position: { format: SupportedPositionFormat };
       } & Record<string, { format: SupportedFormat }>;
@@ -254,16 +254,6 @@ export type InterleavedCreateBuffer = (
     device: GPUDevice,
     data: Float32Array,
 ) => { mode: InterleavedMode; slot: number; buffer: GPUBuffer; count: number };
-
-// TODO: Do we still need "createBuffer: NonInterleavedCreateBuffer<Definition>;" ?
-
-// type NonInterleavedCreateBuffer<Definition extends CreateVertexBufferLayoutDefinition<NonInterleavedMode>> = <
-//     Name extends keyof Definition,
-// >(
-//     device: GPUDevice,
-//     name: Name,
-//     data: InstanceType<FormatMap[Definition[Name]['format']]['View']>,
-// ) => { slot: number; buffer: GPUBuffer } & (Name extends 'position' ? { count: number } : NonNullable<unknown>);
 
 type NonInterleavedCreateBuffers<Definition extends CreateVertexBufferLayoutDefinition<NonInterleavedMode>> = (
     device: GPUDevice,
@@ -295,7 +285,6 @@ export type CreateVertexBufferLayoutResult<
           mode: NonInterleavedMode;
           layout: GPUVertexBufferLayout[];
           wgsl: string;
-          //   createBuffer: NonInterleavedCreateBuffer<Definition>;
           createBuffers: NonInterleavedCreateBuffers<Definition>;
       };
 

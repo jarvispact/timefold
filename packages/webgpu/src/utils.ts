@@ -38,7 +38,7 @@ const defaultDepthAttachmentOptions = {
     depthStoreOp: 'store',
 } satisfies Omit<GPURenderPassDepthStencilAttachment, 'view'>;
 
-export const createDepthAttachmentFromView = (
+export const createDepthAttachment = (
     device: GPUDevice,
     width: number,
     height: number,
@@ -193,8 +193,6 @@ export const createVertexBufferLayout = <
             mode,
             layout,
             wgsl,
-            // TODO: Do we still need this?
-            // createBuffer,
             createBuffers,
         } as unknown as CreateVertexBufferLayoutResult<Mode, Definition>;
     }
@@ -203,7 +201,7 @@ export const createVertexBufferLayout = <
     let totalStride = 0;
 
     const attributes = vertexDefinitionKeys.map((key) => {
-        const attr = definition[key] as { format: SupportedFormat; offset: number };
+        const attr = definition[key] as { format: SupportedFormat; stride: number };
         const { stride, View } = formatMap[attr.format];
         arrayStride += stride * View.BYTES_PER_ELEMENT;
         totalStride += stride;
@@ -211,7 +209,7 @@ export const createVertexBufferLayout = <
         return {
             format: attr.format,
             shaderLocation: locationByName[key],
-            offset: attr.offset * View.BYTES_PER_ELEMENT,
+            offset: attr.stride * View.BYTES_PER_ELEMENT,
         };
     });
 
@@ -314,19 +312,22 @@ export const createImageBitmapTexture = (
 
 export const createDataTexture = (
     device: GPUDevice,
-    data: BufferSource | SharedArrayBuffer,
-    width: number,
-    height: number,
+    args: { data: BufferSource | SharedArrayBuffer; width: number; height: number },
     options?: Omit<GPUTextureDescriptor, 'size'>,
 ): GPUTexture => {
     const descriptor = {
-        ...getTextureDefaultDescriptor(width, height),
+        ...getTextureDefaultDescriptor(args.width, args.height),
         ...options,
     };
 
     const texture = device.createTexture(descriptor);
 
-    device.queue.writeTexture({ texture }, data, { bytesPerRow: width * 4 }, { width, height });
+    device.queue.writeTexture(
+        { texture },
+        args.data,
+        { bytesPerRow: args.width * 4 },
+        { width: args.width, height: args.height },
+    );
 
     return texture;
 };
