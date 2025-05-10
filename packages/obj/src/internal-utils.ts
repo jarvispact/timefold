@@ -114,7 +114,7 @@ export const convertInterleavedToIndexed = (
 
         const key = getMapKey(px, py, pz, uv[0], uv[1], normal[0], normal[1], normal[2]);
 
-        if (map[key]) {
+        if (key in map) {
             indices.push(map[key]);
         } else {
             vertices.push(px, py, pz);
@@ -146,11 +146,12 @@ export const convertNonInterleavedToIndexed = (
 
     let index = 0;
 
-    for (let i = 0, j = 0; i < primitive.positions.length; i += 3, j += 2) {
+    for (let i = 0; i < primitive.positions.length; i += 3) {
         const px = primitive.positions[i + 0];
         const py = primitive.positions[i + 1];
         const pz = primitive.positions[i + 2];
 
+        const j = Math.floor(i / 3) * 2;
         const u = primitive.uvs[j + 0] as number | undefined;
         const v = primitive.uvs[j + 1] as number | undefined;
 
@@ -160,7 +161,7 @@ export const convertNonInterleavedToIndexed = (
 
         const key = getMapKey(px, py, pz, u, v, nx, ny, nz);
 
-        if (map[key]) {
+        if (key in map) {
             indices.push(map[key]);
         } else {
             positions.push(px, py, pz);

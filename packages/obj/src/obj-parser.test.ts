@@ -612,10 +612,10 @@ describe('obj-parser', () => {
                 name: 'default',
                 mode: 'interleaved',
                 vertices: [
-                    -1, 0, 1, 0, 0, -0, 1, -0, 1, 0, 1, 1, 0, -0, 1, -0, 1, 0, -1, 1, 1, -0, 1, -0, -1, 0, 1, 0, 0, -0,
-                    1, -0, -1, 0, -1, 0, 1, -0, 1, -0,
+                    -1, 0, 1, 0, 0, -0, 1, -0, 1, 0, 1, 1, 0, -0, 1, -0, 1, 0, -1, 1, 1, -0, 1, -0, -1, 0, -1, 0, 1, -0,
+                    1, -0,
                 ],
-                indices: [0, 1, 2, 3, 2, 4],
+                indices: [0, 1, 2, 0, 2, 3],
             });
 
             expect(info).toEqual({
@@ -633,8 +633,8 @@ describe('obj-parser', () => {
             expect(objects.Plane.primitives.default).toEqual({
                 name: 'default',
                 mode: 'interleaved',
-                vertices: [-1, 0, 1, 0, 0, 1, 0, 1, 1, 0, 1, 0, -1, 1, 1, -1, 0, 1, 0, 0, -1, 0, -1, 0, 1],
-                indices: [0, 1, 2, 3, 2, 4],
+                vertices: [-1, 0, 1, 0, 0, 1, 0, 1, 1, 0, 1, 0, -1, 1, 1, -1, 0, -1, 0, 1],
+                indices: [0, 1, 2, 0, 2, 3],
             });
 
             expect(info).toEqual({
@@ -652,11 +652,8 @@ describe('obj-parser', () => {
             expect(objects.Plane.primitives.default).toEqual({
                 name: 'default',
                 mode: 'interleaved',
-                vertices: [
-                    -1, 0, 1, -0, 1, -0, 1, 0, 1, -0, 1, -0, 1, 0, -1, -0, 1, -0, -1, 0, 1, -0, 1, -0, -1, 0, -1, -0, 1,
-                    -0,
-                ],
-                indices: [0, 1, 2, 3, 2, 4],
+                vertices: [-1, 0, 1, -0, 1, -0, 1, 0, 1, -0, 1, -0, 1, 0, -1, -0, 1, -0, -1, 0, -1, -0, 1, -0],
+                indices: [0, 1, 2, 0, 2, 3],
             });
 
             expect(info).toEqual({
@@ -674,8 +671,8 @@ describe('obj-parser', () => {
             expect(objects.Plane.primitives.default).toEqual({
                 name: 'default',
                 mode: 'interleaved',
-                vertices: [-1, 0, 1, 1, 0, 1, 1, 0, -1, -1, 0, 1, -1, 0, -1],
-                indices: [0, 1, 2, 3, 2, 4],
+                vertices: [-1, 0, 1, 1, 0, 1, 1, 0, -1, -1, 0, -1],
+                indices: [0, 1, 2, 0, 2, 3],
             });
 
             expect(info).toEqual({
@@ -696,10 +693,10 @@ describe('obj-parser', () => {
                 name: 'default',
                 mode: 'interleaved',
                 vertices: new Float32Array([
-                    -1, 0, 1, 0, 0, -0, 1, -0, 1, 0, 1, 1, 0, -0, 1, -0, 1, 0, -1, 1, 1, -0, 1, -0, -1, 0, 1, 0, 0, -0,
-                    1, -0, -1, 0, -1, 0, 1, -0, 1, -0,
+                    -1, 0, 1, 0, 0, -0, 1, -0, 1, 0, 1, 1, 0, -0, 1, -0, 1, 0, -1, 1, 1, -0, 1, -0, -1, 0, -1, 0, 1, -0,
+                    1, -0,
                 ]),
-                indices: new Uint32Array([0, 1, 2, 3, 2, 4]),
+                indices: new Uint32Array([0, 1, 2, 0, 2, 3]),
             });
 
             expect(info).toEqual({
@@ -717,10 +714,8 @@ describe('obj-parser', () => {
             expect(objects.Plane.primitives.default).toEqual({
                 name: 'default',
                 mode: 'interleaved',
-                vertices: new Float32Array([
-                    -1, 0, 1, 0, 0, 1, 0, 1, 1, 0, 1, 0, -1, 1, 1, -1, 0, 1, 0, 0, -1, 0, -1, 0, 1,
-                ]),
-                indices: new Uint32Array([0, 1, 2, 3, 2, 4]),
+                vertices: new Float32Array([-1, 0, 1, 0, 0, 1, 0, 1, 1, 0, 1, 0, -1, 1, 1, -1, 0, -1, 0, 1]),
+                indices: new Uint32Array([0, 1, 2, 0, 2, 3]),
             });
 
             expect(info).toEqual({
@@ -739,10 +734,9 @@ describe('obj-parser', () => {
                 name: 'default',
                 mode: 'interleaved',
                 vertices: new Float32Array([
-                    -1, 0, 1, -0, 1, -0, 1, 0, 1, -0, 1, -0, 1, 0, -1, -0, 1, -0, -1, 0, 1, -0, 1, -0, -1, 0, -1, -0, 1,
-                    -0,
+                    -1, 0, 1, -0, 1, -0, 1, 0, 1, -0, 1, -0, 1, 0, -1, -0, 1, -0, -1, 0, -1, -0, 1, -0,
                 ]),
-                indices: new Uint32Array([0, 1, 2, 3, 2, 4]),
+                indices: new Uint32Array([0, 1, 2, 0, 2, 3]),
             });
 
             expect(info).toEqual({
@@ -760,8 +754,8 @@ describe('obj-parser', () => {
             expect(objects.Plane.primitives.default).toEqual({
                 name: 'default',
                 mode: 'interleaved',
-                vertices: new Float32Array([-1, 0, 1, 1, 0, 1, 1, 0, -1, -1, 0, 1, -1, 0, -1]),
-                indices: new Uint32Array([0, 1, 2, 3, 2, 4]),
+                vertices: new Float32Array([-1, 0, 1, 1, 0, 1, 1, 0, -1, -1, 0, -1]),
+                indices: new Uint32Array([0, 1, 2, 0, 2, 3]),
             });
 
             expect(info).toEqual({
@@ -889,10 +883,10 @@ describe('obj-parser', () => {
             expect(objects.Plane.primitives.default).toEqual({
                 name: 'default',
                 mode: 'non-interleaved',
-                positions: [-1, 0, 1, 1, 0, 1, 1, 0, -1, -1, 0, 1, -1, 0, -1],
-                uvs: [0, 0, 1, 0, 1, 1, 0, 0, 0, 1],
-                normals: [-0, 1, -0, -0, 1, -0, -0, 1, -0, -0, 1, -0, -0, 1, -0],
-                indices: [0, 1, 2, 3, 2, 4],
+                positions: [-1, 0, 1, 1, 0, 1, 1, 0, -1, -1, 0, -1],
+                uvs: [0, 0, 1, 0, 1, 1, 0, 1],
+                normals: [-0, 1, -0, -0, 1, -0, -0, 1, -0, -0, 1, -0],
+                indices: [0, 1, 2, 0, 2, 3],
             });
         });
 
@@ -903,10 +897,10 @@ describe('obj-parser', () => {
             expect(objects.Plane.primitives.default).toEqual({
                 name: 'default',
                 mode: 'non-interleaved',
-                positions: [-1, 0, 1, 1, 0, 1, 1, 0, -1, -1, 0, 1, -1, 0, -1],
-                uvs: [0, 0, 1, 0, 1, 1, 0, 0, 0, 1],
+                positions: [-1, 0, 1, 1, 0, 1, 1, 0, -1, -1, 0, -1],
+                uvs: [0, 0, 1, 0, 1, 1, 0, 1],
                 normals: [],
-                indices: [0, 1, 2, 3, 2, 4],
+                indices: [0, 1, 2, 0, 2, 3],
             });
         });
 
@@ -917,10 +911,10 @@ describe('obj-parser', () => {
             expect(objects.Plane.primitives.default).toEqual({
                 name: 'default',
                 mode: 'non-interleaved',
-                positions: [-1, 0, 1, 1, 0, 1, 1, 0, -1, -1, 0, 1, -1, 0, -1],
+                positions: [-1, 0, 1, 1, 0, 1, 1, 0, -1, -1, 0, -1],
                 uvs: [],
-                normals: [-0, 1, -0, -0, 1, -0, -0, 1, -0, -0, 1, -0, -0, 1, -0],
-                indices: [0, 1, 2, 3, 2, 4],
+                normals: [-0, 1, -0, -0, 1, -0, -0, 1, -0, -0, 1, -0],
+                indices: [0, 1, 2, 0, 2, 3],
             });
         });
 
@@ -931,10 +925,10 @@ describe('obj-parser', () => {
             expect(objects.Plane.primitives.default).toEqual({
                 name: 'default',
                 mode: 'non-interleaved',
-                positions: [-1, 0, 1, 1, 0, 1, 1, 0, -1, -1, 0, 1, -1, 0, -1],
+                positions: [-1, 0, 1, 1, 0, 1, 1, 0, -1, -1, 0, -1],
                 uvs: [],
                 normals: [],
-                indices: [0, 1, 2, 3, 2, 4],
+                indices: [0, 1, 2, 0, 2, 3],
             });
         });
     });
@@ -947,10 +941,10 @@ describe('obj-parser', () => {
             expect(objects.Plane.primitives.default).toEqual({
                 name: 'default',
                 mode: 'non-interleaved',
-                positions: new Float32Array([-1, 0, 1, 1, 0, 1, 1, 0, -1, -1, 0, 1, -1, 0, -1]),
-                uvs: new Float32Array([0, 0, 1, 0, 1, 1, 0, 0, 0, 1]),
-                normals: new Float32Array([-0, 1, -0, -0, 1, -0, -0, 1, -0, -0, 1, -0, -0, 1, -0]),
-                indices: new Uint32Array([0, 1, 2, 3, 2, 4]),
+                positions: new Float32Array([-1, 0, 1, 1, 0, 1, 1, 0, -1, -1, 0, -1]),
+                uvs: new Float32Array([0, 0, 1, 0, 1, 1, 0, 1]),
+                normals: new Float32Array([-0, 1, -0, -0, 1, -0, -0, 1, -0, -0, 1, -0]),
+                indices: new Uint32Array([0, 1, 2, 0, 2, 3]),
             });
         });
 
@@ -961,10 +955,10 @@ describe('obj-parser', () => {
             expect(objects.Plane.primitives.default).toEqual({
                 name: 'default',
                 mode: 'non-interleaved',
-                positions: new Float32Array([-1, 0, 1, 1, 0, 1, 1, 0, -1, -1, 0, 1, -1, 0, -1]),
-                uvs: new Float32Array([0, 0, 1, 0, 1, 1, 0, 0, 0, 1]),
+                positions: new Float32Array([-1, 0, 1, 1, 0, 1, 1, 0, -1, -1, 0, -1]),
+                uvs: new Float32Array([0, 0, 1, 0, 1, 1, 0, 1]),
                 normals: new Float32Array([]),
-                indices: new Uint32Array([0, 1, 2, 3, 2, 4]),
+                indices: new Uint32Array([0, 1, 2, 0, 2, 3]),
             });
         });
 
@@ -975,10 +969,10 @@ describe('obj-parser', () => {
             expect(objects.Plane.primitives.default).toEqual({
                 name: 'default',
                 mode: 'non-interleaved',
-                positions: new Float32Array([-1, 0, 1, 1, 0, 1, 1, 0, -1, -1, 0, 1, -1, 0, -1]),
+                positions: new Float32Array([-1, 0, 1, 1, 0, 1, 1, 0, -1, -1, 0, -1]),
                 uvs: new Float32Array([]),
-                normals: new Float32Array([-0, 1, -0, -0, 1, -0, -0, 1, -0, -0, 1, -0, -0, 1, -0]),
-                indices: new Uint32Array([0, 1, 2, 3, 2, 4]),
+                normals: new Float32Array([-0, 1, -0, -0, 1, -0, -0, 1, -0, -0, 1, -0]),
+                indices: new Uint32Array([0, 1, 2, 0, 2, 3]),
             });
         });
 
@@ -989,10 +983,10 @@ describe('obj-parser', () => {
             expect(objects.Plane.primitives.default).toEqual({
                 name: 'default',
                 mode: 'non-interleaved',
-                positions: new Float32Array([-1, 0, 1, 1, 0, 1, 1, 0, -1, -1, 0, 1, -1, 0, -1]),
+                positions: new Float32Array([-1, 0, 1, 1, 0, 1, 1, 0, -1, -1, 0, -1]),
                 uvs: new Float32Array([]),
                 normals: new Float32Array([]),
-                indices: new Uint32Array([0, 1, 2, 3, 2, 4]),
+                indices: new Uint32Array([0, 1, 2, 0, 2, 3]),
             });
         });
     });
