@@ -147,7 +147,6 @@ export type InterleavedLayout = {
 } & Record<string, { format: SupportedFormat; stride: number }>;
 
 export type InterleavedPrimitiveData = {
-    mode: 'interleaved';
     layout: InterleavedLayout;
     primitive: GPUPrimitiveState;
     vertices: Float32Array;
@@ -174,7 +173,6 @@ export type NonInterleavedAttributes = {
 } & Record<string, { format: SupportedFormat; data: GenericTypedArray }>;
 
 export type NonInterleavedPrimitiveData = {
-    mode: 'non-interleaved';
     primitive: GPUPrimitiveState;
     attributes: NonInterleavedAttributes;
     indices?: GenericTypedIndexArray;

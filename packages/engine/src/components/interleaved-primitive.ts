@@ -34,7 +34,6 @@ const objLayout: InterleavedLayout = {
 
 export const fromObjPrimitive = (objPrimitive: GenericInterleavedObjPrimitive): InterleavedPrimitiveComponent => {
     return createComponent(type, {
-        mode: 'interleaved',
         layout: objLayout,
         primitive: { ...defaultPrimitive },
         vertices: ensureFloat32Array(objPrimitive.vertices),

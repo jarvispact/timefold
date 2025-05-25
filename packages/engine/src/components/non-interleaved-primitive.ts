@@ -34,7 +34,6 @@ export const fromObjPrimitive = (objPrimitive: GenericNonInterleavedObjPrimitive
     };
 
     return createComponent(type, {
-        mode: 'non-interleaved',
         primitive: { ...defaultPrimitive },
         attributes,
         indices: 'indices' in objPrimitive ? ensureUint32Array(objPrimitive.indices) : undefined,

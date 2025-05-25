@@ -104,7 +104,7 @@ export const DepthPass = defineRenderPass({
                     const uniformsWgsl = Uniform.getWgslFromGroups(PipelineLayout.uniformGroups);
 
                     const primitiveLayout =
-                        primitive.data.mode === 'interleaved'
+                        primitive.type === '@tf/InterleavedPrimitive'
                             ? WebgpuUtils.createVertexBufferLayout('interleaved', primitive.data.layout)
                             : WebgpuUtils.createVertexBufferLayout('non-interleaved', primitive.data.attributes);
 
@@ -129,10 +129,10 @@ export const DepthPass = defineRenderPass({
                 if (!pipeline.primitiveMap.has(primitive)) {
                     const vertex =
                         pipeline.primitiveLayout.mode === 'interleaved'
-                            ? primitive.data.mode === 'interleaved'
+                            ? primitive.type === '@tf/InterleavedPrimitive'
                                 ? pipeline.primitiveLayout.createBuffer(device, primitive.data.vertices)
                                 : undefined
-                            : primitive.data.mode === 'non-interleaved'
+                            : primitive.type === '@tf/NonInterleavedPrimitive'
                               ? pipeline.primitiveLayout.createBuffers(device, getData(primitive.data.attributes))
                               : undefined;
 
