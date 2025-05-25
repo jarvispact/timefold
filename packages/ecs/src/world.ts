@@ -417,7 +417,7 @@ class EcsWorld<
             : MapResult[];
     }
 
-    async run() {
+    async run(options: { loop?: boolean } = { loop: true }) {
         const callFnWithWorld = (fn: (world: World<Component>) => unknown) => fn(this as never);
 
         if (this.plugins.length > 0) {
@@ -486,7 +486,7 @@ class EcsWorld<
             }
 
             // eslint-disable-next-line @typescript-eslint/no-misused-promises
-            window.requestAnimationFrame(tick);
+            if (options.loop) window.requestAnimationFrame(tick);
         };
 
         // eslint-disable-next-line @typescript-eslint/no-misused-promises

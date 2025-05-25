@@ -149,6 +149,7 @@ export type InterleavedLayout = {
 export type InterleavedPrimitiveData = {
     mode: 'interleaved';
     layout: InterleavedLayout;
+    primitive: GPUPrimitiveState;
     vertices: Float32Array;
     indices?: GenericTypedIndexArray;
 };
@@ -174,6 +175,7 @@ export type NonInterleavedAttributes = {
 
 export type NonInterleavedPrimitiveData = {
     mode: 'non-interleaved';
+    primitive: GPUPrimitiveState;
     attributes: NonInterleavedAttributes;
     indices?: GenericTypedIndexArray;
 };
@@ -195,17 +197,19 @@ export type MeshComponent = Component<MeshType, MeshData>;
 
 // EngineComponent
 
+export type MaterialComponent = UnlitMaterialComponent | PhongMaterialComponent;
+
+export type PrimitiveComponent = InterleavedPrimitiveComponent | NonInterleavedPrimitiveComponent;
+
 export type EngineComponent =
     | AabbComponent
     | TransformComponent
     | PerspectiveCameraComponent
     | OrthographicCameraComponent
     | DirLightComponent
-    | UnlitMaterialComponent
-    | PhongMaterialComponent
+    | MaterialComponent
     | DataComponent
     | MeshDataComponent
     | ClockComponent
-    | InterleavedPrimitiveComponent
-    | NonInterleavedPrimitiveComponent
+    | PrimitiveComponent
     | MeshComponent;

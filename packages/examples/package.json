@@ -40,6 +40,15 @@
     "dev:renderer": "sed 's/{example-folder}/renderer/g' index.html.template > index.html && vite --port 9093",
     "build:renderer": "sed 's/{example-folder}/renderer/g' index.html.template > index.html && vite build",
 
+    "dev:breakout": "sed 's/{example-folder}/breakout/g' index.html.template > index.html && vite --port 9093",
+    "build:breakout": "sed 's/{example-folder}/breakout/g' index.html.template > index.html && vite build",
+
+    "dev:3d-boilerplate": "sed 's/{example-folder}/3d-boilerplate/g' index.html.template > index.html && vite --port 9093",
+    "build:3d-boilerplate": "sed 's/{example-folder}/3d-boilerplate/g' index.html.template > index.html && vite build",
+
+    "dev:renderer-reloaded": "sed 's/{example-folder}/renderer-reloaded/g' index.html.template > index.html && vite --port 9093",
+    "build:renderer-reloaded": "sed 's/{example-folder}/renderer-reloaded/g' index.html.template > index.html && vite build",
+
     "preview": "vite preview --port 9191"
   }
 }

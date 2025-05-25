@@ -9,8 +9,15 @@ import {
 
 export const type: NonInterleavedPrimitiveType = '@tf/NonInterleavedPrimitive';
 
-export const create = (data: NonInterleavedPrimitiveData): NonInterleavedPrimitiveComponent => {
-    return createComponent(type, data);
+type Args = Omit<NonInterleavedPrimitiveData, 'primitive'> & { primitive?: GPUPrimitiveState };
+
+const defaultPrimitive: GPUPrimitiveState = {
+    cullMode: 'back',
+    topology: 'triangle-list',
+};
+
+export const create = (args: Args): NonInterleavedPrimitiveComponent => {
+    return createComponent(type, { ...args, primitive: { ...defaultPrimitive, ...args.primitive } });
 };
 
 const ensureFloat32Array = (array: number[] | Float32Array) =>
@@ -28,6 +35,7 @@ export const fromObjPrimitive = (objPrimitive: GenericNonInterleavedObjPrimitive
 
     return createComponent(type, {
         mode: 'non-interleaved',
+        primitive: { ...defaultPrimitive },
         attributes,
         indices: 'indices' in objPrimitive ? ensureUint32Array(objPrimitive.indices) : undefined,
     });

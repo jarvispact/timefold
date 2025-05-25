@@ -6,12 +6,7 @@ import {
     RenderPipelineContext,
     GenericCreateVertexBufferLayoutResult,
 } from '@timefold/webgpu';
-import {
-    GenericTypedArray,
-    InterleavedPrimitiveComponent,
-    NonInterleavedAttributes,
-    NonInterleavedPrimitiveComponent,
-} from '../../components';
+import { GenericTypedArray, NonInterleavedAttributes, PrimitiveComponent } from '../../components';
 import { CameraStruct, TransformStruct } from '../../structs';
 
 type VertexBuffer = { slot: number; buffer: GPUBuffer };
@@ -86,11 +81,11 @@ export const DepthPass = defineRenderPass({
         });
 
         const pipelineMap = new Map<
-            InterleavedPrimitiveComponent | NonInterleavedPrimitiveComponent,
+            PrimitiveComponent,
             {
                 pipeline: GPURenderPipeline;
                 primitiveLayout: GenericCreateVertexBufferLayoutResult;
-                primitiveMap: Map<InterleavedPrimitiveComponent | NonInterleavedPrimitiveComponent, DepthPrePassEntity>;
+                primitiveMap: Map<PrimitiveComponent, DepthPrePassEntity>;
             }
         >();
 
@@ -104,10 +99,7 @@ export const DepthPass = defineRenderPass({
             setCamera: (cameraData: ArrayBufferLike) => {
                 camera = cameraData;
             },
-            addEntity: (
-                primitive: InterleavedPrimitiveComponent | NonInterleavedPrimitiveComponent,
-                transform: ArrayBufferLike,
-            ) => {
+            addEntity: (primitive: PrimitiveComponent, transform: ArrayBufferLike) => {
                 if (!pipelineMap.has(primitive)) {
                     const uniformsWgsl = Uniform.getWgslFromGroups(PipelineLayout.uniformGroups);
 
@@ -123,7 +115,7 @@ export const DepthPass = defineRenderPass({
                     const pipeline = device.createRenderPipeline({
                         layout: PipelineLayout.layout,
                         vertex: { module, buffers: primitiveLayout.layout },
-                        primitive: { cullMode: 'back', topology: 'triangle-list' },
+                        primitive: primitive.data.primitive,
                         depthStencil: { depthWriteEnabled: true, depthCompare: 'less', format: 'depth24plus' },
                         multisample: { count: msaa },
                     });

@@ -9,9 +9,8 @@ import {
 import { DepthPass } from './depth-pass';
 import {
     GenericTypedArray,
-    InterleavedPrimitiveComponent,
     NonInterleavedAttributes,
-    NonInterleavedPrimitiveComponent,
+    PrimitiveComponent,
     UnlitMaterialComponent,
 } from '../../components';
 import { CameraStruct, TransformStruct, UnlitMaterialStruct } from '../../structs';
@@ -42,7 +41,7 @@ type ColorPassPrimitive = {
 
 type ColorPassEntity = {
     material: MaterialBindGroup;
-    primitives: Map<InterleavedPrimitiveComponent | NonInterleavedPrimitiveComponent, ColorPassPrimitive>;
+    primitives: Map<PrimitiveComponent, ColorPassPrimitive>;
 };
 
 const getShaderCode = (uniformsWgsl: string, vertexWgsl: string) => {
@@ -115,7 +114,7 @@ export const ColorPass = defineRenderPass({
         });
 
         const pipelineMap = new Map<
-            InterleavedPrimitiveComponent | NonInterleavedPrimitiveComponent,
+            PrimitiveComponent,
             {
                 pipeline: GPURenderPipeline;
                 primitiveLayout: GenericCreateVertexBufferLayoutResult;
@@ -136,7 +135,7 @@ export const ColorPass = defineRenderPass({
             addEntity: (
                 material: UnlitMaterialComponent,
                 materialData: ArrayBufferLike,
-                primitive: InterleavedPrimitiveComponent | NonInterleavedPrimitiveComponent,
+                primitive: PrimitiveComponent,
                 transform: ArrayBufferLike,
             ) => {
                 if (!pipelineMap.has(primitive)) {
@@ -154,7 +153,7 @@ export const ColorPass = defineRenderPass({
                     const pipeline = device.createRenderPipeline({
                         layout: PipelineLayout.layout,
                         vertex: { module, buffers: primitiveLayout.layout },
-                        primitive: { cullMode: 'back', topology: 'triangle-list' },
+                        primitive: primitive.data.primitive,
                         fragment: { module, targets: [{ format }] },
                         depthStencil: { depthWriteEnabled: false, depthCompare: 'less-equal', format: 'depth24plus' },
                         multisample: { count: msaa },
