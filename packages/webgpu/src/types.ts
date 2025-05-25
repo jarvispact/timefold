@@ -9,8 +9,6 @@ import {
     NumberTupleMode,
     RemoveNever,
     SharedArrayBufferMode,
-    SupportedFormat,
-    SupportedPositionFormat,
     Tuple,
     TupleIndices,
     TypedArrayOrTuple,
@@ -238,6 +236,9 @@ export type CreateIndexBufferResult<Format extends GPUIndexFormat = GPUIndexForm
 // ===========================================================
 // vertex buffers
 
+export type SupportedFormat = keyof FormatMap;
+export type SupportedPositionFormat = 'float32x2' | 'float32x3' | 'float32x4';
+
 export type InterleavedMode = 'interleaved';
 export type NonInterleavedMode = 'non-interleaved';
 export type CreateVertexBufferMode = InterleavedMode | NonInterleavedMode;
@@ -267,26 +268,40 @@ type NonInterleavedCreateBuffers<Definition extends CreateVertexBufferLayoutDefi
     };
 };
 
-export type GenericVertexBufferResult =
-    | ReturnType<InterleavedCreateBuffer>
-    | ReturnType<NonInterleavedCreateBuffers<CreateVertexBufferLayoutDefinition<NonInterleavedMode>>>;
+type InterleavedCreateVertexBufferLayoutResult = {
+    mode: InterleavedMode;
+    layout: GPUVertexBufferLayout[];
+    wgsl: string;
+    createBuffer: InterleavedCreateBuffer;
+};
+
+type NonInterleavedCreateVertexBufferLayoutResult<
+    Definition extends CreateVertexBufferLayoutDefinition<NonInterleavedMode>,
+> = {
+    mode: NonInterleavedMode;
+    layout: GPUVertexBufferLayout[];
+    wgsl: string;
+    createBuffers: NonInterleavedCreateBuffers<Definition>;
+};
+
+export type GenericCreateVertexBufferLayoutResult =
+    | InterleavedCreateVertexBufferLayoutResult
+    | NonInterleavedCreateVertexBufferLayoutResult<
+          {
+              position: { format: SupportedPositionFormat };
+          } & Record<string, { format: SupportedFormat }>
+      >;
 
 export type CreateVertexBufferLayoutResult<
     Mode extends CreateVertexBufferMode,
     Definition extends CreateVertexBufferLayoutDefinition<Mode>,
 > = Mode extends InterleavedMode
-    ? {
-          mode: InterleavedMode;
-          layout: GPUVertexBufferLayout[];
-          wgsl: string;
-          createBuffer: InterleavedCreateBuffer;
-      }
-    : {
-          mode: NonInterleavedMode;
-          layout: GPUVertexBufferLayout[];
-          wgsl: string;
-          createBuffers: NonInterleavedCreateBuffers<Definition>;
-      };
+    ? InterleavedCreateVertexBufferLayoutResult
+    : NonInterleavedCreateVertexBufferLayoutResult<Definition>;
+
+export type GenericVertexBufferResult =
+    | ReturnType<InterleavedCreateBuffer>
+    | ReturnType<NonInterleavedCreateBuffers<CreateVertexBufferLayoutDefinition<NonInterleavedMode>>>;
 
 // ===========================================================
 // pipeline layout
@@ -318,6 +333,7 @@ export type CreateBindGroupResult<Group extends UniformGroup<number, Record<stri
 
 export type CreatePipelineLayoutResult<Groups extends UniformGroup<number, Record<string, GenericBinding>>[]> = {
     layout: GPUPipelineLayout;
+    uniformGroups: Groups;
     createBindGroups: <Group extends TupleIndices<Groups>>(
         group: Group,
         bindings: BindingsForGroup<Groups[Group]>,

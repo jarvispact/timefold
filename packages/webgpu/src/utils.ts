@@ -1,4 +1,4 @@
-import { formatMap, GenericTypedArrayConstructor, SupportedFormat, TupleIndices } from './internal-utils';
+import { formatMap, GenericTypedArrayConstructor, TupleIndices } from './internal-utils';
 import {
     BindingsForGroup,
     BuffersByBindingKey,
@@ -13,6 +13,7 @@ import {
     CreateVertexBufferMode,
     GenericBinding,
     InterleavedCreateBuffer,
+    SupportedFormat,
     UniformGroup,
 } from './types';
 
@@ -38,23 +39,11 @@ const defaultDepthAttachmentOptions = {
     depthStoreOp: 'store',
 } satisfies Omit<GPURenderPassDepthStencilAttachment, 'view'>;
 
-export const createDepthAttachment = (
-    device: GPUDevice,
-    width: number,
-    height: number,
+export const createDepthAttachmentFromView = (
+    view: GPUTextureView,
     options?: Omit<GPURenderPassDepthStencilAttachment, 'view'>,
 ): GPURenderPassDepthStencilAttachment => {
-    const depthTexture = device.createTexture({
-        size: [width, height],
-        format: 'depth24plus',
-        usage: GPUTextureUsage.RENDER_ATTACHMENT,
-    });
-
-    return {
-        view: depthTexture.createView(),
-        ...defaultDepthAttachmentOptions,
-        ...options,
-    };
+    return { view, ...defaultDepthAttachmentOptions, ...options };
 };
 
 // ===========================================================
@@ -429,5 +418,9 @@ export const createPipelineLayout = <const Groups extends UniformGroup<number, R
         return { group, bindGroup, buffers: buffers as BuffersByBindingKey<Groups[Group]> };
     };
 
-    return { layout, createBindGroups };
+    return {
+        layout,
+        uniformGroups,
+        createBindGroups,
+    };
 };

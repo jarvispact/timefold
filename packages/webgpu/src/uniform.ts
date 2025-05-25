@@ -80,10 +80,19 @@ export const group = <G extends number, Bindings extends Record<string, GenericB
         .map((key) => {
             const binding = bindings[key];
             if (binding.type === 'sampler') {
-                return `@group(${group}) @binding(${binding.layout.binding}) var ${key}: sampler;`;
+                const samplerType = binding.layout.sampler.type === 'comparison' ? 'sampler_comparison' : 'sampler';
+                return `@group(${group}) @binding(${binding.layout.binding}) var ${key}: ${samplerType};`;
             } else if (binding.type === 'texture') {
                 const dimension = binding.layout.texture.viewDimension ?? '2d';
-                return `@group(${group}) @binding(${binding.layout.binding}) var ${key}: texture_${dimension}<f32>;`;
+                const sampleType = binding.layout.texture.sampleType;
+                const multisampled = binding.layout.texture.multisampled;
+
+                const textureTypeString =
+                    sampleType === 'depth'
+                        ? `texture_depth${multisampled ? '_multisampled' : ''}_2d`
+                        : `texture${multisampled ? '_multisampled' : ''}_${dimension}<f32>`;
+
+                return `@group(${group}) @binding(${binding.layout.binding}) var ${key}: ${textureTypeString};`;
             } else {
                 const type = binding.uniformType.wgsl.type;
                 return `@group(${group}) @binding(${binding.layout.binding}) var<uniform> ${key}: ${type};`;

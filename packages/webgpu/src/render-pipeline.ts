@@ -1,5 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
+import { CreateDeviceAndContextResult } from './types';
+
 // ==============================
 // Utils
 
@@ -15,7 +17,7 @@ type RenderPassFn<Context> = (context: Context) => RenderPassFnResult | Promise<
 
 export type RenderPass<Name extends string, Context> = {
     name: Name;
-    fn: RenderPassFn<Context>;
+    build: RenderPassFn<Context>;
 };
 
 export const defineRenderPass = <const Pass extends RenderPass<string, any>>(renderPass: Pass) => renderPass;
@@ -25,37 +27,46 @@ export const defineRenderPass = <const Pass extends RenderPass<string, any>>(ren
 
 export type InferContextFromRenderPass<Pass extends RenderPass<string, any>> = Record<
     Pass['name'],
-    Awaited<ReturnType<Pass['fn']>>['context']
+    Awaited<ReturnType<Pass['build']>>['context']
 >;
 
-type InitialPipelineContext<Args> = { args: Args };
+export type InferPublicApiFromRenderPass<Pass extends RenderPass<string, any>> = Record<
+    Pass['name'],
+    Omit<Awaited<ReturnType<Pass['build']>>, 'render' | 'context'>
+>;
 
-type TupleToRecord<Passes extends RenderPass<string, any>[], Result = NonNullable<unknown>> = Passes extends [
+type MSAA = 1 | 4;
+
+type InitialPipelineContext<Args> = { args: Omit<Args, 'msaa'> & { msaa: MSAA } };
+
+type RenderPassContextByName<Passes extends RenderPass<string, any>[], Result = NonNullable<unknown>> = Passes extends [
     infer Head extends RenderPass<string, any>,
     ...infer Tail extends RenderPass<string, any>[],
 ]
-    ? TupleToRecord<Tail, Result & InferContextFromRenderPass<Head>>
+    ? RenderPassContextByName<Tail, Result & InferContextFromRenderPass<Head>>
     : Result;
 
 export type RenderPipelineContext<
     Passes extends RenderPass<string, any>[] = [],
     AdditionalArgs = NonNullable<unknown>,
-> = InitialPipelineContext<CreateRenderPipelineArgs & AdditionalArgs> & TupleToRecord<Passes>;
+> = InitialPipelineContext<CreateRenderPipelineArgs & AdditionalArgs> & RenderPassContextByName<Passes>;
 
 // ==============================
 // Pipeline
 
-export type CreateRenderPipelineArgs = {
+export type CreateRenderPipelineArgs = CreateDeviceAndContextResult & {
     canvas: HTMLCanvasElement | OffscreenCanvas;
-    device: GPUDevice;
-    context: GPUCanvasContext;
-    format: GPUTextureFormat;
+    msaa?: MSAA;
 };
 
-class RenderPipeline<Args extends CreateRenderPipelineArgs, Context = InitialPipelineContext<Args>> {
+class RenderPipeline<
+    Args extends CreateRenderPipelineArgs,
+    Context = InitialPipelineContext<Args>,
+    RenderPassResultByName = NonNullable<unknown>,
+> {
     args: Args;
 
-    private renderPasses: RenderPass<string, any>[] = [];
+    private renderPasses: RenderPass<string, Context>[] = [];
 
     constructor(args: Args) {
         this.args = args;
@@ -67,35 +78,49 @@ class RenderPipeline<Args extends CreateRenderPipelineArgs, Context = InitialPip
         }
 
         this.renderPasses.push(pass);
-        return this as RenderPipeline<Args, Context & InferContextFromRenderPass<Pass>>;
+        return this as RenderPipeline<
+            Args,
+            Context & InferContextFromRenderPass<Pass>,
+            RenderPassResultByName & InferPublicApiFromRenderPass<Pass>
+        >;
     }
 
     async build() {
-        const builtRenderPasses: RenderFn[] = [];
+        const buildRenderPassesByName: Record<string, { render: RenderFn }> = {};
 
-        const ctx: Record<string, unknown> = { args: this.args };
+        const ctx: Record<string, unknown> = {
+            args: {
+                ...this.args,
+                msaa: this.args.msaa ?? 1,
+            },
+        };
 
         for (let passIdx = 0; passIdx < this.renderPasses.length; passIdx++) {
             const pass = this.renderPasses[passIdx];
-            const builtPass = pass.fn(ctx as never);
+            const builtPass = pass.build(ctx as never);
 
             if (isPromise(builtPass)) {
                 const result = await builtPass;
                 ctx[pass.name] = result.context;
-                builtRenderPasses.push(result.render);
+                buildRenderPassesByName[pass.name] = result;
             } else {
                 ctx[pass.name] = builtPass.context;
-                builtRenderPasses.push(builtPass.render);
+                buildRenderPassesByName[pass.name] = builtPass;
             }
         }
 
+        const builtRenderPasses = Object.values(buildRenderPassesByName);
+
         const render = () => {
             for (let passIdx = 0; passIdx < builtRenderPasses.length; passIdx++) {
-                builtRenderPasses[passIdx]();
+                builtRenderPasses[passIdx].render();
             }
         };
 
-        return { render };
+        return {
+            render,
+            passes: buildRenderPassesByName as RenderPassResultByName,
+        };
     }
 }
 

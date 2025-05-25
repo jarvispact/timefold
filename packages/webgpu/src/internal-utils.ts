@@ -232,8 +232,6 @@ export const formatMap = {
 >;
 
 export type FormatMap = typeof formatMap;
-export type SupportedFormat = keyof FormatMap;
-export type SupportedPositionFormat = 'float32x2' | 'float32x3' | 'float32x4';
 
 // index
 

@@ -285,6 +285,8 @@ export const createRenderer = <
         for (const pipeline of renderTree.pipelines) {
             pass.setPipeline(pipeline.pipeline);
 
+            // TODO: There is no real benefit of having multiple bindgroups if they are always set together.
+            // In case of the scene it might be easier to split lights from cameras, but thats a setup problem.
             for (const sceneBindGroup of pipeline.bindGroups) {
                 pass.setBindGroup(sceneBindGroup.group, sceneBindGroup.bindGroup);
                 for (const uniform of sceneBindGroup.uniforms) {
@@ -292,6 +294,8 @@ export const createRenderer = <
                 }
             }
 
+            // TODO: There is no real benefit of having multiple bindgroups if they are always set together.
+            // Would make more sense if we group certain entities by material or transform for example
             for (const entity of pipeline.entities) {
                 for (const entityBindGroup of entity.bindGroups) {
                     pass.setBindGroup(entityBindGroup.group, entityBindGroup.bindGroup);
