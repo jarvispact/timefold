@@ -52,11 +52,11 @@ export type NonInterleavedObjPrimitiveIndexed<
     indices: Indices;
 };
 
-export type GenericObjPrimitive =
-    | InterleavedObjPrimitive
-    | InterleavedObjPrimitiveIndexed
-    | NonInterleavedObjPrimitive
-    | NonInterleavedObjPrimitiveIndexed;
+export type GenericInterleavedObjPrimitive = InterleavedObjPrimitive | InterleavedObjPrimitiveIndexed;
+
+export type GenericNonInterleavedObjPrimitive = NonInterleavedObjPrimitive | NonInterleavedObjPrimitiveIndexed;
+
+export type GenericObjPrimitive = GenericInterleavedObjPrimitive | GenericNonInterleavedObjPrimitive;
 
 export type ObjObject<Primitive extends GenericObjPrimitive = GenericObjPrimitive> = {
     name: string;
