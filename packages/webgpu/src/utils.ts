@@ -2,8 +2,10 @@ import { formatMap, GenericTypedArrayConstructor, TupleIndices } from './interna
 import {
     BindingsForGroup,
     BuffersByBindingKey,
+    CreateContextOptions,
     CreateDeviceAndContextOptions,
     CreateDeviceAndContextResult,
+    CreateDeviceOptions,
     CreateIndexBufferArgs,
     CreateIndexBufferResult,
     CreatePipelineLayoutArgs,
@@ -54,9 +56,7 @@ const defaultAdapterOptions: GPURequestAdapterOptions = {
     forceFallbackAdapter: false,
 };
 
-export const createDeviceAndContext = async (
-    options: CreateDeviceAndContextOptions,
-): Promise<CreateDeviceAndContextResult> => {
+export const createDevice = async (options: CreateDeviceOptions = {}) => {
     const adapterOptions = { ...defaultAdapterOptions, ...options.adapter };
     const adapter = await navigator.gpu.requestAdapter(adapterOptions);
     if (!adapter) {
@@ -64,6 +64,10 @@ export const createDeviceAndContext = async (
     }
 
     const device = await adapter.requestDevice(options.device);
+    return device;
+};
+
+export const createContext = (options: CreateContextOptions) => {
     const context = options.canvas.getContext('webgpu');
     if (!context) {
         throw new Error('Webgpu not available');
@@ -72,11 +76,20 @@ export const createDeviceAndContext = async (
     const format = navigator.gpu.getPreferredCanvasFormat();
 
     context.configure({
-        device,
+        device: options.device,
         ...options.contextConfig,
         format: options.contextConfig?.format ?? format,
     });
 
+    return context;
+};
+
+export const createDeviceAndContext = async (
+    options: CreateDeviceAndContextOptions,
+): Promise<CreateDeviceAndContextResult> => {
+    const device = await createDevice({ adapter: options.adapter, device: options.device });
+    const context = createContext({ canvas: options.canvas, device, contextConfig: options.contextConfig });
+    const format = navigator.gpu.getPreferredCanvasFormat();
     return { device, context, format };
 };
 

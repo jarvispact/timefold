@@ -206,12 +206,18 @@ export type RenderPassDescriptor = Omit<GPURenderPassDescriptor, 'colorAttachmen
 // ===========================================================
 // device and context
 
-export type CreateDeviceAndContextOptions = {
+export type CreateContextOptions = {
     canvas: HTMLCanvasElement | OffscreenCanvas;
-    adapter?: GPURequestAdapterOptions;
-    device?: GPUDeviceDescriptor;
+    device: GPUDevice;
     contextConfig?: Omit<GPUCanvasConfiguration, 'device'>;
 };
+
+export type CreateDeviceOptions = {
+    adapter?: GPURequestAdapterOptions;
+    device?: GPUDeviceDescriptor;
+};
+
+export type CreateDeviceAndContextOptions = CreateContextOptions & CreateDeviceOptions;
 
 export type CreateDeviceAndContextResult = {
     device: GPUDevice;

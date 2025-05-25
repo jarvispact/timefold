@@ -1,6 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
 import { CreateDeviceAndContextResult } from './types';
+import { createContext, createDevice } from './utils';
 
 // ==============================
 // Utils
@@ -37,7 +38,12 @@ export type InferPublicApiFromRenderPass<Pass extends RenderPass<string, any>> =
 
 type MSAA = 1 | 4;
 
-type InitialPipelineContext<Args> = { args: Omit<Args, 'msaa'> & { msaa: MSAA } };
+type InitialPipelineContext<AdditionalArgs> = {
+    args: CreateDeviceAndContextResult & {
+        canvas: HTMLCanvasElement | OffscreenCanvas;
+        msaa: MSAA;
+    } & AdditionalArgs;
+};
 
 type RenderPassContextByName<Passes extends RenderPass<string, any>[], Result = NonNullable<unknown>> = Passes extends [
     infer Head extends RenderPass<string, any>,
@@ -49,12 +55,12 @@ type RenderPassContextByName<Passes extends RenderPass<string, any>[], Result = 
 export type RenderPipelineContext<
     Passes extends RenderPass<string, any>[] = [],
     AdditionalArgs = NonNullable<unknown>,
-> = InitialPipelineContext<CreateRenderPipelineArgs & AdditionalArgs> & RenderPassContextByName<Passes>;
+> = InitialPipelineContext<AdditionalArgs> & RenderPassContextByName<Passes>;
 
 // ==============================
 // Pipeline
 
-export type CreateRenderPipelineArgs = CreateDeviceAndContextResult & {
+export type CreateRenderPipelineArgs = Partial<CreateDeviceAndContextResult> & {
     canvas: HTMLCanvasElement | OffscreenCanvas;
     msaa?: MSAA;
 };
@@ -86,11 +92,18 @@ class RenderPipeline<
     }
 
     async build() {
+        const device = this.args.device ?? (await createDevice());
+        const context = this.args.context ?? createContext({ canvas: this.args.canvas, device });
+        const format = this.args.format ?? navigator.gpu.getPreferredCanvasFormat();
+
         const buildRenderPassesByName: Record<string, { render: RenderFn }> = {};
 
         const ctx: Record<string, unknown> = {
             args: {
-                ...this.args,
+                canvas: this.args.canvas,
+                context,
+                device,
+                format,
                 msaa: this.args.msaa ?? 1,
             },
         };
