@@ -21,13 +21,34 @@ export const sortPlugin = (a: EcsPlugin, b: EcsPlugin) => a.order - b.order;
 
 export const sortSystem = (a: EcsSystem<SystemStage>, b: EcsSystem<SystemStage>) => a.order - b.order;
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export const createCallFnWithWorldArg = (world: any) => (fn: (world: any) => unknown) => fn(world);
+
 export const callFnWithoutArgs = (fn: () => unknown) => fn();
 
 export const createCallFnWithUpdateArgs =
     (delta: number, time: number) => (fn: (delta: number, time: number) => unknown) =>
         fn(delta, time);
 
-export const runSystemsWithoutArgs = async (systems: EcsSystem<'startup' | 'render'>[]) => {
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export const createRunSystemsWithWorldArg = (world: any) => async (systems: EcsSystem<'startup'>[]) => {
+    const callFnWithWorldArg = createCallFnWithWorldArg(world);
+
+    for (let i = 0; i < systems.length; i++) {
+        const system = systems[i];
+
+        if (isParallelSystem(system)) {
+            await Promise.allSettled(system.fns.map(callFnWithWorldArg));
+        } else {
+            const maybePromise = system.fn(world);
+            if (isPromise(maybePromise)) {
+                await maybePromise;
+            }
+        }
+    }
+};
+
+export const runSystemsWithoutArgs = async (systems: EcsSystem<'render'>[]) => {
     for (let i = 0; i < systems.length; i++) {
         const system = systems[i];
 

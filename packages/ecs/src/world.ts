@@ -1,6 +1,7 @@
 import {
     arraySwapDelete,
     createRunSystemsWithUpdateArgs,
+    createRunSystemsWithWorldArg,
     findComponentByTypes,
     isPromise,
     removeComponentByType,
@@ -434,8 +435,10 @@ class EcsWorld<
             }
         }
 
+        const runSystemsWithWorldArg = createRunSystemsWithWorldArg(this);
+
         if (this.systems['startup'].length > 0) {
-            await runSystemsWithoutArgs(this.systems['startup']);
+            await runSystemsWithWorldArg(this.systems['startup']);
         }
 
         const updateTimestep = 1000 / this.options.targetUpdatesPerSecond;

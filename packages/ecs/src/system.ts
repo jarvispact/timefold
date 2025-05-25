@@ -1,3 +1,6 @@
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type FnWithWorldArg = ((world: any) => unknown) | ((world: any) => Promise<unknown>);
+
 type FnWithoutArgs = (() => unknown) | (() => Promise<unknown>);
 
 type FnWithUpdateArgs =
@@ -5,7 +8,7 @@ type FnWithUpdateArgs =
     | ((delta: number, time: number) => Promise<unknown>);
 
 type FnMap = {
-    startup: FnWithoutArgs;
+    startup: FnWithWorldArg;
     'before-update': FnWithUpdateArgs;
     update: FnWithUpdateArgs;
     'after-update': FnWithUpdateArgs;
