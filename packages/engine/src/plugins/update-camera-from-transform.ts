@@ -9,19 +9,26 @@ export const UpdateCameraFromTransformPlugin = createPlugin<EngineWorld>({
             map: ([transform, camera]) => ({ modelMatrix: transform.data.modelMatrix, camera }),
         });
 
-        const UpdateCameraSystem = createSystem({
-            stage: 'after-update',
-            fn: () => {
-                for (const { modelMatrix, camera } of query) {
-                    if (PerspectiveCamera.isPerspective(camera)) {
-                        PerspectiveCamera.updateFromModelMatrix(camera, modelMatrix);
-                    } else {
-                        OrthographicCamera.updateFromModelMatrix(camera, modelMatrix);
-                    }
+        const fn = () => {
+            for (const { modelMatrix, camera } of query) {
+                if (PerspectiveCamera.isPerspective(camera)) {
+                    PerspectiveCamera.updateFromModelMatrix(camera, modelMatrix);
+                } else {
+                    OrthographicCamera.updateFromModelMatrix(camera, modelMatrix);
                 }
-            },
+            }
+        };
+
+        const Startup = createSystem({
+            stage: 'startup',
+            fn,
         });
 
-        world.registerSystems(UpdateCameraSystem);
+        const Update = createSystem({
+            stage: 'after-update',
+            fn,
+        });
+
+        world.registerSystems([Startup, Update]);
     },
 });

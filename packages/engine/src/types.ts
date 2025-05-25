@@ -5,13 +5,18 @@ import { SceneStruct } from './structs';
 
 export type EngineEvent = EcsEvent<EngineComponent[]>;
 
+// TODO: split scene struct into light types and camera
+// Maybe camera not even needed as it is not an array and Data component
+// can be spawned with the bundle independant
 export type SceneData = InferWgslStructResult<typeof SceneStruct>;
 
 export type EngineResources = {
-    scene: {
-        maxDirLights: number;
-        currentDirLight: number;
-        data: SceneData;
+    engine: {
+        frame: {
+            maxDirLights: number;
+            currentDirLight: number;
+            data: SceneData;
+        };
     };
 };
 

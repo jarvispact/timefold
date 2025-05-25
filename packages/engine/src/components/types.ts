@@ -1,5 +1,6 @@
 import { Component } from '@timefold/ecs';
 import { Vec3Type, ScalarType, Mat4x4Type, QuatType } from '@timefold/math';
+import { SupportedPositionFormat, SupportedFormat } from '@timefold/webgpu';
 
 // Aabb
 
@@ -38,6 +39,15 @@ export type ClockComponent = Component<ClockType, ClockData>;
 
 export type DataType = '@tf/Data';
 export type DataComponent<B extends ArrayBufferLike = ArrayBuffer> = Component<DataType, B>;
+
+// MeshData
+
+export type MeshDataType = '@tf/MeshData';
+
+export type MeshDataComponent<
+    Transform extends ArrayBufferLike = ArrayBuffer,
+    Materials extends ArrayBufferLike[] = ArrayBuffer[],
+> = Component<MeshDataType, { transform: Transform; materials: Materials }>;
 
 // DirLight
 
@@ -124,6 +134,65 @@ export type TransformData = {
 
 export type TransformComponent = Component<TransformType, TransformData>;
 
+// Primitive
+
+type GenericTypedIndexArray = Uint16Array | Uint32Array;
+
+// InterleavedPrimitive
+
+export type InterleavedPrimitiveType = '@tf/InterleavedPrimitive';
+
+export type InterleavedLayout = {
+    position: { format: SupportedPositionFormat; stride: number };
+} & Record<string, { format: SupportedFormat; stride: number }>;
+
+export type InterleavedPrimitiveData = {
+    mode: 'interleaved';
+    layout: InterleavedLayout;
+    vertices: Float32Array;
+    indices?: GenericTypedIndexArray;
+};
+
+export type InterleavedPrimitiveComponent = Component<InterleavedPrimitiveType, InterleavedPrimitiveData>;
+
+// NonInterleavedPrimitive
+
+export type NonInterleavedPrimitiveType = '@tf/NonInterleavedPrimitive';
+
+export type GenericTypedArray =
+    | Int8Array
+    | Uint8Array
+    | Int16Array
+    | Uint16Array
+    | Int32Array
+    | Uint32Array
+    | Float32Array;
+
+export type NonInterleavedAttributes = {
+    position: { format: SupportedPositionFormat; data: Float32Array };
+} & Record<string, { format: SupportedFormat; data: GenericTypedArray }>;
+
+export type NonInterleavedPrimitiveData = {
+    mode: 'non-interleaved';
+    attributes: NonInterleavedAttributes;
+    indices?: GenericTypedIndexArray;
+};
+
+export type NonInterleavedPrimitiveComponent = Component<NonInterleavedPrimitiveType, NonInterleavedPrimitiveData>;
+
+// Mesh
+
+export type MeshType = '@tf/Mesh';
+
+export type MeshPart = {
+    material: UnlitMaterialComponent | PhongMaterialComponent;
+    primitive: InterleavedPrimitiveComponent | NonInterleavedPrimitiveComponent;
+};
+
+export type MeshData = MeshPart[];
+
+export type MeshComponent = Component<MeshType, MeshData>;
+
 // EngineComponent
 
 export type EngineComponent =
@@ -135,4 +204,8 @@ export type EngineComponent =
     | UnlitMaterialComponent
     | PhongMaterialComponent
     | DataComponent
-    | ClockComponent;
+    | MeshDataComponent
+    | ClockComponent
+    | InterleavedPrimitiveComponent
+    | NonInterleavedPrimitiveComponent
+    | MeshComponent;

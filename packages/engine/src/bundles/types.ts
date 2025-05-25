@@ -2,35 +2,29 @@ import { EcsEvent, World } from '@timefold/ecs';
 import {
     DataComponent,
     DirLightComponent,
+    MeshComponent,
     OrthographicCameraComponent,
     PerspectiveCameraComponent,
-    PhongMaterialComponent,
     TransformComponent,
-    UnlitMaterialComponent,
 } from '../components/types';
 import { EngineResources } from '../types';
 
 // Bundles
 
 export type CameraBundle = {
+    data?: DataComponent<ArrayBufferLike>;
     transform: TransformComponent;
     camera: PerspectiveCameraComponent | OrthographicCameraComponent;
 };
 
 export type DirLightBundle = {
+    data?: DataComponent<ArrayBufferLike>;
     dirLight: DirLightComponent;
 };
 
-export type UnlitEntityBundle = {
-    data?: DataComponent<ArrayBufferLike>;
+export type MeshBundle = {
     transform: TransformComponent;
-    material: UnlitMaterialComponent;
-};
-
-export type PhongEntityBundle = {
-    data?: DataComponent<ArrayBufferLike>;
-    transform: TransformComponent;
-    material: PhongMaterialComponent;
+    mesh: MeshComponent;
 };
 
 // BundleWorld

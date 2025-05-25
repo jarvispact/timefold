@@ -8,6 +8,7 @@ export default defineConfig({
             '@timefold/ecs': path.resolve(__dirname, '../ecs/src/ecs.ts'),
             '@timefold/math': path.resolve(__dirname, '../math/src/math.ts'),
             '@timefold/webgpu': path.resolve(__dirname, '../webgpu/src/webgpu.ts'),
+            '@timefold/obj': path.resolve(__dirname, '../obj/src/obj.ts'),
         },
     },
     build: {

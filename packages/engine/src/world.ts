@@ -23,10 +23,12 @@ export const createWorld = <
 ): World<WorldComponent, WorldEvent, WorldResources> => {
     const world = createEcsWorld<WorldComponent, WorldEvent, WorldResources>(options);
 
-    world.setResource('scene', {
-        maxDirLights: MAX_DIR_LIGHTS,
-        currentDirLight: 0,
-        data: options.sceneData ?? SceneStruct.create({ mode: 'array-buffer' }),
+    world.setResource('engine', {
+        frame: {
+            maxDirLights: MAX_DIR_LIGHTS,
+            currentDirLight: 0,
+            data: options.sceneData ?? SceneStruct.create({ mode: 'array-buffer' }),
+        },
     });
 
     return world;

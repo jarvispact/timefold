@@ -13,7 +13,7 @@ type CreateArgs = {
 
 export const create = (args: CreateArgs = {}): UnlitMaterialComponent => {
     return createComponent(type, {
-        color: args.color ?? (args.colorMap ? Vec3.zero() : Vec3.create(1, 1, 1)),
+        color: args.color ?? Vec3.create(1, 1, 1),
         colorMap: args.colorMap,
         opacity: Scalar.create(args.opacity ?? 1),
         useColorMapAlpha: Scalar.create(args.useColorMapAlpha && args.colorMap ? 1 : 0),
