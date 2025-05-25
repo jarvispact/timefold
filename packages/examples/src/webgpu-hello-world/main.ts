@@ -1,4 +1,4 @@
-import { Uniform, WebgpuUtils, Wgsl } from '@timefold/webgpu';
+import { RenderPassDescriptor, Uniform, WebgpuUtils, Wgsl } from '@timefold/webgpu';
 import { Vec3, Mat4x4, MathUtils } from '@timefold/math';
 import { cubeVertices } from './cube';
 
@@ -34,9 +34,9 @@ const EntityUniformGroup = Uniform.group(1, {
 });
 
 const Vertex = WebgpuUtils.createVertexBufferLayout('interleaved', {
-    position: { format: 'float32x3', offset: 0 },
-    normal: { format: 'float32x3', offset: 3 },
-    uv: { format: 'float32x2', offset: 5 },
+    position: { format: 'float32x3', stride: 0 },
+    normal: { format: 'float32x3', stride: 3 },
+    uv: { format: 'float32x2', stride: 5 },
 });
 
 const shaderCode = /* wgsl */ `
@@ -81,7 +81,7 @@ const run = async () => {
     const entityBindgroup = Pipeline.createBindGroups(1, { entity: WebgpuUtils.createBufferDescriptor() });
     const { buffer, count, slot } = Vertex.createBuffer(device, cubeVertices);
 
-    const renderPassDescriptor: WebgpuUtils.RenderPassDescriptor = {
+    const renderPassDescriptor: RenderPassDescriptor = {
         label: 'canvas renderPass',
         colorAttachments: [WebgpuUtils.createColorAttachmentFromView(context.getCurrentTexture().createView())],
     };

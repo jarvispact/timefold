@@ -35,8 +35,8 @@ const EntityUniformGroup = Uniform.group(1, {
 });
 
 const Vertex = WebgpuUtils.createVertexBufferLayout('interleaved', {
-    position: { format: 'float32x3', offset: 0 },
-    uv: { format: 'float32x2', offset: 3 },
+    position: { format: 'float32x3', stride: 0 },
+    uv: { format: 'float32x2', stride: 3 },
 });
 
 const shaderCode = /* wgsl */ `

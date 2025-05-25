@@ -84,7 +84,7 @@ const run = async () => {
 
     // geometry
 
-    const P = Vertex.createBuffer(device, 'position', triangle);
+    const P = Vertex.createBuffers(device, { position: triangle });
 
     // entity data
 
@@ -102,7 +102,7 @@ const run = async () => {
         const encoder = device.createCommandEncoder();
         const pass = encoder.beginRenderPass(renderPassDescriptor);
         pass.setPipeline(pipeline);
-        pass.setVertexBuffer(P.slot, P.buffer);
+        pass.setVertexBuffer(P.attribs.position.slot, P.attribs.position.buffer);
 
         pass.setBindGroup(0, Scene.bindGroup);
         device.queue.writeBuffer(Scene.buffers.scene, 0, sceneData);
@@ -110,7 +110,7 @@ const run = async () => {
         for (const entity of entities) {
             pass.setBindGroup(1, entity.bindgroup);
             device.queue.writeBuffer(entity.buffer, 0, entity.data);
-            pass.draw(P.count);
+            pass.draw(P.attribs.position.count);
         }
 
         pass.end();

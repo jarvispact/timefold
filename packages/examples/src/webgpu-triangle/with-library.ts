@@ -46,15 +46,15 @@ const run = async () => {
         fragment: { module: module, targets: [{ format }] },
     });
 
-    const P = Vertex.createBuffer(device, 'position', triangle);
+    const P = Vertex.createBuffers(device, { position: triangle });
 
     const render = () => {
         renderPassDescriptor.colorAttachments[0].view = context.getCurrentTexture().createView();
         const encoder = device.createCommandEncoder();
         const pass = encoder.beginRenderPass(renderPassDescriptor);
         pass.setPipeline(pipeline);
-        pass.setVertexBuffer(P.slot, P.buffer);
-        pass.draw(P.count);
+        pass.setVertexBuffer(P.attribs.position.slot, P.attribs.position.buffer);
+        pass.draw(P.attribs.position.count);
         pass.end();
         device.queue.submit([encoder.finish()]);
     };

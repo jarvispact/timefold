@@ -217,7 +217,12 @@ export type CreateDeviceOptions = {
     device?: GPUDeviceDescriptor;
 };
 
-export type CreateDeviceAndContextOptions = CreateContextOptions & CreateDeviceOptions;
+export type CreateDeviceAndContextOptions = {
+    canvas: HTMLCanvasElement | OffscreenCanvas;
+    adapter?: GPURequestAdapterOptions;
+    device?: GPUDeviceDescriptor;
+    contextConfig?: Omit<GPUCanvasConfiguration, 'device'>;
+};
 
 export type CreateDeviceAndContextResult = {
     device: GPUDevice;

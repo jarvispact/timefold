@@ -19,9 +19,6 @@
     "dev:gltf2-loader": "sed 's/{example-folder}/gltf2-loader/g' index.html.template > index.html && vite --port 9093",
     "build:gltf2-loader": "sed 's/{example-folder}/gltf2-loader/g' index.html.template > index.html && vite build",
 
-    "dev:engine": "sed 's/{example-folder}/engine/g' index.html.template > index.html && vite --port 9093",
-    "build:engine": "sed 's/{example-folder}/engine/g' index.html.template > index.html && vite build",
-
     "dev:2d-platformer": "sed 's/{example-folder}/2d-platformer/g' index.html.template > index.html && vite --port 9093",
     "build:2d-platformer": "sed 's/{example-folder}/2d-platformer/g' index.html.template > index.html && vite build",
 
@@ -45,9 +42,6 @@
 
     "dev:3d-boilerplate": "sed 's/{example-folder}/3d-boilerplate/g' index.html.template > index.html && vite --port 9093",
     "build:3d-boilerplate": "sed 's/{example-folder}/3d-boilerplate/g' index.html.template > index.html && vite build",
-
-    "dev:renderer-reloaded": "sed 's/{example-folder}/renderer-reloaded/g' index.html.template > index.html && vite --port 9093",
-    "build:renderer-reloaded": "sed 's/{example-folder}/renderer-reloaded/g' index.html.template > index.html && vite build",
 
     "preview": "vite preview --port 9191"
   }
