@@ -180,13 +180,19 @@ export type NonInterleavedPrimitiveData = {
 
 export type NonInterleavedPrimitiveComponent = Component<NonInterleavedPrimitiveType, NonInterleavedPrimitiveData>;
 
+// Unions
+
+export type MaterialComponent = UnlitMaterialComponent | PhongMaterialComponent;
+
+export type PrimitiveComponent = InterleavedPrimitiveComponent | NonInterleavedPrimitiveComponent;
+
 // Mesh
 
 export type MeshType = '@tf/Mesh';
 
 export type MeshPart = {
-    material: UnlitMaterialComponent | PhongMaterialComponent;
-    primitive: InterleavedPrimitiveComponent | NonInterleavedPrimitiveComponent;
+    material: MaterialComponent;
+    primitive: PrimitiveComponent;
 };
 
 export type MeshData = MeshPart[];
@@ -194,10 +200,6 @@ export type MeshData = MeshPart[];
 export type MeshComponent = Component<MeshType, MeshData>;
 
 // EngineComponent
-
-export type MaterialComponent = UnlitMaterialComponent | PhongMaterialComponent;
-
-export type PrimitiveComponent = InterleavedPrimitiveComponent | NonInterleavedPrimitiveComponent;
 
 export type EngineComponent =
     | AabbComponent

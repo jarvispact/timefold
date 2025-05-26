@@ -6,8 +6,9 @@ import {
     RenderPipelineContext,
     GenericCreateVertexBufferLayoutResult,
 } from '@timefold/webgpu';
-import { GenericTypedArray, NonInterleavedAttributes, PrimitiveComponent } from '../../components';
+import { PrimitiveComponent } from '../../components';
 import { CameraStruct, TransformStruct } from '../../structs';
+import { getVertexAndIndexFromPrimitive } from './internal-utils';
 
 type VertexBuffer = { slot: number; buffer: GPUBuffer };
 type Vertex = { buffers: VertexBuffer[]; count: number };
@@ -38,16 +39,6 @@ ${uniformsWgsl}
     `.trim();
 
     return code;
-};
-
-const getData = (attribs: NonInterleavedAttributes) => {
-    const data = {} as { position: Float32Array } & Record<string, GenericTypedArray>;
-
-    for (const key of Object.keys(attribs)) {
-        data[key] = attribs[key].data;
-    }
-
-    return data;
 };
 
 export const DepthPass = defineRenderPass({
@@ -127,38 +118,13 @@ export const DepthPass = defineRenderPass({
                 const pipeline = pipelineMap.get(primitive)!;
 
                 if (!pipeline.primitiveMap.has(primitive)) {
-                    const vertex =
-                        pipeline.primitiveLayout.mode === 'interleaved'
-                            ? primitive.type === '@tf/InterleavedPrimitive'
-                                ? pipeline.primitiveLayout.createBuffer(device, primitive.data.vertices)
-                                : undefined
-                            : primitive.type === '@tf/NonInterleavedPrimitive'
-                              ? pipeline.primitiveLayout.createBuffers(device, getData(primitive.data.attributes))
-                              : undefined;
-
-                    if (vertex === undefined) {
-                        console.error(`Invalid`);
+                    const result = getVertexAndIndexFromPrimitive(device, pipeline.primitiveLayout, primitive);
+                    if (!result) {
+                        console.error('Invalid');
                         return;
                     }
 
-                    const index = primitive.data.indices
-                        ? WebgpuUtils.createIndexBuffer(device, {
-                              format: primitive.data.indices instanceof Uint16Array ? 'uint16' : 'uint32',
-                              data: primitive.data.indices,
-                          })
-                        : undefined;
-
-                    pipeline.primitiveMap.set(primitive, {
-                        vertex: {
-                            buffers:
-                                vertex.mode === 'interleaved'
-                                    ? [{ buffer: vertex.buffer, slot: vertex.slot }]
-                                    : Object.values(vertex.attribs),
-                            count: vertex.mode === 'interleaved' ? vertex.count : vertex.attribs.position.count,
-                        },
-                        index,
-                        transforms: [],
-                    });
+                    pipeline.primitiveMap.set(primitive, { ...result, transforms: [] });
                 }
 
                 // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
