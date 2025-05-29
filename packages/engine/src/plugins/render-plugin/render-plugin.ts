@@ -2,9 +2,7 @@ import { createPlugin, createSystem } from '@timefold/ecs';
 import { createRenderPipeline } from '@timefold/webgpu';
 import { EngineWorld } from '../../types';
 import { DepthPass } from './depth-pass';
-// import { ColorPass } from './color-pass';
-import { PhongPass } from './phong-pass';
-// import { DebugDepthMapPass } from './debug-depth-map-pass';
+import { MultiMaterialPass } from './multi-material-pass';
 
 type Args = {
     canvas: HTMLCanvasElement | OffscreenCanvas;
@@ -19,13 +17,13 @@ export const createRenderPlugin = ({ canvas }: Args) => {
                 .addRenderPass(DepthPass)
                 // .addRenderPass(DebugDepthMapPass)
                 // .addRenderPass(ColorPass)
-                .addRenderPass(PhongPass)
+                .addRenderPass(MultiMaterialPass)
                 .build();
 
             world.createQuery({
                 query: { tuple: [{ has: '@tf/DirLight', include: false }] },
                 onAdd: () => {
-                    pipeline.passes.PhongPass.setDirLights(frame.dirLightData.buffer);
+                    pipeline.passes.MultiMaterialPass.setDirLights(frame.dirLightData.buffer);
                 },
             });
 
@@ -39,7 +37,7 @@ export const createRenderPlugin = ({ canvas }: Args) => {
                 },
                 onAdd: ([data]) => {
                     pipeline.passes.DepthPass.setCamera(data.data);
-                    pipeline.passes.PhongPass.setCamera(data.data);
+                    pipeline.passes.MultiMaterialPass.setCamera(data.data);
                 },
             });
 
@@ -49,22 +47,13 @@ export const createRenderPlugin = ({ canvas }: Args) => {
                     for (let i = 0; i < mesh.data.length; i++) {
                         const meshEntry = mesh.data[i];
                         pipeline.passes.DepthPass.addEntity(meshEntry.primitive, data.data.transform);
-                        if (meshEntry.material.type === '@tf/UnlitMaterial') {
-                            // pipeline.passes.ColorPass.addEntity(
-                            //     meshEntry.material,
-                            //     data.data.materials[i],
-                            //     meshEntry.primitive,
-                            //     data.data.transform,
-                            // );
-                        } else {
-                            pipeline.passes.PhongPass.addEntity({
-                                id,
-                                material: meshEntry.material,
-                                materialData: data.data.materials[i],
-                                primitive: meshEntry.primitive,
-                                transformData: data.data.transform,
-                            });
-                        }
+                        pipeline.passes.MultiMaterialPass.addEntity({
+                            id,
+                            material: meshEntry.material,
+                            materialData: data.data.materials[i],
+                            primitive: meshEntry.primitive,
+                            transformData: data.data.transform,
+                        });
                     }
                 },
             });
