@@ -37,22 +37,18 @@ export const isParallelPlugin = <W = World<Component>>(
     plugin: SerialPlugin<W> | ParallelPlugin<W>,
 ): plugin is ParallelPlugin<W> => plugin.parallel;
 
-const isParallelArgs = <W = World<Component>>(
-    args: SerialPluginArgs<W> | ParallelPluginArgs<W>,
-): args is ParallelPluginArgs<W> => 'fns' in args;
-
-export const createPlugin = <W = World<Component>>(args: SerialPluginArgs<W> | ParallelPluginArgs<W>): EcsPlugin<W> => {
-    if (isParallelArgs(args)) {
-        return {
-            parallel: true,
-            fns: args.fns,
-            order: args.order ?? defaultOrder,
-        };
-    }
-
+export const createPlugin = <W = World<Component>>(args: SerialPluginArgs<W>): SerialPlugin<W> => {
     return {
         parallel: false,
         fn: args.fn,
+        order: args.order ?? defaultOrder,
+    };
+};
+
+export const createParallelPlugin = <W = World<Component>>(args: ParallelPluginArgs<W>): ParallelPlugin<W> => {
+    return {
+        parallel: true,
+        fns: args.fns,
         order: args.order ?? defaultOrder,
     };
 };

@@ -57,26 +57,20 @@ export const isParallelSystem = <S extends SystemStage>(
     system: SerialSystem<S> | ParallelSystem<S>,
 ): system is ParallelSystem<S> => system.parallel;
 
-const isParallelArgs = <S extends SystemStage>(
-    args: SerialSystemArgs<S> | ParallelSystemArgs<S>,
-): args is ParallelSystemArgs<S> => 'fns' in args;
-
-export const createSystem = <S extends SystemStage, Args extends SerialSystemArgs<S> | ParallelSystemArgs<S>>(
-    args: Args,
-): Args extends ParallelSystemArgs<S> ? ParallelSystem<S> : SerialSystem<S> => {
-    if (isParallelArgs(args)) {
-        return {
-            stage: args.stage,
-            parallel: true,
-            fns: args.fns,
-            order: args.order ?? defaultOrder,
-        } as never;
-    }
-
+export const createSystem = <S extends SystemStage>(args: SerialSystemArgs<S>): SerialSystem<S> => {
     return {
         stage: args.stage,
         parallel: false,
         fn: args.fn,
         order: args.order ?? defaultOrder,
-    } as never;
+    };
+};
+
+export const createParallelSystem = <S extends SystemStage>(args: ParallelSystemArgs<S>): ParallelSystem<S> => {
+    return {
+        stage: args.stage,
+        parallel: true,
+        fns: args.fns,
+        order: args.order ?? defaultOrder,
+    };
 };

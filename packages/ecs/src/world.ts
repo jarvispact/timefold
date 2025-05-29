@@ -444,8 +444,8 @@ class EcsWorld<
         const updateTimestep = 1000 / this.options.targetUpdatesPerSecond;
         const renderTimestep = 1000 / this.options.targetFramesPerSecond;
 
-        let timeToUpdate = performance.now();
-        let timeToRender = performance.now();
+        let timeToUpdate = !options.loop ? 0 : performance.now();
+        let timeToRender = !options.loop ? 0 : performance.now();
 
         let then = 0;
 
@@ -457,8 +457,14 @@ class EcsWorld<
         };
 
         const tick = async (time: number) => {
-            this.deltaTime = getDelta(time);
-            this.time = time;
+            if (!options.loop) {
+                this.deltaTime = 0;
+                this.time = 0;
+            } else {
+                this.deltaTime = getDelta(time);
+                this.time = time;
+            }
+
             const runSystems = createRunSystemsWithUpdateArgs(this.deltaTime, this.time);
 
             if (time >= timeToUpdate) {
