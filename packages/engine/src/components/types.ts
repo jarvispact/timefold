@@ -115,6 +115,7 @@ export type PhongMaterialType = '@tf/PhongMaterial';
 export type PhongMaterialData = {
     diffuseColor: Vec3Type;
     specularColor: Vec3Type;
+    shininess: ScalarType;
     opacity: ScalarType;
 };
 

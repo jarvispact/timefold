@@ -37,10 +37,12 @@ export const create = (bundle: MeshBundle) => {
 
             Vec3.copy(views.diffuse_color, material.data.diffuseColor);
             Vec3.copy(views.specular_color, material.data.specularColor);
+            Scalar.copy(views.shininess, material.data.shininess);
             Scalar.copy(views.opacity, material.data.opacity);
 
             material.data.diffuseColor = views.diffuse_color;
             material.data.specularColor = views.specular_color;
+            material.data.shininess = views.shininess;
             material.data.opacity = views.opacity;
 
             materials.push(buffer);

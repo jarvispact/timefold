@@ -7,11 +7,13 @@ import {
     WorldOptions as EcsWorldOptions,
 } from '@timefold/ecs';
 import { EngineComponent } from './components/types';
-import { EngineResources, SceneData } from './types';
-import { MAX_DIR_LIGHTS, SceneStruct } from './structs';
+import { EngineResources } from './types';
+import { DirLightStructArray, MAX_DIR_LIGHTS } from './structs';
+import { InferWgslArrayResult } from '@timefold/webgpu';
 
+// TODO: Currently does not allow to set custom dirLightData because of MAX_DIR_LIGHTS in type.
 type WorldOptions = Partial<EcsWorldOptions> & {
-    sceneData?: SceneData;
+    dirLightData?: InferWgslArrayResult<typeof DirLightStructArray>;
 };
 
 export const createWorld = <
@@ -27,7 +29,7 @@ export const createWorld = <
         frame: {
             maxDirLights: MAX_DIR_LIGHTS,
             currentDirLight: 0,
-            data: options.sceneData ?? SceneStruct.create({ mode: 'array-buffer' }),
+            dirLightData: options.dirLightData ?? DirLightStructArray.create({ mode: 'array-buffer' }),
         },
     });
 

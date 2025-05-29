@@ -2,7 +2,9 @@ import { createPlugin, createSystem } from '@timefold/ecs';
 import { createRenderPipeline } from '@timefold/webgpu';
 import { EngineWorld } from '../../types';
 import { DepthPass } from './depth-pass';
-import { ColorPass } from './color-pass';
+// import { ColorPass } from './color-pass';
+import { PhongPass } from './phong-pass';
+// import { DebugDepthMapPass } from './debug-depth-map-pass';
 
 type Args = {
     canvas: HTMLCanvasElement | OffscreenCanvas;
@@ -11,13 +13,20 @@ type Args = {
 export const createRenderPlugin = ({ canvas }: Args) => {
     const Plugin = createPlugin<EngineWorld>({
         fn: async (world) => {
+            const { frame } = world.getResource('engine');
+
             const pipeline = await createRenderPipeline({ canvas, msaa: 4 })
                 .addRenderPass(DepthPass)
-                .addRenderPass(ColorPass)
+                // .addRenderPass(DebugDepthMapPass)
+                // .addRenderPass(ColorPass)
+                .addRenderPass(PhongPass)
                 .build();
 
             world.createQuery({
-                query: { tuple: [{ has: '@tf/DirLight' }] },
+                query: { tuple: [{ has: '@tf/DirLight', include: false }] },
+                onAdd: () => {
+                    pipeline.passes.PhongPass.setDirLights(frame.dirLightData.buffer);
+                },
             });
 
             world.createQuery({
@@ -30,23 +39,31 @@ export const createRenderPlugin = ({ canvas }: Args) => {
                 },
                 onAdd: ([data]) => {
                     pipeline.passes.DepthPass.setCamera(data.data);
-                    pipeline.passes.ColorPass.setCamera(data.data);
+                    pipeline.passes.PhongPass.setCamera(data.data);
                 },
             });
 
             world.createQuery({
-                query: { tuple: [{ has: '@tf/MeshData' }, { has: '@tf/Mesh' }] },
-                onAdd: ([data, mesh]) => {
+                query: { includeId: true, tuple: [{ has: '@tf/MeshData' }, { has: '@tf/Mesh' }] },
+                onAdd: ([id, data, mesh]) => {
                     for (let i = 0; i < mesh.data.length; i++) {
                         const meshEntry = mesh.data[i];
                         pipeline.passes.DepthPass.addEntity(meshEntry.primitive, data.data.transform);
                         if (meshEntry.material.type === '@tf/UnlitMaterial') {
-                            pipeline.passes.ColorPass.addEntity(
-                                meshEntry.material,
-                                data.data.materials[i],
-                                meshEntry.primitive,
-                                data.data.transform,
-                            );
+                            // pipeline.passes.ColorPass.addEntity(
+                            //     meshEntry.material,
+                            //     data.data.materials[i],
+                            //     meshEntry.primitive,
+                            //     data.data.transform,
+                            // );
+                        } else {
+                            pipeline.passes.PhongPass.addEntity({
+                                id,
+                                material: meshEntry.material,
+                                materialData: data.data.materials[i],
+                                primitive: meshEntry.primitive,
+                                transformData: data.data.transform,
+                            });
                         }
                     }
                 },

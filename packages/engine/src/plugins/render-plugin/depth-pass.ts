@@ -8,11 +8,7 @@ import {
 } from '@timefold/webgpu';
 import { PrimitiveComponent } from '../../components';
 import { CameraStruct, TransformStruct } from '../../structs';
-import { getVertexAndIndexFromPrimitive } from './internal-utils';
-
-type VertexBuffer = { slot: number; buffer: GPUBuffer };
-type Vertex = { buffers: VertexBuffer[]; count: number };
-type Index = { buffer: GPUBuffer; format: GPUIndexFormat; count: number };
+import { getVertexAndIndexFromPrimitive, Index, Vertex } from './internal-utils';
 
 type TransformBindgroup = {
     group: number;

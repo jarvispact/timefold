@@ -9,11 +9,7 @@ import {
 import { DepthPass } from './depth-pass';
 import { PrimitiveComponent, UnlitMaterialComponent } from '../../components';
 import { CameraStruct, TransformStruct, UnlitMaterialStruct } from '../../structs';
-import { getVertexAndIndexFromPrimitive } from './internal-utils';
-
-type VertexBuffer = { slot: number; buffer: GPUBuffer };
-type Vertex = { buffers: VertexBuffer[]; count: number };
-type Index = { buffer: GPUBuffer; format: GPUIndexFormat; count: number };
+import { getVertexAndIndexFromPrimitive, Index, Vertex } from './internal-utils';
 
 type MaterialBindGroup = {
     group: number;

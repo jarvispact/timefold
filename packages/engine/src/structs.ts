@@ -67,6 +67,7 @@ export type UnlitEntityStruct = typeof UnlitEntityStruct;
 export const PhongMaterialStruct = Wgsl.struct('PhongMaterial', {
     diffuse_color: Wgsl.type('vec3<f32>'),
     specular_color: Wgsl.type('vec3<f32>'),
+    shininess: Wgsl.type('f32'),
     opacity: Wgsl.type('f32'),
 });
 
