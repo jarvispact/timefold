@@ -13,26 +13,22 @@ import {
     DirLightBundle,
     DirLight,
     PhongMaterial,
-    NonInterleavedPrimitive,
+    InterleavedPrimitive,
 } from '@timefold/engine';
 import { MathUtils, Quat, Vec3 } from '@timefold/math';
 import { MtlLoader, ObjLoader } from '@timefold/obj';
 
 const canvas = DomUtils.getCanvasById('canvas');
 
-// TODO: Interleaved primitives are not working when a obj primitive doesnt define all attributes.
-
 const Startup = createSystem({
     stage: 'startup',
     fn: async (world: EngineWorld) => {
-        const Loader = ObjLoader.createLoader({ mode: 'non-interleaved-typed-array-indexed' });
-
         const [cubeSpikesObj, cubeSpikesMtl, cubeBricksObj, cubeBricksMtl, treeObj, treeMtl] = await Promise.all([
-            Loader.load('./kenney-platformer-kit/Cube_Spikes.obj'),
+            ObjLoader.load('./kenney-platformer-kit/Cube_Spikes.obj'),
             MtlLoader.load('./kenney-platformer-kit/Cube_Spikes.mtl'),
-            Loader.load('./kenney-platformer-kit/Cube_Bricks.obj'),
+            ObjLoader.load('./kenney-platformer-kit/Cube_Bricks.obj'),
             MtlLoader.load('./kenney-platformer-kit/Cube_Bricks.mtl'),
-            Loader.load('./kenney-platformer-kit/Tree.obj'),
+            ObjLoader.load('./kenney-platformer-kit/Tree.obj'),
             MtlLoader.load('./kenney-platformer-kit/Tree.mtl'),
         ]);
 
@@ -54,7 +50,7 @@ const Startup = createSystem({
             id: 'camera',
             bundle: CameraBundle.create({
                 transform: Transform.createAndLookAt({ translation: Vec3.create(0, 10, 25), target: Vec3.zero() }),
-                camera: PerspectiveCamera.create({ aspect: canvas.width / canvas.height }),
+                camera: PerspectiveCamera.create({ aspect: canvas.width / canvas.height, near: 0.1, far: 30 }),
             }),
         });
 
@@ -66,7 +62,10 @@ const Startup = createSystem({
                     Object.keys(cubeSpikesPrimitives).map((key) => {
                         return {
                             material: PhongMaterial.create({ diffuseColor: cubeSpikesMtl.materials[key].diffuseColor }),
-                            primitive: NonInterleavedPrimitive.fromObjPrimitive(cubeSpikesPrimitives[key]),
+                            primitive: InterleavedPrimitive.fromObjPrimitive(
+                                cubeSpikesPrimitives[key],
+                                cubeSpikesObj.info,
+                            ),
                         };
                     }),
                 ),
@@ -81,7 +80,10 @@ const Startup = createSystem({
                     Object.keys(cubeBricksPrimitives).map((key) => {
                         return {
                             material: PhongMaterial.create({ diffuseColor: cubeBricksMtl.materials[key].diffuseColor }),
-                            primitive: NonInterleavedPrimitive.fromObjPrimitive(cubeBricksPrimitives[key]),
+                            primitive: InterleavedPrimitive.fromObjPrimitive(
+                                cubeBricksPrimitives[key],
+                                cubeBricksObj.info,
+                            ),
                         };
                     }),
                 ),
@@ -96,7 +98,10 @@ const Startup = createSystem({
                     Object.keys(cubeBricksPrimitives).map((key) => {
                         return {
                             material: PhongMaterial.create({ diffuseColor: cubeBricksMtl.materials[key].diffuseColor }),
-                            primitive: NonInterleavedPrimitive.fromObjPrimitive(cubeBricksPrimitives[key]),
+                            primitive: InterleavedPrimitive.fromObjPrimitive(
+                                cubeBricksPrimitives[key],
+                                cubeBricksObj.info,
+                            ),
                         };
                     }),
                 ),
@@ -111,7 +116,7 @@ const Startup = createSystem({
                     Object.keys(treePrimitives).map((key) => {
                         return {
                             material: PhongMaterial.create({ diffuseColor: treeMtl.materials[key].diffuseColor }),
-                            primitive: NonInterleavedPrimitive.fromObjPrimitive(treePrimitives[key]),
+                            primitive: InterleavedPrimitive.fromObjPrimitive(treePrimitives[key], treeObj.info),
                         };
                     }),
                 ),
@@ -126,7 +131,7 @@ const Startup = createSystem({
                     Object.keys(treePrimitives).map((key) => {
                         return {
                             material: PhongMaterial.create({ diffuseColor: treeMtl.materials[key].diffuseColor }),
-                            primitive: NonInterleavedPrimitive.fromObjPrimitive(treePrimitives[key]),
+                            primitive: InterleavedPrimitive.fromObjPrimitive(treePrimitives[key], treeObj.info),
                         };
                     }),
                 ),
