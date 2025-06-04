@@ -205,13 +205,16 @@ export const createVertexBufferLayout = <
     const attributes = vertexDefinitionKeys.map((key) => {
         const attr = definition[key] as { format: SupportedFormat; stride: number };
         const { stride, View } = formatMap[attr.format];
-        arrayStride += stride * View.BYTES_PER_ELEMENT;
-        totalStride += stride;
+
+        // TODO: Is this a good idea?
+        arrayStride += attr.stride === -1 ? 0 : stride * View.BYTES_PER_ELEMENT;
+        totalStride += attr.stride === -1 ? 0 : stride;
 
         return {
             format: attr.format,
             shaderLocation: locationByName[key],
-            offset: attr.stride * View.BYTES_PER_ELEMENT,
+            // TODO: Is this a good idea?
+            offset: attr.stride === -1 ? 0 : attr.stride * View.BYTES_PER_ELEMENT,
         };
     });
 
