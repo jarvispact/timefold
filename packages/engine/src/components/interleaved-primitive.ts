@@ -1,5 +1,5 @@
 import { createComponent } from '@timefold/ecs';
-import { GenericInterleavedObjPrimitive } from '@timefold/obj';
+import { GenericInterleavedObjPrimitive, InterleavedInfo } from '@timefold/obj';
 import {
     InterleavedLayout,
     InterleavedPrimitiveType,
@@ -26,15 +26,20 @@ const ensureFloat32Array = (array: number[] | Float32Array) =>
 const ensureUint32Array = (array: number[] | Uint32Array) =>
     array instanceof Uint32Array ? array : new Uint32Array(array);
 
-const objLayout: InterleavedLayout = {
-    position: { format: 'float32x3', stride: 0 },
-    uv: { format: 'float32x2', stride: 3 },
-    normal: { format: 'float32x3', stride: 5 },
+const layoutFromObjInfo = (info: InterleavedInfo): InterleavedLayout => {
+    return {
+        position: { format: 'float32x3', stride: info.positionOffset },
+        uv: { format: 'float32x2', stride: info.uvOffset },
+        normal: { format: 'float32x3', stride: info.normalOffset },
+    };
 };
 
-export const fromObjPrimitive = (objPrimitive: GenericInterleavedObjPrimitive): InterleavedPrimitiveComponent => {
+export const fromObjPrimitive = (
+    objPrimitive: GenericInterleavedObjPrimitive,
+    info: InterleavedInfo,
+): InterleavedPrimitiveComponent => {
     return createComponent(type, {
-        layout: objLayout,
+        layout: layoutFromObjInfo(info),
         primitive: { ...defaultPrimitive },
         vertices: ensureFloat32Array(objPrimitive.vertices),
         indices: 'indices' in objPrimitive ? ensureUint32Array(objPrimitive.indices) : undefined,

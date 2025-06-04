@@ -16,7 +16,6 @@ export const createRenderPlugin = ({ canvas }: Args) => {
             const pipeline = await createRenderPipeline({ canvas, msaa: 4 })
                 .addRenderPass(DepthPass)
                 // .addRenderPass(DebugDepthMapPass)
-                // .addRenderPass(ColorPass)
                 .addRenderPass(MultiMaterialPass)
                 .build();
 
@@ -46,7 +45,13 @@ export const createRenderPlugin = ({ canvas }: Args) => {
                 onAdd: ([id, data, mesh]) => {
                     for (let i = 0; i < mesh.data.length; i++) {
                         const meshEntry = mesh.data[i];
-                        pipeline.passes.DepthPass.addEntity(meshEntry.primitive, data.data.transform);
+
+                        pipeline.passes.DepthPass.addEntity({
+                            id,
+                            primitive: meshEntry.primitive,
+                            transformData: data.data.transform,
+                        });
+
                         pipeline.passes.MultiMaterialPass.addEntity({
                             id,
                             material: meshEntry.material,

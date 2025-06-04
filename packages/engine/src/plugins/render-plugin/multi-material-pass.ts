@@ -276,6 +276,7 @@ export const MultiMaterialPass = defineRenderPass({
                             0,
                             frameData.dirLights,
                         );
+
                         device.queue.writeBuffer(
                             renderable.pipeline.frameBindgroup.buffers.camera,
                             0,

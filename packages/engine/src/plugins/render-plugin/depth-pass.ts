@@ -1,14 +1,22 @@
-import {
-    RenderPassDescriptor,
-    Uniform,
-    WebgpuUtils,
-    defineRenderPass,
-    RenderPipelineContext,
-    GenericCreateVertexBufferLayoutResult,
-} from '@timefold/webgpu';
-import { PrimitiveComponent } from '../../components';
+/* eslint-disable @typescript-eslint/no-non-null-assertion */
+import { RenderPassDescriptor, Uniform, WebgpuUtils, defineRenderPass, RenderPipelineContext } from '@timefold/webgpu';
+import { InterleavedLayout, NonInterleavedAttributes, PrimitiveComponent } from '../../components';
 import { CameraStruct, TransformStruct } from '../../structs';
 import { getVertexAndIndexFromPrimitive, Index, Vertex } from './internal-utils';
+
+type Entity = {
+    id: string | number;
+    primitive: PrimitiveComponent;
+    transformData: ArrayBufferLike;
+};
+
+type FrameBindgroupResult = {
+    group: number;
+    bindGroup: GPUBindGroup;
+    buffers: {
+        camera: GPUBuffer;
+    };
+};
 
 type TransformBindgroup = {
     group: number;
@@ -17,10 +25,12 @@ type TransformBindgroup = {
     data: ArrayBufferLike;
 };
 
-type DepthPrePassEntity = {
-    vertex: Vertex;
-    index?: Index;
-    transforms: TransformBindgroup[];
+type Renderable = {
+    id: Entity['id'];
+    sortId: number;
+    pipeline: { pipeline: GPURenderPipeline; frameBindgroup: FrameBindgroupResult };
+    primitive: { vertex: Vertex; index?: Index };
+    transform: TransformBindgroup;
 };
 
 const getShaderCode = (uniformsWgsl: string, vertexWgsl: string) => {
@@ -35,6 +45,34 @@ ${uniformsWgsl}
     `.trim();
 
     return code;
+};
+
+const serializePrimitiveState = (primitive: GPUPrimitiveState) => {
+    return [
+        primitive.cullMode ?? 'back',
+        primitive.frontFace ?? 'ccw',
+        primitive.topology ?? 'triangle-list',
+        primitive.stripIndexFormat,
+        primitive.unclippedDepth,
+    ].join(':');
+};
+
+const serializeLayout = (layout: InterleavedLayout) => {
+    return Object.keys(layout)
+        .map((key) => {
+            const value = layout[key];
+            return `${key}:${value.format}:${value.stride}`;
+        })
+        .join('|');
+};
+
+const serializeAttribs = (attribs: NonInterleavedAttributes) => {
+    return Object.keys(attribs)
+        .map((key) => {
+            const value = attribs[key];
+            return `${key}:${value.format}`;
+        })
+        .join('|');
 };
 
 export const DepthPass = defineRenderPass({
@@ -67,18 +105,13 @@ export const DepthPass = defineRenderPass({
             uniformGroups: [CameraGroup, EntityGroup],
         });
 
-        const pipelineMap = new Map<
-            PrimitiveComponent,
-            {
-                pipeline: GPURenderPipeline;
-                primitiveLayout: GenericCreateVertexBufferLayoutResult;
-                primitiveMap: Map<PrimitiveComponent, DepthPrePassEntity>;
-            }
-        >();
+        const renderables: Renderable[] = [];
 
-        const frameBindgroup = PipelineLayout.createBindGroups(0, {
-            camera: WebgpuUtils.createBufferDescriptor(),
-        });
+        const pipelineMap = new Map<string, { pipeline: GPURenderPipeline; frameBindgroup: FrameBindgroupResult }>();
+        let pipelineCounter = -1;
+
+        const primitiveMap = new Map<PrimitiveComponent, { vertex: Vertex; index?: Index }>();
+        let primitiveCounter = -1;
 
         let camera: ArrayBufferLike = new ArrayBuffer();
 
@@ -86,14 +119,23 @@ export const DepthPass = defineRenderPass({
             setCamera: (cameraData: ArrayBufferLike) => {
                 camera = cameraData;
             },
-            addEntity: (primitive: PrimitiveComponent, transform: ArrayBufferLike) => {
-                if (!pipelineMap.has(primitive)) {
+            addEntity: (entity: Entity) => {
+                const primtiveKey = serializePrimitiveState(entity.primitive.data.primitive);
+
+                const layoutKey =
+                    entity.primitive.type === '@tf/InterleavedPrimitive'
+                        ? serializeLayout(entity.primitive.data.layout)
+                        : serializeAttribs(entity.primitive.data.attributes);
+
+                const pipelineMapKey = `${entity.primitive.type}-${primtiveKey}-${layoutKey}`;
+
+                if (!pipelineMap.has(pipelineMapKey)) {
                     const uniformsWgsl = Uniform.getWgslFromGroups(PipelineLayout.uniformGroups);
 
                     const primitiveLayout =
-                        primitive.type === '@tf/InterleavedPrimitive'
-                            ? WebgpuUtils.createVertexBufferLayout('interleaved', primitive.data.layout)
-                            : WebgpuUtils.createVertexBufferLayout('non-interleaved', primitive.data.attributes);
+                        entity.primitive.type === '@tf/InterleavedPrimitive'
+                            ? WebgpuUtils.createVertexBufferLayout('interleaved', entity.primitive.data.layout)
+                            : WebgpuUtils.createVertexBufferLayout('non-interleaved', entity.primitive.data.attributes);
 
                     const module = device.createShaderModule({
                         code: getShaderCode(uniformsWgsl, primitiveLayout.wgsl),
@@ -102,70 +144,95 @@ export const DepthPass = defineRenderPass({
                     const pipeline = device.createRenderPipeline({
                         layout: PipelineLayout.layout,
                         vertex: { module, buffers: primitiveLayout.layout },
-                        primitive: primitive.data.primitive,
+                        primitive: entity.primitive.data.primitive,
                         depthStencil: { depthWriteEnabled: true, depthCompare: 'less', format: 'depth24plus' },
                         multisample: { count: msaa },
                     });
 
-                    pipelineMap.set(primitive, { pipeline, primitiveLayout, primitiveMap: new Map() });
+                    const frameBindgroup = PipelineLayout.createBindGroups(0, {
+                        camera: WebgpuUtils.createBufferDescriptor(),
+                    });
+
+                    pipelineMap.set(pipelineMapKey, { pipeline, frameBindgroup });
+                    pipelineCounter++;
                 }
 
-                // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-                const pipeline = pipelineMap.get(primitive)!;
+                if (!primitiveMap.has(entity.primitive)) {
+                    const primitiveLayout =
+                        entity.primitive.type === '@tf/InterleavedPrimitive'
+                            ? WebgpuUtils.createVertexBufferLayout('interleaved', entity.primitive.data.layout)
+                            : WebgpuUtils.createVertexBufferLayout('non-interleaved', entity.primitive.data.attributes);
 
-                if (!pipeline.primitiveMap.has(primitive)) {
-                    const result = getVertexAndIndexFromPrimitive(device, pipeline.primitiveLayout, primitive);
-                    if (!result) {
-                        console.error('Invalid');
-                        return;
+                    const result = getVertexAndIndexFromPrimitive(device, primitiveLayout, entity.primitive);
+                    if (result) {
+                        primitiveMap.set(entity.primitive, result);
+                        primitiveCounter++;
                     }
-
-                    pipeline.primitiveMap.set(primitive, { ...result, transforms: [] });
                 }
 
-                // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-                const mapEntry = pipeline.primitiveMap.get(primitive)!;
+                const pipeline = pipelineMap.get(pipelineMapKey)!;
+                const primitive = primitiveMap.get(entity.primitive)!;
 
-                const entityBindgroup = PipelineLayout.createBindGroups(1, {
+                const pipelineId = pipelineCounter;
+                const primitiveId = primitiveCounter;
+                const sortId = (pipelineId << 8) | primitiveId;
+
+                const transformBindgroup = PipelineLayout.createBindGroups(1, {
                     transform: WebgpuUtils.createBufferDescriptor(),
                 });
 
-                mapEntry.transforms.push({
-                    group: entityBindgroup.group,
-                    bindgroup: entityBindgroup.bindGroup,
-                    buffer: entityBindgroup.buffers.transform,
-                    data: transform,
+                renderables.push({
+                    id: entity.id,
+                    sortId,
+                    pipeline,
+                    transform: {
+                        group: transformBindgroup.group,
+                        bindgroup: transformBindgroup.bindGroup,
+                        buffer: transformBindgroup.buffers.transform,
+                        data: entity.transformData,
+                    },
+                    primitive,
                 });
+
+                renderables.sort((a, b) => a.sortId - b.sortId);
             },
             render: () => {
                 const encoder = device.createCommandEncoder();
                 const pass = encoder.beginRenderPass(renderPassDescriptor);
 
-                for (const pipeline of pipelineMap.values()) {
-                    pass.setPipeline(pipeline.pipeline);
+                for (let i = 0; i < renderables.length; i++) {
+                    const prevRenderable = renderables[i - 1] as Renderable | undefined;
+                    const renderable = renderables[i];
 
-                    pass.setBindGroup(frameBindgroup.group, frameBindgroup.bindGroup);
-                    device.queue.writeBuffer(frameBindgroup.buffers.camera, 0, camera);
+                    if (!prevRenderable || renderable.pipeline !== prevRenderable.pipeline) {
+                        pass.setPipeline(renderable.pipeline.pipeline);
 
-                    for (const primitive of pipeline.primitiveMap.values()) {
-                        for (const vertex of primitive.vertex.buffers) {
+                        pass.setBindGroup(
+                            renderable.pipeline.frameBindgroup.group,
+                            renderable.pipeline.frameBindgroup.bindGroup,
+                        );
+
+                        device.queue.writeBuffer(renderable.pipeline.frameBindgroup.buffers.camera, 0, camera);
+                    }
+
+                    if (!prevRenderable || renderable.primitive !== prevRenderable.primitive) {
+                        for (const vertex of renderable.primitive.vertex.buffers) {
                             pass.setVertexBuffer(vertex.slot, vertex.buffer);
                         }
 
-                        if (primitive.index) {
-                            pass.setIndexBuffer(primitive.index.buffer, primitive.index.format);
+                        if (renderable.primitive.index) {
+                            pass.setIndexBuffer(renderable.primitive.index.buffer, renderable.primitive.index.format);
                         }
+                    }
 
-                        for (const transform of primitive.transforms) {
-                            pass.setBindGroup(transform.group, transform.bindgroup);
-                            device.queue.writeBuffer(transform.buffer, 0, transform.data);
+                    // TODO: Can we skip updates based on prevRenderable?
+                    pass.setBindGroup(renderable.transform.group, renderable.transform.bindgroup);
+                    device.queue.writeBuffer(renderable.transform.buffer, 0, renderable.transform.data);
 
-                            if (primitive.index) {
-                                pass.drawIndexed(primitive.index.count);
-                            } else {
-                                pass.draw(primitive.vertex.count);
-                            }
-                        }
+                    if (renderable.primitive.index) {
+                        pass.drawIndexed(renderable.primitive.index.count);
+                    } else {
+                        pass.draw(renderable.primitive.vertex.count);
                     }
                 }
 

@@ -22,7 +22,8 @@ struct VsOut {
     @location(0) uv: vec2f,
 }
 
-@vertex fn vs(@builtin(vertex_index) vertexIndex : u32) -> VsOut {
+@vertex
+fn vs(@builtin(vertex_index) vertexIndex : u32) -> VsOut {
     let pos = array(
         vec2f(-0.9,  0.9), // top left
         vec2f(-0.9, -0.9), // bottom left
@@ -49,18 +50,22 @@ struct VsOut {
     return vsOut;
 }
 
-@fragment fn fs(fsIn: VsOut) -> @location(0) vec4f {
-    let dimensions = vec2f(textureDimensions(depth_texture));
-    // let uv = vec2u(fsIn.uv * dimensions);
-    // Sometimes this is needed to avoid white borders around the shadowmap
-    // but it depends on the viewport and wether we render it on the full canvas or inside.
-    let uv = vec2u(fsIn.uv * dimensions - vec2f(1.0));
-    var z = textureLoad(depth_texture, uv, 0).r;
+@fragment
+fn fs(fsIn: VsOut) -> @location(0) vec4f {
+    let camera_near = 0.1;
+    let camera_far = 30.0;
 
-    let min_depth = 0.6;
-    let max_depth = 1.0;
-    z = (z - min_depth) / (max_depth - min_depth);
-    z = 1.0 - clamp(z, 0.0, 1.0);
+    let dimensions = vec2f(textureDimensions(depth_texture));
+    let uv_int = vec2u(fsIn.uv * dimensions - vec2f(1.0));
+    let z_ndc = textureLoad(depth_texture, uv_int, 0).r;
+    let z_clip = z_ndc * 2.0 - 1.0;
+
+    let view_z = (2.0 * camera_near * camera_far) /
+                 (camera_far + camera_near - z_clip * (camera_far - camera_near));
+
+
+    let normalized_linear_depth = clamp((view_z - camera_near) / (camera_far - camera_near), 0.0, 1.0);
+    let z = 1.0 - normalized_linear_depth;
 
     return vec4f(z, z, z, 1.0);
 }
