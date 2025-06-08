@@ -1,6 +1,7 @@
 /* eslint-disable @typescript-eslint/no-non-null-assertion */
+import { EntityId } from '@timefold/ecs';
 import { defineRenderPass, RenderPassDescriptor, RenderPipelineContext, Uniform, WebgpuUtils } from '@timefold/webgpu';
-import { DepthPass } from './depth-pass';
+import { MaterialComponent, PrimitiveComponent } from '../../components';
 import {
     CameraStruct,
     DirLightStructArray,
@@ -8,83 +9,74 @@ import {
     TransformStruct,
     UnlitMaterialStruct,
 } from '../../structs';
-import { InterleavedLayout, MaterialComponent, NonInterleavedAttributes, PrimitiveComponent } from '../../components';
-import { getVertexAndIndexFromPrimitive, Index, Vertex } from './internal-utils';
+import { DepthPass } from './depth-pass';
+import {
+    Bindgroup,
+    BindgroupResult,
+    getVertexAndIndexFromPrimitive,
+    RenderablePrimitive,
+    serializePrimitiveLayout,
+} from './internal-utils';
 import { getPhongShaderCode } from './shaders/phong';
 import { getUnlitShaderCode } from './shaders/unlit';
 
 type Entity = {
-    id: string | number;
+    id: EntityId;
     material: MaterialComponent;
     materialData: ArrayBufferLike;
     primitive: PrimitiveComponent;
     transformData: ArrayBufferLike;
 };
 
-type EntityBinding = {
-    buffer: GPUBuffer;
-    data: ArrayBufferLike;
-};
+type FrameBindgroupResult = BindgroupResult<{
+    dir_lights: GPUBuffer;
+    camera: GPUBuffer;
+}>;
 
-type EntityBindGroup = {
-    group: number;
-    bindgroup: GPUBindGroup;
-    bindings: {
-        material: EntityBinding;
-        transform: EntityBinding;
-    };
-};
+type RenderPipeline = { pipeline: GPURenderPipeline; frameBindgroup: FrameBindgroupResult };
+type RenderPipelineMapEntry = RenderPipeline & { count: number };
+type RenderPipelineMap = Map<string, RenderPipelineMapEntry>;
 
-type FrameBindgroupResult = {
-    group: number;
-    bindGroup: GPUBindGroup;
-    buffers: {
-        dir_lights: GPUBuffer;
-        camera: GPUBuffer;
-    };
-};
+type MaterialMapEntry = { material: Bindgroup; count: number };
+type MaterialMap = Map<MaterialComponent, MaterialMapEntry>;
+
+type PrimitiveMapEntry = RenderablePrimitive & { count: number };
+type PrimitiveMap = Map<PrimitiveComponent, PrimitiveMapEntry>;
 
 type Renderable = {
     id: Entity['id'];
     sortId: number;
-    pipeline: { pipeline: GPURenderPipeline; frameBindgroup: FrameBindgroupResult };
-    entity: EntityBindGroup;
-    primitive: { vertex: Vertex; index?: Index };
+    pipelineId: number;
+    materialId: number;
+    primitiveId: number;
+    pipeline: RenderPipeline;
+    material: Bindgroup;
+    primitive: RenderablePrimitive;
+    transform: Bindgroup;
 };
 
-const serializePrimitiveState = (primitive: GPUPrimitiveState) => {
-    return [
-        primitive.cullMode ?? 'back',
-        primitive.frontFace ?? 'ccw',
-        primitive.topology ?? 'triangle-list',
-        primitive.stripIndexFormat,
-        primitive.unclippedDepth,
-    ].join(':');
-};
-
-const serializeLayout = (layout: InterleavedLayout) => {
-    return Object.keys(layout)
-        .map((key) => {
-            const value = layout[key];
-            return `${key}:${value.format}:${value.stride}`;
-        })
-        .join('|');
-};
-
-const serializeAttribs = (attribs: NonInterleavedAttributes) => {
-    return Object.keys(attribs)
-        .map((key) => {
-            const value = attribs[key];
-            return `${key}:${value.format}`;
-        })
-        .join('|');
-};
+const hasDepthPrePass = (ctx: RenderPipelineContext): ctx is RenderPipelineContext<[typeof DepthPass]> =>
+    'DepthPass' in ctx &&
+    typeof ctx.DepthPass === 'object' &&
+    !!ctx.DepthPass &&
+    'depthTexture' in ctx.DepthPass &&
+    ctx.DepthPass.depthTexture instanceof GPUTexture;
 
 export const MultiMaterialPass = defineRenderPass({
     name: 'MultiMaterialPass',
-    build: (ctx: RenderPipelineContext<[typeof DepthPass]>) => {
+    build: (ctx: RenderPipelineContext) => {
         const { device, canvas, context, format, msaa } = ctx.args;
-        const { depthTexture } = ctx.DepthPass;
+
+        const usesDepthPrePass = hasDepthPrePass(ctx);
+
+        const depthTexture = usesDepthPrePass
+            ? ctx.DepthPass.depthTexture
+            : device.createTexture({
+                  size: [canvas.width, canvas.height],
+                  format: 'depth24plus',
+                  usage: GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.TEXTURE_BINDING,
+                  sampleCount: msaa,
+              });
 
         const colorTexture =
             msaa > 1
@@ -99,8 +91,8 @@ export const MultiMaterialPass = defineRenderPass({
         const renderPassDescriptor: RenderPassDescriptor = {
             colorAttachments: [WebgpuUtils.createColorAttachmentFromView(colorTexture.createView())],
             depthStencilAttachment: WebgpuUtils.createDepthAttachmentFromView(depthTexture.createView(), {
-                depthLoadOp: 'load', // Important!!!
-                depthStoreOp: 'discard', // TODO: check if this is correct!!!
+                depthLoadOp: usesDepthPrePass ? 'load' : 'clear', // Important!!!
+                depthStoreOp: usesDepthPrePass ? 'discard' : 'store', // TODO: check if this is correct!!!
             }),
         };
 
@@ -109,24 +101,26 @@ export const MultiMaterialPass = defineRenderPass({
             camera: Uniform.buffer(1, CameraStruct),
         });
 
-        const UnlitEntityGroup = Uniform.group(1, {
+        const UnlitMaterialGroup = Uniform.group(1, {
             material: Uniform.buffer(0, UnlitMaterialStruct),
-            transform: Uniform.buffer(1, TransformStruct),
         });
 
-        const PhongEntityGroup = Uniform.group(1, {
+        const PhongMaterialGroup = Uniform.group(1, {
             material: Uniform.buffer(0, PhongMaterialStruct),
-            transform: Uniform.buffer(1, TransformStruct),
+        });
+
+        const TransformGroup = Uniform.group(2, {
+            transform: Uniform.buffer(0, TransformStruct),
         });
 
         const PipelineLayoutsByMaterialType = {
             '@tf/UnlitMaterial': WebgpuUtils.createPipelineLayout({
                 device: device,
-                uniformGroups: [FrameGroup, UnlitEntityGroup],
+                uniformGroups: [FrameGroup, UnlitMaterialGroup, TransformGroup],
             }),
             '@tf/PhongMaterial': WebgpuUtils.createPipelineLayout({
                 device: device,
-                uniformGroups: [FrameGroup, PhongEntityGroup],
+                uniformGroups: [FrameGroup, PhongMaterialGroup, TransformGroup],
             }),
         };
 
@@ -137,14 +131,16 @@ export const MultiMaterialPass = defineRenderPass({
 
         const renderables: Renderable[] = [];
 
-        const pipelineMap = new Map<string, { pipeline: GPURenderPipeline; frameBindgroup: FrameBindgroupResult }>();
+        const pipelineMap: RenderPipelineMap = new Map();
         let pipelineCounter = -1;
 
-        const entityMap = new Map<MaterialComponent, EntityBindGroup>();
-        let entityCounter = -1;
+        const materialMap: MaterialMap = new Map();
+        let materialCounter = -1;
 
-        const primitiveMap = new Map<PrimitiveComponent, { vertex: Vertex; index?: Index }>();
+        const primitiveMap: PrimitiveMap = new Map();
         let primitiveCounter = -1;
+
+        // TODO: add unit tests that ensure that the minimum amount of pipeline switches happen
 
         return {
             setDirLights: (lights: ArrayBufferLike) => {
@@ -154,15 +150,7 @@ export const MultiMaterialPass = defineRenderPass({
                 frameData.camera = camera;
             },
             addEntity: (entity: Entity) => {
-                const primtiveKey = serializePrimitiveState(entity.primitive.data.primitive);
-
-                const layoutKey =
-                    entity.primitive.type === '@tf/InterleavedPrimitive'
-                        ? serializeLayout(entity.primitive.data.layout)
-                        : serializeAttribs(entity.primitive.data.attributes);
-
-                const pipelineMapKey = `${entity.material.type}-${entity.primitive.type}-${primtiveKey}-${layoutKey}`;
-
+                const pipelineMapKey = `${entity.material.type}-${serializePrimitiveLayout(entity.primitive)}`;
                 const PipelineLayout = PipelineLayoutsByMaterialType[entity.material.type];
 
                 if (!pipelineMap.has(pipelineMapKey)) {
@@ -185,7 +173,11 @@ export const MultiMaterialPass = defineRenderPass({
                         vertex: { module, buffers: primitiveLayout.layout },
                         primitive: entity.primitive.data.primitive,
                         fragment: { module, targets: [{ format }] },
-                        depthStencil: { depthWriteEnabled: false, depthCompare: 'less-equal', format: 'depth24plus' },
+                        depthStencil: {
+                            depthWriteEnabled: usesDepthPrePass ? false : true,
+                            depthCompare: 'less-equal',
+                            format: 'depth24plus',
+                        },
                         multisample: { count: msaa },
                     });
 
@@ -194,28 +186,24 @@ export const MultiMaterialPass = defineRenderPass({
                         camera: WebgpuUtils.createBufferDescriptor(),
                     });
 
-                    pipelineMap.set(pipelineMapKey, { pipeline, frameBindgroup });
                     pipelineCounter++;
+                    pipelineMap.set(pipelineMapKey, { pipeline, frameBindgroup, count: pipelineCounter });
                 }
 
-                const pipeline = pipelineMap.get(pipelineMapKey)!;
-
-                if (!entityMap.has(entity.material)) {
-                    const entityBindgroup = PipelineLayout.createBindGroups(1, {
+                if (!materialMap.has(entity.material)) {
+                    const materialBindgroup = PipelineLayout.createBindGroups(1, {
                         material: WebgpuUtils.createBufferDescriptor(),
-                        transform: WebgpuUtils.createBufferDescriptor(),
                     });
 
-                    entityMap.set(entity.material, {
-                        group: entityBindgroup.group,
-                        bindgroup: entityBindgroup.bindGroup,
-                        bindings: {
-                            material: { buffer: entityBindgroup.buffers.material, data: entity.materialData },
-                            transform: { buffer: entityBindgroup.buffers.transform, data: entity.transformData },
+                    materialCounter++;
+                    materialMap.set(entity.material, {
+                        material: {
+                            group: materialBindgroup.group,
+                            bindgroup: materialBindgroup.bindGroup,
+                            binding: { buffer: materialBindgroup.buffers.material, data: entity.materialData },
                         },
+                        count: materialCounter,
                     });
-
-                    entityCounter++;
                 }
 
                 if (!primitiveMap.has(entity.primitive)) {
@@ -226,25 +214,45 @@ export const MultiMaterialPass = defineRenderPass({
 
                     const result = getVertexAndIndexFromPrimitive(device, primitiveLayout, entity.primitive);
                     if (result) {
-                        primitiveMap.set(entity.primitive, result);
                         primitiveCounter++;
+                        primitiveMap.set(entity.primitive, {
+                            vertex: result.vertex,
+                            index: result.index,
+                            count: primitiveCounter,
+                        });
                     }
                 }
 
-                const entityEntry = entityMap.get(entity.material)!;
-                const primitive = primitiveMap.get(entity.primitive)!;
+                const pipelineEntry = pipelineMap.get(pipelineMapKey)!;
+                const materialEntry = materialMap.get(entity.material)!;
+                const primitiveEntry = primitiveMap.get(entity.primitive)!;
 
-                const pipelineId = pipelineCounter;
-                const materialId = entityCounter;
-                const primitiveId = primitiveCounter;
+                const pipelineId = pipelineEntry.count;
+                const materialId = materialEntry.count;
+                const primitiveId = primitiveEntry.count;
                 const sortId = (pipelineId << 16) | (materialId << 8) | primitiveId;
+
+                const transformBindgroup = PipelineLayout.createBindGroups(2, {
+                    transform: WebgpuUtils.createBufferDescriptor(),
+                });
 
                 renderables.push({
                     id: entity.id,
                     sortId,
-                    pipeline,
-                    entity: entityEntry,
-                    primitive,
+                    pipelineId,
+                    materialId,
+                    primitiveId,
+                    pipeline: pipelineEntry,
+                    material: materialEntry.material,
+                    primitive: primitiveEntry,
+                    transform: {
+                        group: transformBindgroup.group,
+                        bindgroup: transformBindgroup.bindGroup,
+                        binding: {
+                            buffer: transformBindgroup.buffers.transform,
+                            data: entity.transformData,
+                        },
+                    },
                 });
 
                 renderables.sort((a, b) => a.sortId - b.sortId);
@@ -263,7 +271,7 @@ export const MultiMaterialPass = defineRenderPass({
                     const prevRenderable = renderables[i - 1] as Renderable | undefined;
                     const renderable = renderables[i];
 
-                    if (!prevRenderable || renderable.pipeline !== prevRenderable.pipeline) {
+                    if (!prevRenderable || renderable.pipelineId !== prevRenderable.pipelineId) {
                         pass.setPipeline(renderable.pipeline.pipeline);
 
                         pass.setBindGroup(
@@ -284,16 +292,16 @@ export const MultiMaterialPass = defineRenderPass({
                         );
                     }
 
-                    if (!prevRenderable || renderable.entity !== prevRenderable.entity) {
-                        pass.setBindGroup(renderable.entity.group, renderable.entity.bindgroup);
+                    if (!prevRenderable || renderable.materialId !== prevRenderable.materialId) {
+                        pass.setBindGroup(renderable.material.group, renderable.material.bindgroup);
                         device.queue.writeBuffer(
-                            renderable.entity.bindings.material.buffer,
+                            renderable.material.binding.buffer,
                             0,
-                            renderable.entity.bindings.material.data,
+                            renderable.material.binding.data,
                         );
                     }
 
-                    if (!prevRenderable || renderable.primitive !== prevRenderable.primitive) {
+                    if (!prevRenderable || renderable.primitiveId !== prevRenderable.primitiveId) {
                         for (const vertex of renderable.primitive.vertex.buffers) {
                             pass.setVertexBuffer(vertex.slot, vertex.buffer);
                         }
@@ -303,12 +311,8 @@ export const MultiMaterialPass = defineRenderPass({
                         }
                     }
 
-                    // TODO: Can we skip updates based on prevRenderable?
-                    device.queue.writeBuffer(
-                        renderable.entity.bindings.transform.buffer,
-                        0,
-                        renderable.entity.bindings.transform.data,
-                    );
+                    pass.setBindGroup(renderable.transform.group, renderable.transform.bindgroup);
+                    device.queue.writeBuffer(renderable.transform.binding.buffer, 0, renderable.transform.binding.data);
 
                     if (renderable.primitive.index) {
                         pass.drawIndexed(renderable.primitive.index.count);

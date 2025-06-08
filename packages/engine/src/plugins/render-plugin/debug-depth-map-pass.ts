@@ -14,6 +14,8 @@ export const DebugDepthMapPass = defineRenderPass({
             }),
         });
 
+        // TODO: pass camera near and far as uniforms
+
         const code = /* wgsl */ `
 ${Uniform.getWgslFromGroups([UniformGroup])}
 
@@ -53,7 +55,7 @@ fn vs(@builtin(vertex_index) vertexIndex : u32) -> VsOut {
 @fragment
 fn fs(fsIn: VsOut) -> @location(0) vec4f {
     let camera_near = 0.1;
-    let camera_far = 30.0;
+    let camera_far = 1000.0;
 
     let dimensions = vec2f(textureDimensions(depth_texture));
     let uv_int = vec2u(fsIn.uv * dimensions - vec2f(1.0));

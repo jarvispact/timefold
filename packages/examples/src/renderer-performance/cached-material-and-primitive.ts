@@ -71,7 +71,7 @@ const main = async () => {
     await world
         .registerPlugins([UpdateCameraFromTransformPlugin, RenderPlugin])
         .registerSystems([Startup, Update])
-        .run({ loop: false, printFps: true });
+        .run({ loop: true, printFps: true });
 };
 
 void main();

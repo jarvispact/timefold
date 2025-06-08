@@ -1,36 +1,41 @@
 /* eslint-disable @typescript-eslint/no-non-null-assertion */
-import { RenderPassDescriptor, Uniform, WebgpuUtils, defineRenderPass, RenderPipelineContext } from '@timefold/webgpu';
-import { InterleavedLayout, NonInterleavedAttributes, PrimitiveComponent } from '../../components';
+import { EntityId } from '@timefold/ecs';
+import { defineRenderPass, RenderPassDescriptor, RenderPipelineContext, Uniform, WebgpuUtils } from '@timefold/webgpu';
+import { PrimitiveComponent } from '../../components';
 import { CameraStruct, TransformStruct } from '../../structs';
-import { getVertexAndIndexFromPrimitive, Index, Vertex } from './internal-utils';
+import {
+    Bindgroup,
+    BindgroupResult,
+    getVertexAndIndexFromPrimitive,
+    RenderablePrimitive,
+    serializePrimitiveLayout,
+} from './internal-utils';
 
 type Entity = {
-    id: string | number;
+    id: EntityId;
     primitive: PrimitiveComponent;
     transformData: ArrayBufferLike;
 };
 
-type FrameBindgroupResult = {
-    group: number;
-    bindGroup: GPUBindGroup;
-    buffers: {
-        camera: GPUBuffer;
-    };
-};
+type FrameBindgroupResult = BindgroupResult<{
+    camera: GPUBuffer;
+}>;
 
-type TransformBindgroup = {
-    group: number;
-    bindgroup: GPUBindGroup;
-    buffer: GPUBuffer;
-    data: ArrayBufferLike;
-};
+type RenderPipeline = { pipeline: GPURenderPipeline; frameBindgroup: FrameBindgroupResult };
+type RenderPipelineMapEntry = RenderPipeline & { count: number };
+type RenderPipelineMap = Map<string, RenderPipelineMapEntry>;
+
+type PrimitiveMapEntry = RenderablePrimitive & { count: number };
+type PrimitiveMap = Map<PrimitiveComponent, PrimitiveMapEntry>;
 
 type Renderable = {
     id: Entity['id'];
     sortId: number;
-    pipeline: { pipeline: GPURenderPipeline; frameBindgroup: FrameBindgroupResult };
-    primitive: { vertex: Vertex; index?: Index };
-    transform: TransformBindgroup;
+    pipelineId: number;
+    primitiveId: number;
+    pipeline: RenderPipeline;
+    primitive: RenderablePrimitive;
+    transform: Bindgroup;
 };
 
 const getShaderCode = (uniformsWgsl: string, vertexWgsl: string) => {
@@ -45,34 +50,6 @@ ${uniformsWgsl}
     `.trim();
 
     return code;
-};
-
-const serializePrimitiveState = (primitive: GPUPrimitiveState) => {
-    return [
-        primitive.cullMode ?? 'back',
-        primitive.frontFace ?? 'ccw',
-        primitive.topology ?? 'triangle-list',
-        primitive.stripIndexFormat,
-        primitive.unclippedDepth,
-    ].join(':');
-};
-
-const serializeLayout = (layout: InterleavedLayout) => {
-    return Object.keys(layout)
-        .map((key) => {
-            const value = layout[key];
-            return `${key}:${value.format}:${value.stride}`;
-        })
-        .join('|');
-};
-
-const serializeAttribs = (attribs: NonInterleavedAttributes) => {
-    return Object.keys(attribs)
-        .map((key) => {
-            const value = attribs[key];
-            return `${key}:${value.format}`;
-        })
-        .join('|');
 };
 
 export const DepthPass = defineRenderPass({
@@ -107,10 +84,10 @@ export const DepthPass = defineRenderPass({
 
         const renderables: Renderable[] = [];
 
-        const pipelineMap = new Map<string, { pipeline: GPURenderPipeline; frameBindgroup: FrameBindgroupResult }>();
+        const pipelineMap: RenderPipelineMap = new Map();
         let pipelineCounter = -1;
 
-        const primitiveMap = new Map<PrimitiveComponent, { vertex: Vertex; index?: Index }>();
+        const primitiveMap: PrimitiveMap = new Map();
         let primitiveCounter = -1;
 
         let camera: ArrayBufferLike = new ArrayBuffer();
@@ -120,14 +97,7 @@ export const DepthPass = defineRenderPass({
                 camera = cameraData;
             },
             addEntity: (entity: Entity) => {
-                const primtiveKey = serializePrimitiveState(entity.primitive.data.primitive);
-
-                const layoutKey =
-                    entity.primitive.type === '@tf/InterleavedPrimitive'
-                        ? serializeLayout(entity.primitive.data.layout)
-                        : serializeAttribs(entity.primitive.data.attributes);
-
-                const pipelineMapKey = `${entity.primitive.type}-${primtiveKey}-${layoutKey}`;
+                const pipelineMapKey = serializePrimitiveLayout(entity.primitive);
 
                 if (!pipelineMap.has(pipelineMapKey)) {
                     const uniformsWgsl = Uniform.getWgslFromGroups(PipelineLayout.uniformGroups);
@@ -153,8 +123,8 @@ export const DepthPass = defineRenderPass({
                         camera: WebgpuUtils.createBufferDescriptor(),
                     });
 
-                    pipelineMap.set(pipelineMapKey, { pipeline, frameBindgroup });
                     pipelineCounter++;
+                    pipelineMap.set(pipelineMapKey, { pipeline, frameBindgroup, count: pipelineCounter });
                 }
 
                 if (!primitiveMap.has(entity.primitive)) {
@@ -165,16 +135,20 @@ export const DepthPass = defineRenderPass({
 
                     const result = getVertexAndIndexFromPrimitive(device, primitiveLayout, entity.primitive);
                     if (result) {
-                        primitiveMap.set(entity.primitive, result);
                         primitiveCounter++;
+                        primitiveMap.set(entity.primitive, {
+                            vertex: result.vertex,
+                            index: result.index,
+                            count: primitiveCounter,
+                        });
                     }
                 }
 
-                const pipeline = pipelineMap.get(pipelineMapKey)!;
-                const primitive = primitiveMap.get(entity.primitive)!;
+                const pipelineEntry = pipelineMap.get(pipelineMapKey)!;
+                const primitiveEntry = primitiveMap.get(entity.primitive)!;
 
-                const pipelineId = pipelineCounter;
-                const primitiveId = primitiveCounter;
+                const pipelineId = pipelineEntry.count;
+                const primitiveId = primitiveEntry.count;
                 const sortId = (pipelineId << 8) | primitiveId;
 
                 const transformBindgroup = PipelineLayout.createBindGroups(1, {
@@ -184,14 +158,18 @@ export const DepthPass = defineRenderPass({
                 renderables.push({
                     id: entity.id,
                     sortId,
-                    pipeline,
+                    pipelineId,
+                    primitiveId,
+                    pipeline: pipelineEntry,
+                    primitive: primitiveEntry,
                     transform: {
                         group: transformBindgroup.group,
                         bindgroup: transformBindgroup.bindGroup,
-                        buffer: transformBindgroup.buffers.transform,
-                        data: entity.transformData,
+                        binding: {
+                            buffer: transformBindgroup.buffers.transform,
+                            data: entity.transformData,
+                        },
                     },
-                    primitive,
                 });
 
                 renderables.sort((a, b) => a.sortId - b.sortId);
@@ -204,7 +182,7 @@ export const DepthPass = defineRenderPass({
                     const prevRenderable = renderables[i - 1] as Renderable | undefined;
                     const renderable = renderables[i];
 
-                    if (!prevRenderable || renderable.pipeline !== prevRenderable.pipeline) {
+                    if (!prevRenderable || renderable.pipelineId !== prevRenderable.pipelineId) {
                         pass.setPipeline(renderable.pipeline.pipeline);
 
                         pass.setBindGroup(
@@ -215,7 +193,7 @@ export const DepthPass = defineRenderPass({
                         device.queue.writeBuffer(renderable.pipeline.frameBindgroup.buffers.camera, 0, camera);
                     }
 
-                    if (!prevRenderable || renderable.primitive !== prevRenderable.primitive) {
+                    if (!prevRenderable || renderable.primitiveId !== prevRenderable.primitiveId) {
                         for (const vertex of renderable.primitive.vertex.buffers) {
                             pass.setVertexBuffer(vertex.slot, vertex.buffer);
                         }
@@ -225,9 +203,8 @@ export const DepthPass = defineRenderPass({
                         }
                     }
 
-                    // TODO: Can we skip updates based on prevRenderable?
                     pass.setBindGroup(renderable.transform.group, renderable.transform.bindgroup);
-                    device.queue.writeBuffer(renderable.transform.buffer, 0, renderable.transform.data);
+                    device.queue.writeBuffer(renderable.transform.binding.buffer, 0, renderable.transform.binding.data);
 
                     if (renderable.primitive.index) {
                         pass.drawIndexed(renderable.primitive.index.count);

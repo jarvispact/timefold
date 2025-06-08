@@ -1,8 +1,9 @@
 import { createPlugin, createSystem } from '@timefold/ecs';
 import { createRenderPipeline } from '@timefold/webgpu';
 import { EngineWorld } from '../../types';
-import { DepthPass } from './depth-pass';
 import { MultiMaterialPass } from './multi-material-pass';
+import { DepthPass } from './depth-pass';
+// import { DebugDepthMapPass } from './debug-depth-map-pass';
 
 type Args = {
     canvas: HTMLCanvasElement | OffscreenCanvas;
