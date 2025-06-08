@@ -34,6 +34,16 @@ const defaultOptions: WorldOptions = {
     targetFramesPerSecond: 60,
 };
 
+type RunOptions = {
+    loop: boolean;
+    printFps: boolean;
+};
+
+const defaultRunOptions: RunOptions = {
+    loop: true,
+    printFps: false,
+};
+
 class EcsWorld<
     WorldComponent extends Component,
     WorldEvent extends GenericEcsEvent = EcsEvent<WorldComponent[]>,
@@ -417,7 +427,9 @@ class EcsWorld<
             : MapResult[];
     }
 
-    async run(options: { loop?: boolean } = { loop: true }) {
+    async run(options?: Partial<RunOptions>) {
+        const opts = { ...defaultRunOptions, ...options };
+
         const callFnWithWorld = (fn: (world: World<Component>) => unknown) => fn(this as never);
 
         if (this.plugins.length > 0) {
@@ -444,8 +456,8 @@ class EcsWorld<
         const updateTimestep = 1000 / this.options.targetUpdatesPerSecond;
         const renderTimestep = 1000 / this.options.targetFramesPerSecond;
 
-        let timeToUpdate = !options.loop ? 0 : performance.now();
-        let timeToRender = !options.loop ? 0 : performance.now();
+        let timeToUpdate = !opts.loop ? 0 : performance.now();
+        let timeToRender = !opts.loop ? 0 : performance.now();
 
         let then = 0;
 
@@ -456,8 +468,21 @@ class EcsWorld<
             return delta;
         };
 
+        let oneSecond = performance.now() + 1000;
+        let fps = 0;
+
         const tick = async (time: number) => {
-            if (!options.loop) {
+            if (opts.printFps) {
+                fps++;
+
+                if (performance.now() >= oneSecond) {
+                    console.log(`fps: ${fps}`);
+                    fps = 0;
+                    oneSecond = performance.now() + 1000;
+                }
+            }
+
+            if (!opts.loop) {
                 this.deltaTime = 0;
                 this.time = 0;
             } else {
@@ -492,7 +517,7 @@ class EcsWorld<
             }
 
             // eslint-disable-next-line @typescript-eslint/no-misused-promises
-            if (options.loop) window.requestAnimationFrame(tick);
+            if (opts.loop) window.requestAnimationFrame(tick);
         };
 
         // eslint-disable-next-line @typescript-eslint/no-misused-promises
