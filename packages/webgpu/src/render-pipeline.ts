@@ -36,7 +36,7 @@ export type InferPublicApiFromRenderPass<Pass extends RenderPass<string, any>> =
     Omit<Awaited<ReturnType<Pass['build']>>, 'render' | 'context'>
 >;
 
-type MSAA = 1 | 4;
+export type MSAA = 1 | 4;
 
 type InitialPipelineContext<AdditionalArgs> = {
     args: CreateDeviceAndContextResult & {

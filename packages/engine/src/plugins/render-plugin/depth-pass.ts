@@ -52,8 +52,22 @@ ${uniformsWgsl}
     return code;
 };
 
+const DepthPassName = 'DepthPass' as const;
+
+export const NoOpDepthPass = {
+    name: DepthPassName,
+    build: () => {
+        return {
+            setCamera: () => {},
+            addEntity: () => {},
+            render: () => {},
+            context: {},
+        };
+    },
+};
+
 export const DepthPass = defineRenderPass({
-    name: 'DepthPass',
+    name: DepthPassName,
     build: (ctx: RenderPipelineContext) => {
         const { device, canvas, msaa } = ctx.args;
 

@@ -1,22 +1,22 @@
 import { createPlugin, createSystem } from '@timefold/ecs';
-import { createRenderPipeline } from '@timefold/webgpu';
+import { createRenderPipeline, MSAA } from '@timefold/webgpu';
 import { EngineWorld } from '../../types';
 import { MultiMaterialPass } from './multi-material-pass';
-import { DepthPass } from './depth-pass';
-// import { DebugDepthMapPass } from './debug-depth-map-pass';
+import { DepthPass, NoOpDepthPass } from './depth-pass';
 
 type Args = {
     canvas: HTMLCanvasElement | OffscreenCanvas;
+    msaa?: MSAA;
+    enableDepthPrePass?: boolean;
 };
 
-export const createRenderPlugin = ({ canvas }: Args) => {
+export const createRenderPlugin = ({ canvas, msaa, enableDepthPrePass }: Args) => {
     const Plugin = createPlugin<EngineWorld>({
         fn: async (world) => {
             const { frame } = world.getResource('engine');
 
-            const pipeline = await createRenderPipeline({ canvas, msaa: 4 })
-                .addRenderPass(DepthPass)
-                // .addRenderPass(DebugDepthMapPass)
+            const pipeline = await createRenderPipeline({ canvas, msaa: msaa ?? 1 })
+                .addRenderPass(enableDepthPrePass ? DepthPass : NoOpDepthPass)
                 .addRenderPass(MultiMaterialPass)
                 .build();
 
