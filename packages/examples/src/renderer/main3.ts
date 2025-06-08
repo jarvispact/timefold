@@ -24,7 +24,7 @@ const canvas = DomUtils.getCanvasById('canvas');
 const Startup = createSystem({
     stage: 'startup',
     fn: async (world: EngineWorld) => {
-        const [{ objects }, { materials }] = await Promise.all([
+        const [{ objects, info }, { materials }] = await Promise.all([
             ObjLoader.load('./multi-material-test.obj'),
             MtlLoader.load('./multi-material-test.mtl'),
         ]);
@@ -74,7 +74,7 @@ const Startup = createSystem({
                                 idx === 0 || idx === 2
                                     ? UnlitMaterial.create({ color: materials[key].diffuseColor })
                                     : PhongMaterial.create({ diffuseColor: materials[key].diffuseColor }),
-                            primitive: InterleavedPrimitive.fromObjPrimitive(multiMaterialPlanePrimitives[key]),
+                            primitive: InterleavedPrimitive.fromObjPrimitive(multiMaterialPlanePrimitives[key], info),
                         };
                     }),
                 ),
@@ -87,7 +87,7 @@ const Startup = createSystem({
                 transform: Transform.createFromTRS({ translation: Vec3.create(0, 0, 0) }),
                 mesh: Mesh.create({
                     material: PhongMaterial.create({ diffuseColor: materials.Custom.diffuseColor }),
-                    primitive: InterleavedPrimitive.fromObjPrimitive(customPlanePrimitive),
+                    primitive: InterleavedPrimitive.fromObjPrimitive(customPlanePrimitive, info),
                 }),
             }),
         });
@@ -98,7 +98,7 @@ const Startup = createSystem({
                 transform: Transform.createFromTRS({ translation: Vec3.create(0, 0, 0) }),
                 mesh: Mesh.create({
                     material: PhongMaterial.create({ diffuseColor: materials.Pbr.diffuseColor }),
-                    primitive: InterleavedPrimitive.fromObjPrimitive(pbrPlanePrimitive),
+                    primitive: InterleavedPrimitive.fromObjPrimitive(pbrPlanePrimitive, info),
                 }),
             }),
         });
@@ -109,7 +109,7 @@ const Startup = createSystem({
                 transform: Transform.createFromTRS({ translation: Vec3.create(0, 0, 0) }),
                 mesh: Mesh.create({
                     material: PhongMaterial.create({ diffuseColor: materials.Phong.diffuseColor }),
-                    primitive: InterleavedPrimitive.fromObjPrimitive(phongPlanePrimitive),
+                    primitive: InterleavedPrimitive.fromObjPrimitive(phongPlanePrimitive, info),
                 }),
             }),
         });
@@ -120,7 +120,7 @@ const Startup = createSystem({
                 transform: Transform.createFromTRS({ translation: Vec3.create(0, 0, 0) }),
                 mesh: Mesh.create({
                     material: UnlitMaterial.create({ color: materials.Unlit.diffuseColor }),
-                    primitive: InterleavedPrimitive.fromObjPrimitive(unlitPlanePrimitive),
+                    primitive: InterleavedPrimitive.fromObjPrimitive(unlitPlanePrimitive, info),
                 }),
             }),
         });

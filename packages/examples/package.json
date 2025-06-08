@@ -37,6 +37,9 @@
     "dev:renderer": "sed 's/{example-folder}/renderer/g' index.html.template > index.html && vite --port 9093",
     "build:renderer": "sed 's/{example-folder}/renderer/g' index.html.template > index.html && vite build",
 
+    "dev:renderer-performance": "sed 's/{example-folder}/renderer-performance/g' index.html.template > index.html && vite --port 9093",
+    "build:renderer-performance": "sed 's/{example-folder}/renderer-performance/g' index.html.template > index.html && vite build",
+
     "dev:breakout": "sed 's/{example-folder}/breakout/g' index.html.template > index.html && vite --port 9093",
     "build:breakout": "sed 's/{example-folder}/breakout/g' index.html.template > index.html && vite build",
 
