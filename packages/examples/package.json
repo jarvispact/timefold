@@ -46,6 +46,9 @@
     "dev:3d-boilerplate": "sed 's/{example-folder}/3d-boilerplate/g' index.html.template > index.html && vite --port 9093",
     "build:3d-boilerplate": "sed 's/{example-folder}/3d-boilerplate/g' index.html.template > index.html && vite build",
 
+    "dev:kenney-demo-scene": "sed 's/{example-folder}/kenney-demo-scene/g' index.html.template > index.html && vite --port 9093",
+    "build:kenney-demo-scene": "sed 's/{example-folder}/kenney-demo-scene/g' index.html.template > index.html && vite build",
+
     "preview": "vite preview --port 9191"
   }
 }

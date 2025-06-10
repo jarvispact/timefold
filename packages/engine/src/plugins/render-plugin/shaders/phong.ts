@@ -73,6 +73,27 @@ fn calc_dir_light(
     return calc_light(L, light.color, light.intensity, normal, view_dir, diffuse_color, specular_color, specular_shininess);
 }
 
+// fn playful_tone_map(color: vec3f) -> vec3f {
+//     // Increase saturation
+//     let luminance = dot(color, vec3f(0.2126, 0.7152, 0.0722));
+//     let saturated = mix(vec3f(luminance), color, 1.8); // Boost saturation
+    
+//     // Add vibrance (boost less-saturated colors more)
+//     let color_max = max(saturated.r, max(saturated.g, saturated.b));
+//     let color_min = min(saturated.r, min(saturated.g, saturated.b));
+//     let saturation = color_max - color_min;
+//     let vibrance = mix(saturated, saturated * (1.0 + 0.5), 1.0 - saturation);
+    
+//     // Add a warm/playful tint
+//     let tinted = vibrance * vec3f(1.05, 1.02, 0.95);
+    
+//     // Boost overall brightness slightly
+//     let brightened = tinted * 1.15;
+    
+//     // Apply gamma correction
+//     return linear_to_gamma_space(brightened);
+// }
+
 @fragment fn fs(fsIn: VsOut) -> @location(0) vec4f {
     let N = normalize(fsIn.normal);
     let V = normalize(camera.position - fsIn.world_position);
@@ -89,6 +110,7 @@ fn calc_dir_light(
     }
 
     return vec4f(linear_to_gamma_space(result), material.opacity);
+    // return vec4f(playful_tone_map(result), material.opacity);
 }
     `.trim();
 
