@@ -10,6 +10,7 @@ import {
     CreateIndexBufferResult,
     CreatePipelineLayoutArgs,
     CreatePipelineLayoutResult,
+    CreatePipelineLayoutResult2,
     CreateVertexBufferLayoutDefinition,
     CreateVertexBufferLayoutResult,
     CreateVertexBufferMode,
@@ -437,6 +438,105 @@ export const createPipelineLayout = <const Groups extends UniformGroup<number, R
     return {
         layout,
         uniformGroups,
+        createBindGroups,
+    };
+};
+
+// TODO: Decide for one variant of the pipeline layout creation function
+export const createPipelineLayout2 = <const Groups extends UniformGroup<number, Record<string, GenericBinding>>[]>({
+    uniformGroups,
+}: {
+    uniformGroups: Groups;
+}): CreatePipelineLayoutResult2<Groups> => {
+    const bindGroupLayoutEntries: GPUBindGroupLayoutEntry[][] = [];
+
+    for (let i = 0; i < uniformGroups.length; i++) {
+        const uniformGroup = uniformGroups[i];
+        const layoutEntries: GPUBindGroupLayoutEntry[] = [];
+        const bindingKeys = Object.keys(uniformGroup.bindings);
+
+        for (let j = 0; j < bindingKeys.length; j++) {
+            const bindingKey = bindingKeys[j];
+            const bindingValue = uniformGroup.bindings[bindingKey];
+
+            if (bindingValue.type === 'sampler') {
+                layoutEntries.push(bindingValue.layout);
+            } else if (bindingValue.type === 'texture') {
+                layoutEntries.push(bindingValue.layout);
+            } else {
+                layoutEntries.push(bindingValue.layout);
+            }
+        }
+
+        bindGroupLayoutEntries.push(layoutEntries);
+    }
+
+    const bindGroupLayouts: GPUBindGroupLayout[] = [];
+
+    const createLayout = (device: GPUDevice) => {
+        for (const entry of bindGroupLayoutEntries) {
+            bindGroupLayouts.push(
+                device.createBindGroupLayout({
+                    entries: entry,
+                }),
+            );
+        }
+
+        return device.createPipelineLayout({
+            bindGroupLayouts,
+        });
+    };
+
+    const createBindGroups = <Group extends TupleIndices<Groups>>(
+        device: GPUDevice,
+        group: Group,
+        bindings: BindingsForGroup<Groups[Group]>,
+    ) => {
+        const bindgroupEntries: GPUBindGroupEntry[] = [];
+        const layout = bindGroupLayouts[group];
+        const bindingKeys = Object.keys(bindings);
+        const buffers: Record<string, GPUBuffer> = {};
+
+        for (let j = 0; j < bindingKeys.length; j++) {
+            const bindingKey = bindingKeys[j];
+            const binding = uniformGroups[group].bindings[bindingKey];
+            const bindgroupValue = bindings[bindingKey];
+
+            if (binding.type === 'sampler') {
+                bindgroupEntries.push({ binding: binding.layout.binding, resource: bindgroupValue as GPUSampler });
+            } else if (binding.type === 'texture') {
+                bindgroupEntries.push({
+                    binding: binding.layout.binding,
+                    resource: (bindgroupValue as GPUTexture).createView(),
+                });
+            } else {
+                const desc = bindgroupValue as ReturnType<typeof createBufferDescriptor>;
+
+                const buffer = device.createBuffer({
+                    size: binding.uniformType.bufferSize,
+                    ...desc,
+                });
+
+                buffers[bindingKey] = buffer;
+                bindgroupEntries.push({
+                    binding: binding.layout.binding,
+                    resource: { buffer },
+                });
+            }
+        }
+
+        const bindGroup = device.createBindGroup({
+            label: `bind group | group ${group}`,
+            layout,
+            entries: bindgroupEntries,
+        });
+
+        return { group, bindGroup, buffers: buffers as BuffersByBindingKey<Groups[Group]> };
+    };
+
+    return {
+        uniformGroups,
+        createLayout,
         createBindGroups,
     };
 };

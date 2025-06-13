@@ -49,6 +49,9 @@
     "dev:kenney-demo-scene": "sed 's/{example-folder}/kenney-demo-scene/g' index.html.template > index.html && vite --port 9093",
     "build:kenney-demo-scene": "sed 's/{example-folder}/kenney-demo-scene/g' index.html.template > index.html && vite build",
 
+    "dev:4-quads": "sed 's/{example-folder}/4-quads/g' index.html.template > index.html && vite --port 9093",
+    "build:4-quads": "sed 's/{example-folder}/4-quads/g' index.html.template > index.html && vite build",
+
     "preview": "vite preview --port 9191"
   }
 }

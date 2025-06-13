@@ -12,7 +12,7 @@ import { Mat4x4, Vec3, Vec3Type } from '@timefold/math';
 import { createSystem } from '@timefold/ecs';
 
 export const canvas = DomUtils.getCanvasById('canvas');
-export const RenderPlugin = createRenderPlugin({ canvas, msaa: 4, enableDepthPrePass: true });
+export const RenderPlugin = createRenderPlugin({ canvas, msaa: 4, enableDepthPrePass: false });
 export const world = createWorld();
 
 export const spawnCamera = (translation: Vec3Type) => {

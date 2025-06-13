@@ -1,6 +1,5 @@
-const defaultImageBitmapOptions: ImageBitmapOptions = {
-    imageOrientation: 'flipY',
-};
+// flipping y in `copyExternalImageToTexture` in `createImageBitmapTexture`
+const defaultImageBitmapOptions: ImageBitmapOptions = {};
 
 export const ImageLoader = {
     loadImage: (url: string, options?: ImageBitmapOptions) =>

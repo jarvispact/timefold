@@ -350,3 +350,14 @@ export type CreatePipelineLayoutResult<Groups extends UniformGroup<number, Recor
         bindings: BindingsForGroup<Groups[Group]>,
     ) => CreateBindGroupResult<Groups[Group]>;
 };
+
+// TODO: Decide for one variant of the `CreatePipelineLayoutResult` type.
+export type CreatePipelineLayoutResult2<Groups extends UniformGroup<number, Record<string, GenericBinding>>[]> = {
+    uniformGroups: Groups;
+    createLayout: (device: GPUDevice) => GPUPipelineLayout;
+    createBindGroups: <Group extends TupleIndices<Groups>>(
+        device: GPUDevice,
+        group: Group,
+        bindings: BindingsForGroup<Groups[Group]>,
+    ) => CreateBindGroupResult<Groups[Group]>;
+};
