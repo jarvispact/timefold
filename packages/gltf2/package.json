@@ -1,6 +1,6 @@
 {
   "name": "@timefold/gltf2",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "description": "gltf2 loader and parser for timefold",
   "type": "module",
   "sideEffects": false,
