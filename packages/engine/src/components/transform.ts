@@ -59,3 +59,9 @@ export const updateMatrices = (out: TransformComponent) => {
     Mat4x4.modelToNormal(out.data.normalMatrix, out.data.modelMatrix);
     return out;
 };
+
+export const rotateY = (out: TransformComponent, radians: number) => {
+    Quat.rotateY(out.data.rotation, radians);
+    updateMatrices(out);
+    return out;
+};

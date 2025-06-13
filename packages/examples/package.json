@@ -4,6 +4,9 @@
   "version": "0.0.1",
   "type": "module",
   "scripts": {
+    "dev:hello-world": "sed 's/{example-folder}/hello-world/g' index.html.template > index.html && vite --port 9093",
+    "build:hello-world": "sed 's/{example-folder}/hello-world/g' index.html.template > index.html && vite build",
+
     "dev:ecs-hello-world": "sed 's/{example-folder}/ecs-hello-world/g' index.html.template > index.html && vite --port 9093",
     "build:ecs-hello-world": "sed 's/{example-folder}/ecs-hello-world/g' index.html.template > index.html && vite build",
 

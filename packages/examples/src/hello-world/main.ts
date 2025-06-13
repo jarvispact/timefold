@@ -1,37 +1,29 @@
-# timefold
-A blazingly fast, ecs powered game engine for the web
-
-## Modules
-
-The following modules are available and can be used independantly from each other, but they unlock their full potential when used together. All modules have 0 dependencies and are heavily optimized for bundle size and runtime performance.
-
-- [@timefold/ecs](./packages/ecs/README.md)
-- [@timefold/math](./packages/math/README.md)
-- [@timefold/obj](./packages/obj/README.md)
-- [@timefold/gltf2](./packages/gltf2/README.md)
-- [@timefold/webgpu](./packages/webgpu/README.md)
-- [@timefold/engine](./packages/engine/README.md)
-
-## Hello Static World
-
-A simple static scene with a camera, light and the beloved Phong shaded Suzanne model.
-
-```ts
+import {
+    CameraBundle,
+    createRenderPlugin,
+    createWorld,
+    DirLight,
+    DirLightBundle,
+    DomUtils,
+    InterleavedPrimitive,
+    Mesh,
+    MeshBundle,
+    PerspectiveCamera,
+    PhongMaterial,
+    Transform,
+    UpdateCameraFromTransformPlugin,
+} from '@timefold/engine';
 import { createSystem } from '@timefold/ecs';
 import { ObjLoader } from '@timefold/obj';
 import { MathUtils, Vec3 } from '@timefold/math';
-import {
-    CameraBundle, createRenderPlugin, createWorld, DirLight, DirLightBundle,
-    DomUtils, InterleavedPrimitive, Mesh, MeshBundle, PerspectiveCamera,
-    PhongMaterial, Transform, UpdateCameraFromTransformPlugin,
-} from '@timefold/engine';
 
+const world = createWorld();
 const canvas = DomUtils.getCanvasById('canvas');
 const RenderPlugin = createRenderPlugin({ canvas });
 
 const Startup = createSystem({
     stage: 'startup',
-    fn: async (world: EngineWorld) => {
+    fn: async () => {
         const { info, objects } = await ObjLoader.load('./suzanne.obj');
 
         world.spawnBundle({
@@ -62,21 +54,6 @@ const Startup = createSystem({
     },
 });
 
-const main = async () => {
-    await createWorld()
-        .registerPlugins([UpdateCameraFromTransformPlugin, RenderPlugin])
-        .registerSystems(Startup)
-        .run();
-};
-
-main();
-```
-
-## Hello Animated World
-
-In a ECS architecture, we usually dont animate a single entity but a set of entities that hold certain components. So, we define a query and a new system:
-
-```ts
 const updateQuery = world.createQuery({
     query: { tuple: [{ has: '@tf/Transform' }, { has: '@tf/Mesh', include: false }] },
 });
@@ -89,18 +66,12 @@ const RotationSystem = createSystem({
         }
     },
 });
-```
 
-... and add it to the world:
-
-```diff
 const main = async () => {
-    await createWorld()
+    await world
         .registerPlugins([UpdateCameraFromTransformPlugin, RenderPlugin])
--        .registerSystems(Startup)
-+        .registerSystems([Startup, RotationSystem])
+        .registerSystems([Startup, RotationSystem])
         .run();
 };
-```
 
-and now the suzanne model rotates at a speed of 45 degrees per second around the Y axis.
+void main();
