@@ -149,6 +149,9 @@ export const createVertexBufferLayout = <
             };
         });
 
+        // TODO: `GPUBufferUsage.COPY_DST` not required together with `mappedAtCreation` ?
+        // https://toji.dev/webgpu-best-practices/buffer-uploads#:~:text=usage%3A%20GPUBufferUsage.VERTEX%2C%20//%20COPY_DST%20is%20not%20required!
+
         // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-parameters
         const createBuffer = <Name extends keyof Definition>(
             device: GPUDevice,

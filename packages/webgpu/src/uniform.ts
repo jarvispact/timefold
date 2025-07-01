@@ -58,7 +58,7 @@ const defaultBufferArgs: UniformBindingOptions & { buffer: GPUBufferBindingLayou
 export const buffer = <Binding extends number, Type extends GenericUniformType>(
     binding: Binding,
     type: Type,
-    args?: UniformBindingOptions & { buffer?: GPUBufferBindingLayout },
+    args?: Partial<UniformBindingOptions> & { buffer?: GPUBufferBindingLayout },
 ): BufferBinding<Binding, Type> => {
     const _args = {
         visibility: args?.visibility ?? defaultBufferArgs.visibility,
@@ -95,7 +95,8 @@ export const group = <G extends number, Bindings extends Record<string, GenericB
                 return `@group(${group}) @binding(${binding.layout.binding}) var ${key}: ${textureTypeString};`;
             } else {
                 const type = binding.uniformType.wgsl.type;
-                return `@group(${group}) @binding(${binding.layout.binding}) var<uniform> ${key}: ${type};`;
+                const _var = binding.layout.buffer.type === 'uniform' ? 'uniform' : 'storage, read';
+                return `@group(${group}) @binding(${binding.layout.binding}) var<${_var}> ${key}: ${type};`;
             }
         })
         .join('\n');
