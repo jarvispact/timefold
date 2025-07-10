@@ -55,6 +55,9 @@
     "dev:4-quads": "sed 's/{example-folder}/4-quads/g' index.html.template > index.html && vite --port 9093",
     "build:4-quads": "sed 's/{example-folder}/4-quads/g' index.html.template > index.html && vite build",
 
+    "dev:instancing": "sed 's/{example-folder}/instancing/g' index.html.template > index.html && vite --port 9093",
+    "build:instancing": "sed 's/{example-folder}/instancing/g' index.html.template > index.html && vite build",
+
     "preview": "vite preview --port 9191"
   }
 }
