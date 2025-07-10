@@ -42,9 +42,11 @@ type RenderTreeBuffersInterleaved = {
 type RenderTreeBuffersNonInterleaved = {
     type: 'non-interleaved';
     buffers: {
-        position: { slot: number; buffer: GPUBuffer; count: number };
-        normal: { slot: number; buffer: GPUBuffer };
-        uv: { slot: number; buffer: GPUBuffer };
+        attribs: {
+            position: { slot: number; buffer: GPUBuffer; count: number };
+            normal: { slot: number; buffer: GPUBuffer };
+            uv: { slot: number; buffer: GPUBuffer };
+        };
     };
     index?: { buffer: GPUBuffer; format: 'uint16' | 'uint32'; count: number };
 };
@@ -88,10 +90,16 @@ const run = async () => {
 
     const { device, context, format } = await WebgpuUtils.createDeviceAndContext({ canvas });
 
+    const depthTexture = device.createTexture({
+        size: [canvas.width, canvas.height],
+        format: 'depth24plus',
+        usage: GPUTextureUsage.RENDER_ATTACHMENT,
+    });
+
     const renderPassDescriptor: RenderPassDescriptor = {
         label: 'canvas renderPass',
         colorAttachments: [WebgpuUtils.createColorAttachmentFromView(context.getCurrentTexture().createView())],
-        depthStencilAttachment: WebgpuUtils.createDepthAttachmentFromView(device, canvas.width, canvas.height),
+        depthStencilAttachment: WebgpuUtils.createDepthAttachmentFromView(depthTexture.createView()),
     };
 
     for (let mtidx = 0; mtidx < result.materialTypes.length; mtidx++) {
@@ -123,6 +131,7 @@ const run = async () => {
             });
 
             const VertexLayout = primitiveLayout.type === 'interleaved' ? InterleavedLayout : NonInterleavedLayout;
+            console.log({ VertexLayout });
 
             const code = /* wgsl */ `
                 ${VertexLayout.wgsl}
@@ -174,6 +183,8 @@ const run = async () => {
 
             const primitives = result.primitives
                 .map((primitive, pi): RenderTreePrimitive | undefined => {
+                    console.log({ primitive });
+
                     if (
                         primitive.type === 'non-interleaved' &&
                         (!primitive.attributes.NORMAL || !primitive.attributes.TEXCOORD_0)
@@ -257,6 +268,8 @@ const run = async () => {
                 sceneBindGroup,
                 primitives,
             });
+
+            console.log({ renderTree });
         }
     }
 
@@ -284,9 +297,15 @@ const run = async () => {
                 if (primitive.type === 'interleaved') {
                     pass.setVertexBuffer(primitive.vertices.slot, primitive.vertices.buffer);
                 } else {
-                    pass.setVertexBuffer(primitive.buffers.position.slot, primitive.buffers.position.buffer);
-                    pass.setVertexBuffer(primitive.buffers.normal.slot, primitive.buffers.normal.buffer);
-                    pass.setVertexBuffer(primitive.buffers.uv.slot, primitive.buffers.uv.buffer);
+                    pass.setVertexBuffer(
+                        primitive.buffers.attribs.position.slot,
+                        primitive.buffers.attribs.position.buffer,
+                    );
+                    pass.setVertexBuffer(
+                        primitive.buffers.attribs.normal.slot,
+                        primitive.buffers.attribs.normal.buffer,
+                    );
+                    pass.setVertexBuffer(primitive.buffers.attribs.uv.slot, primitive.buffers.attribs.uv.buffer);
                 }
 
                 if (primitive.index) {
@@ -304,7 +323,7 @@ const run = async () => {
                     } else if (primitive.type === 'interleaved') {
                         pass.draw(primitive.vertices.count);
                     } else {
-                        pass.draw(primitive.buffers.position.count);
+                        pass.draw(primitive.buffers.attribs.position.count);
                     }
                 }
             }

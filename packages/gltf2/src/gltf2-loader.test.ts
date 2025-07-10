@@ -104,9 +104,9 @@ describe('gltf2-parser', () => {
                         type: 'non-interleaved',
                         mode: 'triangle-list',
                         attributes: {
-                            POSITION: { format: 'float32x3', offset: 0 },
-                            TEXCOORD_0: { format: 'float32x2', offset: 0 },
-                            NORMAL: { format: 'float32x3', offset: 0 },
+                            POSITION: { format: 'float32x3', stride: 0 },
+                            TEXCOORD_0: { format: 'float32x2', stride: 0 },
+                            NORMAL: { format: 'float32x3', stride: 0 },
                         },
                     },
                 ];
@@ -197,9 +197,9 @@ describe('gltf2-parser', () => {
                         type: 'non-interleaved',
                         mode: 'triangle-list',
                         attributes: {
-                            POSITION: { format: 'float32x3', offset: 0 },
-                            TEXCOORD_0: { format: 'float32x2', offset: 0 },
-                            NORMAL: { format: 'float32x3', offset: 0 },
+                            POSITION: { format: 'float32x3', stride: 0 },
+                            TEXCOORD_0: { format: 'float32x2', stride: 0 },
+                            NORMAL: { format: 'float32x3', stride: 0 },
                         },
                     },
                 ];
@@ -250,9 +250,9 @@ describe('gltf2-parser', () => {
                         type: 'non-interleaved',
                         mode: 'triangle-list',
                         attributes: {
-                            POSITION: { format: 'float32x3', offset: 0 },
-                            TEXCOORD_0: { format: 'float32x2', offset: 0 },
-                            NORMAL: { format: 'float32x3', offset: 0 },
+                            POSITION: { format: 'float32x3', stride: 0 },
+                            TEXCOORD_0: { format: 'float32x2', stride: 0 },
+                            NORMAL: { format: 'float32x3', stride: 0 },
                         },
                     },
                 ];
@@ -440,9 +440,9 @@ describe('gltf2-parser', () => {
                         type: 'interleaved',
                         mode: 'triangle-list',
                         attributes: {
-                            POSITION: { format: 'float32x3', offset: 0 },
-                            TEXCOORD_0: { format: 'float32x2', offset: 3 },
-                            NORMAL: { format: 'float32x3', offset: 5 },
+                            POSITION: { format: 'float32x3', stride: 0 },
+                            TEXCOORD_0: { format: 'float32x2', stride: 3 },
+                            NORMAL: { format: 'float32x3', stride: 5 },
                         },
                     },
                 ];
@@ -509,9 +509,9 @@ describe('gltf2-parser', () => {
                         type: 'non-interleaved',
                         mode: 'triangle-list',
                         attributes: {
-                            POSITION: { format: 'float32x3', offset: 0 },
-                            TEXCOORD_0: { format: 'float32x2', offset: 0 },
-                            NORMAL: { format: 'float32x3', offset: 0 },
+                            POSITION: { format: 'float32x3', stride: 0 },
+                            TEXCOORD_0: { format: 'float32x2', stride: 0 },
+                            NORMAL: { format: 'float32x3', stride: 0 },
                         },
                     },
                 ];
@@ -577,9 +577,9 @@ describe('gltf2-parser', () => {
                         type: 'interleaved',
                         mode: 'triangle-list',
                         attributes: {
-                            POSITION: { format: 'float32x3', offset: 0 },
-                            TEXCOORD_0: { format: 'float32x2', offset: 3 },
-                            NORMAL: { format: 'float32x3', offset: 5 },
+                            POSITION: { format: 'float32x3', stride: 0 },
+                            TEXCOORD_0: { format: 'float32x2', stride: 3 },
+                            NORMAL: { format: 'float32x3', stride: 5 },
                         },
                     },
                 ];
@@ -646,9 +646,9 @@ describe('gltf2-parser', () => {
                         type: 'non-interleaved',
                         mode: 'triangle-list',
                         attributes: {
-                            POSITION: { format: 'float32x3', offset: 0 },
-                            TEXCOORD_0: { format: 'float32x2', offset: 0 },
-                            NORMAL: { format: 'float32x3', offset: 0 },
+                            POSITION: { format: 'float32x3', stride: 0 },
+                            TEXCOORD_0: { format: 'float32x2', stride: 0 },
+                            NORMAL: { format: 'float32x3', stride: 0 },
                         },
                     },
                 ];

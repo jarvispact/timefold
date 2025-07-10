@@ -58,6 +58,9 @@
     "dev:instancing": "sed 's/{example-folder}/instancing/g' index.html.template > index.html && vite --port 9093",
     "build:instancing": "sed 's/{example-folder}/instancing/g' index.html.template > index.html && vite build",
 
+    "dev:perf": "sed 's/{example-folder}/perf/g' index.html.template > index.html && vite --port 9093",
+    "build:perf": "sed 's/{example-folder}/perf/g' index.html.template > index.html && vite build",
+
     "preview": "vite preview --port 9191"
   }
 }

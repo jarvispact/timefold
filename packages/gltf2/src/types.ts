@@ -256,18 +256,18 @@ export type ParsedGltf2PrimitiveLayout = {
     type: 'interleaved' | 'non-interleaved';
     mode: ParsedGltf2PrimitiveMode;
     attributes: Attributes<
-        { format: PositionFormat; offset: number },
-        { format: Format; offset: number },
-        { format: Format; offset: number }
+        { format: PositionFormat; stride: number },
+        { format: Format; stride: number },
+        { format: Format; stride: number }
     >;
 };
 
 export type ParsedGltf2PrimitiveLayoutWithAttribs<Attribs extends readonly Gltf2AttributeWithoutPosition[]> =
     ParsedGltf2PrimitiveLayout & {
         attributes: {
-            [Name in Gltf2PositionAttribute]: { format: PositionFormat; offset: number };
+            [Name in Gltf2PositionAttribute]: { format: PositionFormat; stride: number };
         } & {
-            [Name in Attribs[number]]: { format: Format; offset: number };
+            [Name in Attribs[number]]: { format: Format; stride: number };
         };
     };
 

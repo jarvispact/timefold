@@ -46,7 +46,7 @@ export const parsePrimitiveLayout = (
         const byteOffset = (accessor.byteOffset || 0) + bufferView.byteOffset;
         const byteSize = mapping.byteSize;
 
-        attributes[attributeKey] = { format: format as never, offset: isInterleaved ? byteOffset / byteSize : 0 };
+        attributes[attributeKey] = { format: format as never, stride: isInterleaved ? byteOffset / byteSize : 0 };
     }
 
     return {
