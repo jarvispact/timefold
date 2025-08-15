@@ -1,73 +1,187 @@
-import { Component } from './component';
+import type { Component } from './component';
+import { Entity } from './entity';
 
-type CommonQueryTupleDefinition = {
-    include?: false;
-    optional?: true;
+type QueryDefinitionItemWith<WorldComponent extends Component> = {
+    with: WorldComponent['type'];
+    optional?: boolean;
 };
 
-type HasQueryTupleDefinition<WorldComponent extends Component> = CommonQueryTupleDefinition & {
-    has: WorldComponent['type'];
+const isWithItem = <C extends Component>(item: QueryDefinitionItemGeneric): item is QueryDefinitionItemWith<C> =>
+    'with' in item;
+
+type QueryDefinitionItemWithout<WorldComponent extends Component> = {
+    without: WorldComponent['type'];
 };
 
-type OrQueryTupleDefinition<WorldComponent extends Component> = CommonQueryTupleDefinition & {
-    or: WorldComponent['type'][];
+const isWithoutItem = <C extends Component>(item: QueryDefinitionItemGeneric): item is QueryDefinitionItemWithout<C> =>
+    'without' in item;
+
+type QueryDefinitionItemWithAny<WorldComponent extends Component> = {
+    withAny: WorldComponent['type'][];
+    optional?: boolean;
 };
 
-export type QueryTupleDefinition<WorldComponent extends Component> =
-    | HasQueryTupleDefinition<WorldComponent>
-    | OrQueryTupleDefinition<WorldComponent>;
+const isWithAnyItem = <C extends Component>(item: QueryDefinitionItemGeneric): item is QueryDefinitionItemWithAny<C> =>
+    'withAny' in item;
 
-export type QueryDefinition<WorldComponent extends Component> = {
-    includeId?: true;
-    tuple: QueryTupleDefinition<WorldComponent>[];
-};
+type QueryDefinitionItemGeneric<WorldComponent extends Component = Component> =
+    | QueryDefinitionItemWith<WorldComponent>
+    | QueryDefinitionItemWithout<WorldComponent>
+    | QueryDefinitionItemWithAny<WorldComponent>;
 
-export const isHasQueryDefinition = <WorldComponent extends Component>(
-    item: QueryTupleDefinition<WorldComponent>,
-): item is HasQueryTupleDefinition<WorldComponent> =>
-    'has' in item && (typeof item.has === 'string' || typeof item.has === 'number');
-
-export const isOrQueryDefinition = <WorldComponent extends Component>(
-    item: QueryTupleDefinition<WorldComponent>,
-): item is OrQueryTupleDefinition<WorldComponent> => 'or' in item && Array.isArray(item.or);
-
-type Optional<TupleItem extends QueryTupleDefinition<Component>, T> = TupleItem extends { optional: true }
-    ? T | undefined
-    : T;
-
-type DefaultToGenericComponent<T extends unknown[]> = {
-    [Idx in keyof T]: T[Idx] extends never ? Component : T[Idx];
-};
-
-export type QueryTuple<
+export type QueryDefinition<
     WorldComponent extends Component,
-    QueryDef extends QueryDefinition<WorldComponent>,
+    IncludeEntity extends boolean,
+    Tuple extends QueryDefinitionItemGeneric<WorldComponent>[],
+> = {
+    includeEntity?: IncludeEntity;
+    tuple: Tuple;
+};
+
+export type QueryDefinitionGeneric<WorldComponent extends Component = Component> = QueryDefinition<
+    WorldComponent,
+    boolean,
+    QueryDefinitionItemGeneric<WorldComponent>[]
+>;
+
+export type MapQueryDefinitionToTuple<
+    WorldComponent extends Component,
+    Q extends QueryDefinitionGeneric<WorldComponent>,
     Tuple extends unknown[] = [],
-> = QueryDef['tuple'] extends [
-    infer Head extends QueryTupleDefinition<WorldComponent>,
-    ...infer Tail extends QueryTupleDefinition<WorldComponent>[],
+> = Q['tuple'] extends [
+    infer Head extends QueryDefinitionItemGeneric<WorldComponent>,
+    ...infer Tail extends QueryDefinitionItemGeneric<WorldComponent>[],
 ]
-    ? Head extends {
-          include: false;
-      }
-        ? QueryTuple<WorldComponent, { includeId: QueryDef['includeId']; tuple: Tail }, Tuple>
-        : Head extends {
-                has: infer C extends WorldComponent['type'];
-            }
-          ? QueryTuple<
+    ? Head extends { with: WorldComponent['type'] }
+        ? MapQueryDefinitionToTuple<
+              WorldComponent,
+              { includeEntity: Q['includeEntity']; tuple: Tail },
+              [
+                  ...Tuple,
+                  number extends WorldComponent['type'] ? Component : Extract<WorldComponent, { type: Head['with'] }>,
+              ]
+          >
+        : Head extends { withAny: WorldComponent['type'][] }
+          ? MapQueryDefinitionToTuple<
                 WorldComponent,
-                { includeId: QueryDef['includeId']; tuple: Tail },
-                [...Tuple, Optional<Head, Extract<WorldComponent, { type: C }>>]
+                { includeEntity: Q['includeEntity']; tuple: Tail },
+                [
+                    ...Tuple,
+                    number extends WorldComponent['type']
+                        ? Component
+                        : Extract<WorldComponent, { type: Head['withAny'][number] }>,
+                ]
             >
-          : Head extends {
-                  or: infer Or extends WorldComponent['type'][];
-              }
-            ? QueryTuple<
-                  WorldComponent,
-                  { includeId: QueryDef['includeId']; tuple: Tail },
-                  [...Tuple, Optional<Head, Extract<WorldComponent, { type: Or[number] }>>]
-              >
-            : QueryTuple<WorldComponent, { includeId: QueryDef['includeId']; tuple: Tail }, Tuple>
-    : QueryDef['includeId'] extends true
-      ? [string, ...DefaultToGenericComponent<Tuple>]
-      : DefaultToGenericComponent<Tuple>;
+          : MapQueryDefinitionToTuple<WorldComponent, { includeEntity: Q['includeEntity']; tuple: Tail }, Tuple>
+    : true extends Q['includeEntity']
+      ? [Entity, ...Tuple]
+      : Tuple;
+
+type CollectUsedComponentTypes<
+    WorldComponent extends Component,
+    Tuple extends QueryDefinitionItemGeneric<WorldComponent>[],
+    Result extends number = never,
+> = Tuple extends [
+    infer Head extends QueryDefinitionItemGeneric<WorldComponent>,
+    ...infer Tail extends QueryDefinitionItemGeneric<WorldComponent>[],
+]
+    ? Head extends { with: WorldComponent['type'] }
+        ? CollectUsedComponentTypes<WorldComponent, Tail, Result | Head['with']>
+        : Head extends { without: WorldComponent['type'] }
+          ? CollectUsedComponentTypes<WorldComponent, Tail, Result | Head['without']>
+          : Head extends { withAny: WorldComponent['type'][] }
+            ? CollectUsedComponentTypes<WorldComponent, Tail, Result | Head['withAny'][number]>
+            : CollectUsedComponentTypes<WorldComponent, Tail, Result>
+    : Result;
+
+export type QueryBuilderApi<
+    WorldComponent extends Component,
+    IncludeEntity extends boolean = false,
+    Tuple extends QueryDefinitionItemGeneric<WorldComponent>[] = [],
+    UsedMethods extends string = never,
+> = Omit<
+    {
+        includeEntity: () => QueryBuilderApi<WorldComponent, true, Tuple, UsedMethods | 'includeEntity'>;
+        with: <Type extends Exclude<WorldComponent['type'], CollectUsedComponentTypes<WorldComponent, Tuple>>>(
+            type: Type,
+        ) => QueryBuilderApi<WorldComponent, IncludeEntity, [...Tuple, { with: Type }], UsedMethods>;
+        without: <Type extends Exclude<WorldComponent['type'], CollectUsedComponentTypes<WorldComponent, Tuple>>>(
+            type: Type,
+        ) => QueryBuilderApi<WorldComponent, IncludeEntity, [...Tuple, { without: Type }], UsedMethods>;
+        withAny: <
+            const Types extends Exclude<WorldComponent['type'], CollectUsedComponentTypes<WorldComponent, Tuple>>[],
+        >(
+            type: Types,
+        ) => QueryBuilderApi<WorldComponent, IncludeEntity, [...Tuple, { withAny: Types }], UsedMethods>;
+        compile: () => QueryDefinition<WorldComponent, IncludeEntity, Tuple>;
+    },
+    UsedMethods
+>;
+
+const hasItemAlready = (query: QueryDefinitionGeneric, item: QueryDefinitionItemGeneric) => {
+    for (let i = 0; i < query.tuple.length; i++) {
+        const tupleItem = query.tuple[i];
+        if (isWithItem(tupleItem) && isWithItem(item)) {
+            if (tupleItem.with === item.with) {
+                return true;
+            }
+        } else if (isWithoutItem(tupleItem) && isWithoutItem(item)) {
+            if (tupleItem.without === item.without) {
+                return true;
+            }
+        } else if (isWithAnyItem(tupleItem) && isWithAnyItem(item)) {
+            if (tupleItem.withAny.some((te) => item.withAny.includes(te))) {
+                return true;
+            }
+        }
+    }
+
+    return false;
+};
+
+export const queryBuilder = <
+    WorldComponent extends Component,
+    Tuple extends QueryDefinitionItemGeneric<WorldComponent>[] = [],
+    UsedMethods extends string = never,
+>() => {
+    const query: QueryDefinitionGeneric<WorldComponent> = { includeEntity: false, tuple: [] };
+
+    const api = {
+        includeEntity: () => {
+            query.includeEntity = true;
+            return api;
+        },
+        with: (type: WorldComponent['type']) => {
+            if (hasItemAlready(query, { with: type })) {
+                console.error('A query can only specify a component type once.');
+                return api;
+            }
+
+            query.tuple.push({ with: type });
+            return api;
+        },
+        without: (type: WorldComponent['type']) => {
+            if (hasItemAlready(query, { without: type })) {
+                console.error('A query can only specify a component type once.');
+                return api;
+            }
+
+            query.tuple.push({ without: type });
+            return api;
+        },
+        withAny: (types: WorldComponent['type'][]) => {
+            if (hasItemAlready(query, { withAny: types })) {
+                console.error('A query can only specify a component type once.');
+                return api;
+            }
+
+            query.tuple.push({ withAny: types });
+            return api;
+        },
+        compile: () => query,
+    };
+
+    return api as unknown as QueryBuilderApi<WorldComponent, false, Tuple, UsedMethods>;
+};
+
+export const defineQueries = <Queries extends Record<string, QueryDefinitionGeneric>>(queries: Queries) => queries;
