@@ -1,0 +1,2 @@
+import './old';
+import './new';

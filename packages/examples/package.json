@@ -61,6 +61,9 @@
     "dev:perf": "sed 's/{example-folder}/perf/g' index.html.template > index.html && vite --port 9093",
     "build:perf": "sed 's/{example-folder}/perf/g' index.html.template > index.html && vite build",
 
+    "dev:ecs-perf": "sed 's/{example-folder}/ecs-perf/g' index.html.template > index.html && vite --port 9093",
+    "build:ecs-perf": "sed 's/{example-folder}/ecs-perf/g' index.html.template > index.html && vite build",
+
     "preview": "vite preview --port 9191"
   }
 }
