@@ -6,23 +6,25 @@ type QueryDefinitionItemWith<WorldComponent extends Component> = {
     optional?: boolean;
 };
 
-const isWithItem = <C extends Component>(item: QueryDefinitionItemGeneric): item is QueryDefinitionItemWith<C> =>
+export const isWithItem = <C extends Component>(item: QueryDefinitionItemGeneric): item is QueryDefinitionItemWith<C> =>
     'with' in item;
 
 type QueryDefinitionItemWithout<WorldComponent extends Component> = {
     without: WorldComponent['type'];
 };
 
-const isWithoutItem = <C extends Component>(item: QueryDefinitionItemGeneric): item is QueryDefinitionItemWithout<C> =>
-    'without' in item;
+export const isWithoutItem = <C extends Component>(
+    item: QueryDefinitionItemGeneric,
+): item is QueryDefinitionItemWithout<C> => 'without' in item;
 
 type QueryDefinitionItemWithAny<WorldComponent extends Component> = {
     withAny: WorldComponent['type'][];
     optional?: boolean;
 };
 
-const isWithAnyItem = <C extends Component>(item: QueryDefinitionItemGeneric): item is QueryDefinitionItemWithAny<C> =>
-    'withAny' in item;
+export const isWithAnyItem = <C extends Component>(
+    item: QueryDefinitionItemGeneric,
+): item is QueryDefinitionItemWithAny<C> => 'withAny' in item;
 
 type QueryDefinitionItemGeneric<WorldComponent extends Component = Component> =
     | QueryDefinitionItemWith<WorldComponent>
