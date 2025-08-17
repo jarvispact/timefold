@@ -1,6 +1,14 @@
 import type { Component } from './component';
 import { Entity } from './entity';
-import { isWithAnyItem, isWithItem, MapQueryDefinitionToTuple, QueryDefinitionGeneric } from './query';
+import {
+    Bitmasks,
+    InternalQuery,
+    isWithAnyItem,
+    isWithItem,
+    MapQueryDefinitionToTuple,
+    QueryDefinitionGeneric,
+    updateQueryies,
+} from './query';
 
 export type World<
     WorldComponent extends Component,
@@ -39,27 +47,16 @@ export type WorldBuilderApi<
     UsedMethods
 >;
 
-type InternalQuery = {
-    name: string;
-    defintion: QueryDefinitionGeneric;
-    bitmasks: {
-        with: number;
-        withAny: number;
-    };
-    flags: {
-        hasWith: boolean;
-        hasWithAny: boolean;
-    };
-    result: unknown[][];
-};
-
 export const worldBuilder = <
     WorldComponent extends Component,
     Resources extends Record<string, unknown> = NonNullable<unknown>,
     Queries extends Record<string, QueryDefinitionGeneric<WorldComponent>> = NonNullable<unknown>,
     UsedMethods extends string = never,
 >() => {
-    const entities: (Record<number, WorldComponent | undefined> | undefined)[] = [];
+    const entities: (
+        | { componentsByType: Record<number, WorldComponent | undefined>; bitmasks: Bitmasks }
+        | undefined
+    )[] = [];
     let res: Record<string, unknown> = {};
     const _queries: InternalQuery[] = [];
     const nameToQueryIdx: Record<string, number | undefined> = {};
@@ -130,47 +127,10 @@ export const worldBuilder = <
                         bitmasks.withAny |= 1 << component.type;
                     }
 
-                    entities.push(componentsByType);
+                    entities.push({ componentsByType, bitmasks });
                     const id = entities.length - 1;
 
-                    for (let i = 0; i < _queries.length; i++) {
-                        const qry = _queries[i];
-
-                        const withSatisfied = qry.flags.hasWith
-                            ? (bitmasks.with & qry.bitmasks.with) === qry.bitmasks.with
-                            : true;
-
-                        const withAnySatisfied = qry.flags.hasWithAny
-                            ? (bitmasks.withAny & qry.bitmasks.withAny) !== 0
-                            : true;
-
-                        if (withSatisfied && withAnySatisfied) {
-                            const tuple: unknown[] = [];
-
-                            if (qry.defintion.includeEntity) {
-                                tuple.push(id);
-                            }
-
-                            for (let j = 0; j < qry.defintion.tuple.length; j++) {
-                                const item = qry.defintion.tuple[j];
-                                if (isWithItem(item)) {
-                                    const c = componentsByType[item.with] as WorldComponent | undefined;
-                                    if (c) tuple.push(c);
-                                } else if (isWithAnyItem(item)) {
-                                    for (let k = 0; k < item.withAny.length; k++) {
-                                        const element = item.withAny[k];
-                                        const c = componentsByType[element] as WorldComponent | undefined;
-                                        if (c) {
-                                            tuple.push(c);
-                                            break;
-                                        }
-                                    }
-                                }
-                            }
-
-                            qry.result.push(tuple);
-                        }
-                    }
+                    updateQueryies(_queries, bitmasks, id, componentsByType);
 
                     return id;
                 },
@@ -186,25 +146,28 @@ export const worldBuilder = <
                 getComponent: (entity: Entity, componentType: WorldComponent['type']) => {
                     const entry = entities[entity];
                     if (entry === undefined) return undefined;
-                    const component = entry[componentType];
+                    const component = entry.componentsByType[componentType];
                     return component;
                 },
                 addComponent: (entity: Entity, component: WorldComponent): boolean => {
                     const entry = entities[entity];
                     if (entry === undefined) return false;
-                    if (entry[component.type] !== undefined) return false;
-                    entry[component.type] = component;
+                    if (entry.componentsByType[component.type] !== undefined) return false;
+                    entry.componentsByType[component.type] = component;
 
-                    // TODO: update queries
+                    entry.bitmasks.with |= 1 << component.type;
+                    entry.bitmasks.withAny |= 1 << component.type;
+
+                    updateQueryies(_queries, entry.bitmasks, entity, entry.componentsByType);
 
                     return true;
                 },
                 removeComponent: (entity: Entity, componentType: WorldComponent['type']): boolean => {
                     const entry = entities[entity];
                     if (entry === undefined) return false;
-                    const component = entry[componentType];
+                    const component = entry.componentsByType[componentType];
                     if (component === undefined) return false;
-                    entry[componentType] = undefined;
+                    entry.componentsByType[componentType] = undefined;
 
                     // TODO: update queries
 

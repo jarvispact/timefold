@@ -291,7 +291,7 @@ describe('world', () => {
         });
 
         describe('with queries', () => {
-            it('should return the correct query result with single "with" queries', () => {
+            it('should return the correct query result with single "with" queries when spawning', () => {
                 const world = worldBuilder<WorldComponent, WorldResources>()
                     .registerQueries({
                         one: queryBuilder<WorldComponent>().includeEntity().compile(),
@@ -347,7 +347,7 @@ describe('world', () => {
                 expect(six).toEqual([]);
             });
 
-            it('should return the correct query result with multiple "with" queries', () => {
+            it('should return the correct query result with multiple "with" queries when spawning', () => {
                 const world = worldBuilder<WorldComponent, WorldResources>()
                     .registerQueries({
                         one: queryBuilder<WorldComponent>().includeEntity().with(0).with(1).compile(),
@@ -414,10 +414,59 @@ describe('world', () => {
                 expect(five).toEqual([[a, c, d]]);
                 expect(six).toEqual([]);
             });
+
+            it('should return the correct query result with single "with" queries when adding a component', () => {
+                const world = worldBuilder<WorldComponent, WorldResources>()
+                    .registerQueries({
+                        one: queryBuilder<WorldComponent>().includeEntity().with(0).with(1).compile(),
+                        two: queryBuilder<WorldComponent>().with(0).with(1).compile(),
+                    })
+                    .compile();
+
+                const one = world.getQuery('one');
+                const two = world.getQuery('two');
+
+                const a: A = { type: 0 };
+                const b: B = { type: 1, data: { pos: [0, 0] } };
+                const c: C = { type: 2, data: { pos: [0, 0, 0] } };
+
+                const e0 = world.spawn([a]);
+                const e1 = world.spawn([b]);
+                const e2 = world.spawn([c]);
+
+                expect(one).toEqual([]);
+                expect(two).toEqual([]);
+
+                world.addComponent(e0, b);
+                world.addComponent(e1, a);
+                world.addComponent(e2, a);
+
+                expect(one).toEqual([
+                    [e0, a, b],
+                    [e1, a, b],
+                ]);
+                expect(two).toEqual([
+                    [a, b],
+                    [a, b],
+                ]);
+
+                world.addComponent(e2, b);
+
+                expect(one).toEqual([
+                    [e0, a, b],
+                    [e1, a, b],
+                    [e2, a, b],
+                ]);
+                expect(two).toEqual([
+                    [a, b],
+                    [a, b],
+                    [a, b],
+                ]);
+            });
         });
 
         describe('withAny queries', () => {
-            it('should return the correct query result with single "withAny" queries', () => {
+            it('should return the correct query result with single "withAny" queries when spawning', () => {
                 const world = worldBuilder<WorldComponent, WorldResources>()
                     .registerQueries({
                         one: queryBuilder<WorldComponent>().includeEntity().withAny([0, 1]).compile(),
@@ -457,6 +506,41 @@ describe('world', () => {
                 ]);
                 expect(four).toEqual([[a], [b]]);
                 expect(five).toEqual([[a]]);
+            });
+
+            it('should return the correct query result with single "withAny" query when adding a component', () => {
+                const world = worldBuilder<WorldComponent, WorldResources>()
+                    .registerQueries({
+                        one: queryBuilder<WorldComponent>().includeEntity().withAny([0, 1]).compile(),
+                        two: queryBuilder<WorldComponent>().withAny([1, 2]).compile(),
+                    })
+                    .compile();
+
+                const one = world.getQuery('one');
+                const two = world.getQuery('two');
+
+                const a: A = { type: 0 };
+                const b: B = { type: 1, data: { pos: [0, 0] } };
+                const c: C = { type: 2, data: { pos: [0, 0, 0] } };
+                const d: D = { type: 3, data: { vel: [0, 0] } };
+
+                const e0 = world.spawn([d]);
+                const e1 = world.spawn([d]);
+                const e2 = world.spawn([d]);
+
+                expect(one).toEqual([]);
+                expect(two).toEqual([]);
+
+                world.addComponent(e0, a);
+                world.addComponent(e1, b);
+                world.addComponent(e2, c);
+
+                expect(one).toEqual([
+                    [e0, a],
+                    [e1, b],
+                ]);
+                // e1, e2
+                expect(two).toEqual([[b], [c]]);
             });
         });
 

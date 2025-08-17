@@ -162,3 +162,63 @@ export const queryBuilder = <
 };
 
 export const defineQueries = <Queries extends Record<string, QueryDefinitionGeneric>>(queries: Queries) => queries;
+
+export type Bitmasks = {
+    with: number;
+    withAny: number;
+};
+
+export type InternalQuery = {
+    name: string;
+    defintion: QueryDefinitionGeneric;
+    bitmasks: Bitmasks;
+    flags: {
+        hasWith: boolean;
+        hasWithAny: boolean;
+    };
+    result: unknown[][];
+};
+
+export const updateQueryies = (
+    queries: InternalQuery[],
+    entitiyBitmasks: Bitmasks,
+    entity: Entity,
+    componentsByType: Record<string, Component | undefined>,
+) => {
+    for (let i = 0; i < queries.length; i++) {
+        const qry = queries[i];
+
+        const withSatisfied = qry.flags.hasWith
+            ? (entitiyBitmasks.with & qry.bitmasks.with) === qry.bitmasks.with
+            : true;
+
+        const withAnySatisfied = qry.flags.hasWithAny ? (entitiyBitmasks.withAny & qry.bitmasks.withAny) !== 0 : true;
+
+        if (withSatisfied && withAnySatisfied) {
+            const tuple: unknown[] = [];
+
+            if (qry.defintion.includeEntity) {
+                tuple.push(entity);
+            }
+
+            for (let j = 0; j < qry.defintion.tuple.length; j++) {
+                const item = qry.defintion.tuple[j];
+                if (isWithItem(item)) {
+                    const c = componentsByType[item.with];
+                    if (c) tuple.push(c);
+                } else if (isWithAnyItem(item)) {
+                    for (let k = 0; k < item.withAny.length; k++) {
+                        const element = item.withAny[k];
+                        const c = componentsByType[element];
+                        if (c) {
+                            tuple.push(c);
+                            break;
+                        }
+                    }
+                }
+            }
+
+            qry.result.push(tuple);
+        }
+    }
+};
