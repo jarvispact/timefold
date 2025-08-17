@@ -1,6 +1,6 @@
 import type { Component } from './component';
 import { Entity } from './entity';
-import { isWithAnyItem, isWithItem, isWithoutItem, MapQueryDefinitionToTuple, QueryDefinitionGeneric } from './query';
+import { isWithAnyItem, isWithItem, MapQueryDefinitionToTuple, QueryDefinitionGeneric } from './query';
 
 export type World<
     WorldComponent extends Component,
@@ -42,7 +42,14 @@ export type WorldBuilderApi<
 type InternalQuery = {
     name: string;
     defintion: QueryDefinitionGeneric;
-    bitmask: number;
+    bitmasks: {
+        with: number;
+        withAny: number;
+    };
+    flags: {
+        hasWith: boolean;
+        hasWithAny: boolean;
+    };
     result: unknown[][];
 };
 
@@ -69,18 +76,26 @@ export const worldBuilder = <
                 const name = queryKeys[i];
                 const query = queries[name];
 
-                let bitmask = 0;
+                const bitmasks = {
+                    with: 0,
+                    withAny: 0,
+                };
+
+                const flags = {
+                    hasWith: false,
+                    hasWithAny: false,
+                };
 
                 for (let j = 0; j < query.tuple.length; j++) {
                     const queryTuple = query.tuple[j];
                     if (isWithItem(queryTuple)) {
-                        bitmask |= 1 << queryTuple.with;
-                    } else if (isWithoutItem(queryTuple)) {
-                        bitmask |= 1 << queryTuple.without;
+                        bitmasks.with |= 1 << queryTuple.with;
+                        flags.hasWith = true;
                     } else if (isWithAnyItem(queryTuple)) {
+                        flags.hasWithAny = true;
                         for (let k = 0; k < queryTuple.withAny.length; k++) {
                             const any = queryTuple.withAny[k];
-                            bitmask |= 1 << any;
+                            bitmasks.withAny |= 1 << any;
                         }
                     }
                 }
@@ -88,7 +103,8 @@ export const worldBuilder = <
                 _queries.push({
                     name,
                     defintion: query,
-                    bitmask,
+                    bitmasks,
+                    flags,
                     result: [],
                 });
 
@@ -102,12 +118,16 @@ export const worldBuilder = <
                 spawn: (components: WorldComponent[]) => {
                     const componentsByType: Record<number, WorldComponent> = {};
 
-                    let bitmask = 0;
+                    const bitmasks = {
+                        with: 0,
+                        withAny: 0,
+                    };
 
                     for (let i = 0; i < components.length; i++) {
                         const component = components[i];
                         componentsByType[component.type] = component;
-                        bitmask |= 1 << component.type;
+                        bitmasks.with |= 1 << component.type;
+                        bitmasks.withAny |= 1 << component.type;
                     }
 
                     entities.push(componentsByType);
@@ -115,8 +135,16 @@ export const worldBuilder = <
 
                     for (let i = 0; i < _queries.length; i++) {
                         const qry = _queries[i];
-                        const hasAllComponents = (bitmask & qry.bitmask) === qry.bitmask;
-                        if (hasAllComponents) {
+
+                        const withSatisfied = qry.flags.hasWith
+                            ? (bitmasks.with & qry.bitmasks.with) === qry.bitmasks.with
+                            : true;
+
+                        const withAnySatisfied = qry.flags.hasWithAny
+                            ? (bitmasks.withAny & qry.bitmasks.withAny) !== 0
+                            : true;
+
+                        if (withSatisfied && withAnySatisfied) {
                             const tuple: unknown[] = [];
 
                             if (qry.defintion.includeEntity) {
@@ -124,10 +152,20 @@ export const worldBuilder = <
                             }
 
                             for (let j = 0; j < qry.defintion.tuple.length; j++) {
-                                // TODO
-                                const item = qry.defintion.tuple[j] as { with: number };
-                                const c = componentsByType[item.with] as WorldComponent | undefined;
-                                if (c) tuple.push(c);
+                                const item = qry.defintion.tuple[j];
+                                if (isWithItem(item)) {
+                                    const c = componentsByType[item.with] as WorldComponent | undefined;
+                                    if (c) tuple.push(c);
+                                } else if (isWithAnyItem(item)) {
+                                    for (let k = 0; k < item.withAny.length; k++) {
+                                        const element = item.withAny[k];
+                                        const c = componentsByType[element] as WorldComponent | undefined;
+                                        if (c) {
+                                            tuple.push(c);
+                                            break;
+                                        }
+                                    }
+                                }
                             }
 
                             qry.result.push(tuple);

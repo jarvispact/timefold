@@ -9,14 +9,6 @@ type QueryDefinitionItemWith<WorldComponent extends Component> = {
 export const isWithItem = <C extends Component>(item: QueryDefinitionItemGeneric): item is QueryDefinitionItemWith<C> =>
     'with' in item;
 
-type QueryDefinitionItemWithout<WorldComponent extends Component> = {
-    without: WorldComponent['type'];
-};
-
-export const isWithoutItem = <C extends Component>(
-    item: QueryDefinitionItemGeneric,
-): item is QueryDefinitionItemWithout<C> => 'without' in item;
-
 type QueryDefinitionItemWithAny<WorldComponent extends Component> = {
     withAny: WorldComponent['type'][];
     optional?: boolean;
@@ -28,7 +20,6 @@ export const isWithAnyItem = <C extends Component>(
 
 type QueryDefinitionItemGeneric<WorldComponent extends Component = Component> =
     | QueryDefinitionItemWith<WorldComponent>
-    | QueryDefinitionItemWithout<WorldComponent>
     | QueryDefinitionItemWithAny<WorldComponent>;
 
 export type QueryDefinition<
@@ -107,9 +98,6 @@ export type QueryBuilderApi<
         with: <Type extends Exclude<WorldComponent['type'], CollectUsedComponentTypes<WorldComponent, Tuple>>>(
             type: Type,
         ) => QueryBuilderApi<WorldComponent, IncludeEntity, [...Tuple, { with: Type }], UsedMethods>;
-        without: <Type extends Exclude<WorldComponent['type'], CollectUsedComponentTypes<WorldComponent, Tuple>>>(
-            type: Type,
-        ) => QueryBuilderApi<WorldComponent, IncludeEntity, [...Tuple, { without: Type }], UsedMethods>;
         withAny: <
             const Types extends Exclude<WorldComponent['type'], CollectUsedComponentTypes<WorldComponent, Tuple>>[],
         >(
@@ -125,10 +113,6 @@ const hasItemAlready = (query: QueryDefinitionGeneric, item: QueryDefinitionItem
         const tupleItem = query.tuple[i];
         if (isWithItem(tupleItem) && isWithItem(item)) {
             if (tupleItem.with === item.with) {
-                return true;
-            }
-        } else if (isWithoutItem(tupleItem) && isWithoutItem(item)) {
-            if (tupleItem.without === item.without) {
                 return true;
             }
         } else if (isWithAnyItem(tupleItem) && isWithAnyItem(item)) {
@@ -160,15 +144,6 @@ export const queryBuilder = <
             }
 
             query.tuple.push({ with: type });
-            return api;
-        },
-        without: (type: WorldComponent['type']) => {
-            if (hasItemAlready(query, { without: type })) {
-                console.error('A query can only specify a component type once.');
-                return api;
-            }
-
-            query.tuple.push({ without: type });
             return api;
         },
         withAny: (types: WorldComponent['type'][]) => {

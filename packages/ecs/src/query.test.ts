@@ -71,15 +71,6 @@ describe('query', () => {
         >();
     });
 
-    it('should build a query definition with entity id and a tuple with 1 "without" entry', () => {
-        const query = queryBuilder<WorldComponent>().includeEntity().without(0).compile();
-        expect(query).toEqual({ includeEntity: true, tuple: [{ without: 0 }] });
-        expectTypeOf(query).toMatchObjectType<QueryDefinition<WorldComponent, true, [{ without: 0 }]>>();
-
-        type Mapped = MapQueryDefinitionToTuple<WorldComponent, typeof query>;
-        expectTypeOf<Mapped>().toExtend<[number]>();
-    });
-
     it('should build a query definition with entity id and a tuple with 1 "withAny" entry', () => {
         const query = queryBuilder<WorldComponent>().includeEntity().withAny([0, 1]).compile();
         expect(query).toEqual({ includeEntity: true, tuple: [{ withAny: [0, 1] }] });
@@ -108,12 +99,12 @@ describe('query', () => {
     });
 
     it('should build complex query definition', () => {
-        const query = queryBuilder<WorldComponent>().includeEntity().with(0).without(1).withAny([2, 3]).compile();
+        const query = queryBuilder<WorldComponent>().includeEntity().with(0).withAny([2, 3]).with(1).compile();
 
-        expect(query).toEqual({ includeEntity: true, tuple: [{ with: 0 }, { without: 1 }, { withAny: [2, 3] }] });
+        expect(query).toEqual({ includeEntity: true, tuple: [{ with: 0 }, { withAny: [2, 3] }, { with: 1 }] });
 
         expectTypeOf(query).toMatchObjectType<
-            QueryDefinition<WorldComponent, true, [{ with: 0 }, { without: 1 }, { withAny: [2, 3] }]>
+            QueryDefinition<WorldComponent, true, [{ with: 0 }, { withAny: [2, 3] }, { with: 1 }]>
         >();
 
         type Mapped = MapQueryDefinitionToTuple<WorldComponent, typeof query>;
@@ -140,6 +131,12 @@ describe('query', () => {
                           };
                       }
                 ),
+                {
+                    type: 1;
+                    data: {
+                        pos: [number, number, number];
+                    };
+                },
             ]
         >();
     });
@@ -155,14 +152,6 @@ describe('query', () => {
     it('should should not allow the specify components more than once in a "without"', () => {
         const consoleSpy = vi.spyOn(console, 'error');
         // @ts-expect-error - 0 cannot be specified twice
-        const query = queryBuilder<WorldComponent>().includeEntity().without(0).without(0).compile();
-        expect(consoleSpy).toBeCalledWith('A query can only specify a component type once.');
-        expect(query).toEqual({ includeEntity: true, tuple: [{ without: 0 }] });
-    });
-
-    it('should should not allow the specify components more than once in a "without"', () => {
-        const consoleSpy = vi.spyOn(console, 'error');
-        // @ts-expect-error - 0 cannot be specified twice
         const query = queryBuilder<WorldComponent>().includeEntity().withAny([0, 1]).withAny([1, 2]).compile();
         expect(consoleSpy).toBeCalledWith('A query can only specify a component type once.');
         expect(query).toEqual({ includeEntity: true, tuple: [{ withAny: [0, 1] }] });
@@ -171,17 +160,17 @@ describe('query', () => {
     it('should define a query set', () => {
         const queries = defineQueries({
             one: queryBuilder<WorldComponent>().includeEntity().with(0).compile(),
-            two: queryBuilder<WorldComponent>().includeEntity().without(0).compile(),
+            two: queryBuilder<WorldComponent>().includeEntity().withAny([0, 1]).compile(),
         });
 
         expect(queries).toEqual({
             one: { includeEntity: true, tuple: [{ with: 0 }] },
-            two: { includeEntity: true, tuple: [{ without: 0 }] },
+            two: { includeEntity: true, tuple: [{ withAny: [0, 1] }] },
         });
 
         expectTypeOf<typeof queries>().toMatchObjectType<{
             one: QueryDefinition<WorldComponent, true, [{ with: 0 }]>;
-            two: QueryDefinition<WorldComponent, true, [{ without: 0 }]>;
+            two: QueryDefinition<WorldComponent, true, [{ withAny: [0, 1] }]>;
         }>();
     });
 });
