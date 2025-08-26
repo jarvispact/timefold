@@ -753,6 +753,33 @@ describe('world', () => {
         });
 
         describe('combined with and withAny queries', () => {
+            it('should respect the query order and ignore the component order', () => {
+                const world = worldBuilder<WorldComponent, WorldResources>()
+                    .registerQueries({
+                        one: queryBuilder<WorldComponent>().includeEntity().with(0).with(1).compile(),
+                        two: queryBuilder<WorldComponent>().includeEntity().with(1).with(0).compile(),
+                    })
+                    .compile();
+
+                const one = world.getQuery('one');
+                const two = world.getQuery('two');
+
+                const a: A = { type: 0 };
+                const b: B = { type: 1, data: { pos: [0, 0] } };
+
+                const e0 = world.spawn([a, b]);
+                const e1 = world.spawn([b, a]);
+
+                expect(one).toEqual([
+                    [e0, a, b],
+                    [e1, a, b],
+                ]);
+                expect(two).toEqual([
+                    [e0, b, a],
+                    [e1, b, a],
+                ]);
+            });
+
             it('should return the correct query result for a complex query (with and without map)', () => {
                 const world = worldBuilder<WorldComponent, WorldResources>()
                     .registerQueries({
@@ -772,7 +799,7 @@ describe('world', () => {
                             .with(4)
                             .map(([id, a, b, cOrD, e]) => ({
                                 id,
-                                a: true,
+                                a: a.type,
                                 b: b.data.pos,
                                 cOrD: cOrD.type,
                                 e: e.data.health,
@@ -813,14 +840,14 @@ describe('world', () => {
                 expect(three).toEqual([
                     {
                         id: e3,
-                        a: true,
+                        a: a.type,
                         b: b.data.pos,
                         cOrD: c.type,
                         e: e.data.health,
                     },
                     {
                         id: e4,
-                        a: true,
+                        a: a.type,
                         b: b.data.pos,
                         cOrD: d.type,
                         e: e.data.health,
@@ -834,7 +861,7 @@ describe('world', () => {
                 expect(three).toEqual([
                     {
                         id: e4,
-                        a: true,
+                        a: a.type,
                         b: b.data.pos,
                         cOrD: d.type,
                         e: e.data.health,
