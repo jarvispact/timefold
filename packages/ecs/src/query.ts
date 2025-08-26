@@ -1,10 +1,10 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import type { Component } from './component';
 import { Entity } from './entity';
 import { arraySwapDelete } from './internal';
 
 type QueryDefinitionItemWith<WorldComponent extends Component> = {
     with: WorldComponent['type'];
-    optional?: boolean;
 };
 
 export const isWithItem = <C extends Component>(item: QueryDefinitionItemGeneric): item is QueryDefinitionItemWith<C> =>
@@ -12,7 +12,6 @@ export const isWithItem = <C extends Component>(item: QueryDefinitionItemGeneric
 
 type QueryDefinitionItemWithAny<WorldComponent extends Component> = {
     withAny: WorldComponent['type'][];
-    optional?: boolean;
 };
 
 export const isWithAnyItem = <C extends Component>(
@@ -27,15 +26,18 @@ export type QueryDefinition<
     WorldComponent extends Component,
     IncludeEntity extends boolean,
     Tuple extends QueryDefinitionItemGeneric<WorldComponent>[],
+    MapFn extends ((tuple: any) => any) | undefined = undefined,
 > = {
     includeEntity?: IncludeEntity;
     tuple: Tuple;
+    map: MapFn;
 };
 
 export type QueryDefinitionGeneric<WorldComponent extends Component = Component> = QueryDefinition<
     WorldComponent,
     boolean,
-    QueryDefinitionItemGeneric<WorldComponent>[]
+    QueryDefinitionItemGeneric<WorldComponent>[],
+    ((tuple: any) => any) | undefined
 >;
 
 export type MapQueryDefinitionToTuple<
@@ -49,7 +51,7 @@ export type MapQueryDefinitionToTuple<
     ? Head extends { with: WorldComponent['type'] }
         ? MapQueryDefinitionToTuple<
               WorldComponent,
-              { includeEntity: Q['includeEntity']; tuple: Tail },
+              { includeEntity: Q['includeEntity']; tuple: Tail; map: Q['map'] },
               [
                   ...Tuple,
                   number extends WorldComponent['type'] ? Component : Extract<WorldComponent, { type: Head['with'] }>,
@@ -58,7 +60,7 @@ export type MapQueryDefinitionToTuple<
         : Head extends { withAny: WorldComponent['type'][] }
           ? MapQueryDefinitionToTuple<
                 WorldComponent,
-                { includeEntity: Q['includeEntity']; tuple: Tail },
+                { includeEntity: Q['includeEntity']; tuple: Tail; map: Q['map'] },
                 [
                     ...Tuple,
                     number extends WorldComponent['type']
@@ -66,10 +68,18 @@ export type MapQueryDefinitionToTuple<
                         : Extract<WorldComponent, { type: Head['withAny'][number] }>,
                 ]
             >
-          : MapQueryDefinitionToTuple<WorldComponent, { includeEntity: Q['includeEntity']; tuple: Tail }, Tuple>
+          : MapQueryDefinitionToTuple<
+                WorldComponent,
+                { includeEntity: Q['includeEntity']; tuple: Tail; map: Q['map'] },
+                Tuple
+            >
     : true extends Q['includeEntity']
-      ? [Entity, ...Tuple]
-      : Tuple;
+      ? Q['map'] extends (tuple: any) => any
+          ? ReturnType<Q['map']>
+          : [Entity, ...Tuple]
+      : Q['map'] extends (tuple: any) => any
+        ? ReturnType<Q['map']>
+        : Tuple;
 
 type CollectUsedComponentTypes<
     WorldComponent extends Component,
@@ -93,6 +103,7 @@ export type QueryBuilderApi<
     IncludeEntity extends boolean = false,
     Tuple extends QueryDefinitionItemGeneric<WorldComponent>[] = [],
     UsedMethods extends string = never,
+    MapFn extends ((tuple: any) => any) | undefined = undefined,
 > = Omit<
     {
         includeEntity: () => QueryBuilderApi<WorldComponent, true, Tuple, UsedMethods | 'includeEntity'>;
@@ -109,7 +120,23 @@ export type QueryBuilderApi<
             [...Tuple, { withAny: Types }],
             UsedMethods | 'includeEntity'
         >;
-        compile: () => QueryDefinition<WorldComponent, IncludeEntity, Tuple>;
+        map: <
+            Fn extends (
+                tuple: MapQueryDefinitionToTuple<
+                    WorldComponent,
+                    QueryDefinition<WorldComponent, IncludeEntity, Tuple, MapFn>
+                >,
+            ) => unknown,
+        >(
+            fn: Fn,
+        ) => QueryBuilderApi<
+            WorldComponent,
+            true,
+            Tuple,
+            UsedMethods | 'includeEntity' | 'with' | 'withAny' | 'map',
+            Fn
+        >;
+        compile: () => QueryDefinition<WorldComponent, IncludeEntity, Tuple, MapFn>;
     },
     UsedMethods
 >;
@@ -131,12 +158,15 @@ const hasItemAlready = (query: QueryDefinitionGeneric, item: QueryDefinitionItem
     return false;
 };
 
+// eslint-disable-next-line @typescript-eslint/no-unsafe-return
+const identity = (tuple: any) => tuple;
+
 export const queryBuilder = <
     WorldComponent extends Component,
     Tuple extends QueryDefinitionItemGeneric<WorldComponent>[] = [],
     UsedMethods extends string = never,
 >() => {
-    const query: QueryDefinitionGeneric<WorldComponent> = { includeEntity: false, tuple: [] };
+    const query: QueryDefinitionGeneric<WorldComponent> = { includeEntity: false, tuple: [], map: identity };
 
     const api = {
         includeEntity: () => {
@@ -159,6 +189,10 @@ export const queryBuilder = <
             }
 
             query.tuple.push({ withAny: types });
+            return api;
+        },
+        map: (fn: (tuple: any) => any) => {
+            query.map = fn;
             return api;
         },
         compile: () => query,
@@ -184,7 +218,7 @@ export type InternalQuery = {
     };
     entityToResultIdx: Map<Entity, number>;
     entities: Entity[];
-    result: unknown[][];
+    result: unknown[];
 };
 
 export const updateQueriesForSpawnAndAddComponent = (
@@ -195,6 +229,7 @@ export const updateQueriesForSpawnAndAddComponent = (
 ) => {
     for (let i = 0; i < queries.length; i++) {
         const qry = queries[i];
+        const map = qry.defintion.map as (tuple: unknown[]) => unknown;
 
         const withSatisfied = qry.flags.hasWith
             ? (entitiyBitmasks.with & qry.bitmasks.with) === qry.bitmasks.with
@@ -226,7 +261,7 @@ export const updateQueriesForSpawnAndAddComponent = (
                 }
             }
 
-            qry.result.push(tuple);
+            qry.result.push(map(tuple));
             qry.entities.push(entity);
             qry.entityToResultIdx.set(entity, qry.result.length - 1);
         }

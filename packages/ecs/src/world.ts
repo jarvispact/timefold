@@ -59,21 +59,21 @@ export const worldBuilder = <
         | { componentsByType: Record<number, WorldComponent | undefined>; bitmasks: Bitmasks }
         | undefined
     )[] = [];
-    let res: Record<string, unknown> = {};
-    const _queries: InternalQuery[] = [];
+    let resources: Record<string, unknown> = {};
+    const queries: InternalQuery[] = [];
     const nameToQueryIdx: Record<string, number | undefined> = {};
 
     const api = {
-        defineResources: (resources: Record<string, unknown>) => {
-            res = resources;
+        defineResources: (recordOfResources: Record<string, unknown>) => {
+            resources = recordOfResources;
             return api;
         },
-        registerQueries: (queries: Record<string, QueryDefinitionGeneric<WorldComponent>>) => {
-            const queryKeys = Object.keys(queries);
+        registerQueries: (recordOrQueries: Record<string, QueryDefinitionGeneric<WorldComponent>>) => {
+            const queryKeys = Object.keys(recordOrQueries);
 
             for (let i = 0; i < queryKeys.length; i++) {
                 const name = queryKeys[i];
-                const query = queries[name];
+                const query = recordOrQueries[name];
 
                 const bitmasks = {
                     with: 0,
@@ -99,7 +99,7 @@ export const worldBuilder = <
                     }
                 }
 
-                _queries.push({
+                queries.push({
                     name,
                     defintion: query,
                     bitmasks,
@@ -109,7 +109,7 @@ export const worldBuilder = <
                     result: [],
                 });
 
-                nameToQueryIdx[name] = _queries.length - 1;
+                nameToQueryIdx[name] = queries.length - 1;
             }
 
             return api;
@@ -134,7 +134,7 @@ export const worldBuilder = <
                     entities.push({ componentsByType, bitmasks });
                     const id = entities.length - 1;
 
-                    updateQueriesForSpawnAndAddComponent(_queries, bitmasks, id, componentsByType);
+                    updateQueriesForSpawnAndAddComponent(queries, bitmasks, id, componentsByType);
 
                     return id;
                 },
@@ -143,7 +143,7 @@ export const worldBuilder = <
                     if (entry === undefined) return false;
                     entities[entity] = undefined;
 
-                    updateQueriesForDespawn(_queries, entity);
+                    updateQueriesForDespawn(queries, entity);
 
                     return true;
                 },
@@ -162,7 +162,7 @@ export const worldBuilder = <
                     entry.bitmasks.with |= 1 << component.type;
                     entry.bitmasks.withAny |= 1 << component.type;
 
-                    updateQueriesForSpawnAndAddComponent(_queries, entry.bitmasks, entity, entry.componentsByType);
+                    updateQueriesForSpawnAndAddComponent(queries, entry.bitmasks, entity, entry.componentsByType);
 
                     return true;
                 },
@@ -186,21 +186,21 @@ export const worldBuilder = <
                         return false;
                     }
 
-                    updateQueriesForRemoveComponent(_queries, entity, entry.bitmasks);
+                    updateQueriesForRemoveComponent(queries, entity, entry.bitmasks);
 
                     return true;
                 },
-                getResource: (name: string) => res[name],
+                getResource: (name: string) => resources[name],
                 setResource: (name: string, data: unknown) => {
-                    res[name] = data;
+                    resources[name] = data;
                 },
                 removeResource: (name: string) => {
-                    res[name] = undefined;
+                    resources[name] = undefined;
                 },
                 getQuery: (name: string) => {
                     const idx = nameToQueryIdx[name];
                     if (idx === undefined) return undefined;
-                    return _queries[idx].result;
+                    return queries[idx].result;
                 },
             };
 
