@@ -1,5 +1,6 @@
 import type { Component } from './component';
 import { Entity } from './entity';
+import { arraySwapDelete } from './internal';
 import {
     Bitmasks,
     InternalQuery,
@@ -7,7 +8,7 @@ import {
     isWithItem,
     MapQueryDefinitionToTuple,
     QueryDefinitionGeneric,
-    updateQueryies,
+    updateQueries,
 } from './query';
 
 export type World<
@@ -102,6 +103,8 @@ export const worldBuilder = <
                     defintion: query,
                     bitmasks,
                     flags,
+                    entityToResultIdx: new Map(),
+                    entities: [],
                     result: [],
                 });
 
@@ -130,7 +133,7 @@ export const worldBuilder = <
                     entities.push({ componentsByType, bitmasks });
                     const id = entities.length - 1;
 
-                    updateQueryies(_queries, bitmasks, id, componentsByType);
+                    updateQueries(_queries, bitmasks, id, componentsByType);
 
                     return id;
                 },
@@ -158,7 +161,7 @@ export const worldBuilder = <
                     entry.bitmasks.with |= 1 << component.type;
                     entry.bitmasks.withAny |= 1 << component.type;
 
-                    updateQueryies(_queries, entry.bitmasks, entity, entry.componentsByType);
+                    updateQueries(_queries, entry.bitmasks, entity, entry.componentsByType);
 
                     return true;
                 },
@@ -169,7 +172,46 @@ export const worldBuilder = <
                     if (component === undefined) return false;
                     entry.componentsByType[componentType] = undefined;
 
-                    // TODO: update queries
+                    const withBefore = entry.bitmasks.with;
+                    const withAnyBefore = entry.bitmasks.withAny;
+
+                    entry.bitmasks.with &= ~(1 << componentType);
+                    entry.bitmasks.withAny &= ~(1 << componentType);
+
+                    const withChanged = entry.bitmasks.with !== withBefore;
+                    const withAnyChanged = entry.bitmasks.withAny !== withAnyBefore;
+
+                    if (!(withChanged && withAnyChanged)) {
+                        return false;
+                    }
+
+                    for (let i = 0; i < _queries.length; i++) {
+                        const qry = _queries[i];
+
+                        const withSatisfied = qry.flags.hasWith
+                            ? (entry.bitmasks.with & qry.bitmasks.with) === qry.bitmasks.with
+                            : true;
+
+                        const withAnySatisfied = qry.flags.hasWithAny
+                            ? (entry.bitmasks.withAny & qry.bitmasks.withAny) !== 0
+                            : true;
+
+                        if (!withSatisfied || !withAnySatisfied) {
+                            const idx = qry.entityToResultIdx.get(entity);
+                            if (idx === undefined) continue;
+
+                            const lastIdx = qry.result.length - 1;
+                            const swappedEntity = qry.entities[lastIdx];
+
+                            arraySwapDelete(qry.result, idx);
+                            arraySwapDelete(qry.entities, idx);
+                            qry.entityToResultIdx.delete(entity);
+
+                            if (idx !== lastIdx) {
+                                qry.entityToResultIdx.set(swappedEntity, idx);
+                            }
+                        }
+                    }
 
                     return true;
                 },

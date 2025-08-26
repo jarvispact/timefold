@@ -97,12 +97,17 @@ export type QueryBuilderApi<
         includeEntity: () => QueryBuilderApi<WorldComponent, true, Tuple, UsedMethods | 'includeEntity'>;
         with: <Type extends Exclude<WorldComponent['type'], CollectUsedComponentTypes<WorldComponent, Tuple>>>(
             type: Type,
-        ) => QueryBuilderApi<WorldComponent, IncludeEntity, [...Tuple, { with: Type }], UsedMethods>;
+        ) => QueryBuilderApi<WorldComponent, IncludeEntity, [...Tuple, { with: Type }], UsedMethods | 'includeEntity'>;
         withAny: <
             const Types extends Exclude<WorldComponent['type'], CollectUsedComponentTypes<WorldComponent, Tuple>>[],
         >(
             type: Types,
-        ) => QueryBuilderApi<WorldComponent, IncludeEntity, [...Tuple, { withAny: Types }], UsedMethods>;
+        ) => QueryBuilderApi<
+            WorldComponent,
+            IncludeEntity,
+            [...Tuple, { withAny: Types }],
+            UsedMethods | 'includeEntity'
+        >;
         compile: () => QueryDefinition<WorldComponent, IncludeEntity, Tuple>;
     },
     UsedMethods
@@ -176,10 +181,12 @@ export type InternalQuery = {
         hasWith: boolean;
         hasWithAny: boolean;
     };
+    entityToResultIdx: Map<Entity, number>;
+    entities: Entity[];
     result: unknown[][];
 };
 
-export const updateQueryies = (
+export const updateQueries = (
     queries: InternalQuery[],
     entitiyBitmasks: Bitmasks,
     entity: Entity,
@@ -219,6 +226,8 @@ export const updateQueryies = (
             }
 
             qry.result.push(tuple);
+            qry.entities.push(entity);
+            qry.entityToResultIdx.set(entity, qry.result.length - 1);
         }
     }
 };

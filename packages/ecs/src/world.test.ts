@@ -463,6 +463,63 @@ describe('world', () => {
                     [a, b],
                 ]);
             });
+
+            it('should return the correct query result with single "with" queries when removing a component', () => {
+                const world = worldBuilder<WorldComponent, WorldResources>()
+                    .registerQueries({
+                        one: queryBuilder<WorldComponent>().includeEntity().with(0).with(1).compile(),
+                        two: queryBuilder<WorldComponent>().with(0).with(1).compile(),
+                        three: queryBuilder<WorldComponent>().with(2).with(3).compile(),
+                    })
+                    .compile();
+
+                const one = world.getQuery('one');
+                const two = world.getQuery('two');
+                const three = world.getQuery('three');
+
+                const a: A = { type: 0 };
+                const b: B = { type: 1, data: { pos: [0, 0] } };
+
+                const e0 = world.spawn([a, b]);
+                const e1 = world.spawn([a, b]);
+                const e2 = world.spawn([a, b]);
+
+                expect(one).toEqual([
+                    [e0, a, b],
+                    [e1, a, b],
+                    [e2, a, b],
+                ]);
+                expect(two).toEqual([
+                    [a, b],
+                    [a, b],
+                    [a, b],
+                ]);
+                expect(three).toEqual([]);
+
+                world.removeComponent(e0, 0);
+
+                expect(one).toEqual([
+                    [e2, a, b],
+                    [e1, a, b],
+                ]);
+                expect(two).toEqual([
+                    [a, b],
+                    [a, b],
+                ]);
+                expect(three).toEqual([]);
+
+                world.removeComponent(e1, 1);
+
+                expect(one).toEqual([[e2, a, b]]);
+                expect(two).toEqual([[a, b]]);
+                expect(three).toEqual([]);
+
+                world.removeComponent(e2, 0);
+
+                expect(one).toEqual([]);
+                expect(two).toEqual([]);
+                expect(three).toEqual([]);
+            });
         });
 
         describe('withAny queries', () => {
@@ -541,6 +598,53 @@ describe('world', () => {
                 ]);
                 // e1, e2
                 expect(two).toEqual([[b], [c]]);
+            });
+
+            it('should return the correct query result with single "withAny" query when removing a component', () => {
+                const world = worldBuilder<WorldComponent, WorldResources>()
+                    .registerQueries({
+                        one: queryBuilder<WorldComponent>().includeEntity().withAny([0, 1]).compile(),
+                        two: queryBuilder<WorldComponent>().withAny([1, 2]).compile(),
+                        three: queryBuilder<WorldComponent>().withAny([3, 4]).compile(),
+                    })
+                    .compile();
+
+                const one = world.getQuery('one');
+                const two = world.getQuery('two');
+                const three = world.getQuery('three');
+
+                const a: A = { type: 0 };
+                const b: B = { type: 1, data: { pos: [0, 0] } };
+                const c: C = { type: 2, data: { pos: [0, 0, 0] } };
+
+                const e0 = world.spawn([a]);
+                const e1 = world.spawn([b]);
+                const e2 = world.spawn([c]);
+
+                expect(one).toEqual([
+                    [e0, a],
+                    [e1, b],
+                ]);
+                expect(two).toEqual([[b], [c]]);
+                expect(three).toEqual([]);
+
+                world.removeComponent(e0, 0);
+
+                expect(one).toEqual([[e1, b]]);
+                expect(two).toEqual([[b], [c]]);
+                expect(three).toEqual([]);
+
+                world.removeComponent(e1, 1);
+
+                expect(one).toEqual([]);
+                expect(two).toEqual([[c]]);
+                expect(three).toEqual([]);
+
+                world.removeComponent(e2, 2);
+
+                expect(one).toEqual([]);
+                expect(two).toEqual([]);
+                expect(three).toEqual([]);
             });
         });
 
