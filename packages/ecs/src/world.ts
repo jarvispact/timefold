@@ -1,6 +1,5 @@
 import type { Component } from './component';
 import { Entity } from './entity';
-import { arraySwapDelete } from './internal';
 import {
     Bitmasks,
     InternalQuery,
@@ -8,7 +7,9 @@ import {
     isWithItem,
     MapQueryDefinitionToTuple,
     QueryDefinitionGeneric,
-    updateQueries,
+    updateQueriesForDespawn,
+    updateQueriesForRemoveComponent,
+    updateQueriesForSpawnAndAddComponent,
 } from './query';
 
 export type World<
@@ -133,7 +134,7 @@ export const worldBuilder = <
                     entities.push({ componentsByType, bitmasks });
                     const id = entities.length - 1;
 
-                    updateQueries(_queries, bitmasks, id, componentsByType);
+                    updateQueriesForSpawnAndAddComponent(_queries, bitmasks, id, componentsByType);
 
                     return id;
                 },
@@ -142,7 +143,7 @@ export const worldBuilder = <
                     if (entry === undefined) return false;
                     entities[entity] = undefined;
 
-                    // TODO: update queries
+                    updateQueriesForDespawn(_queries, entity);
 
                     return true;
                 },
@@ -161,7 +162,7 @@ export const worldBuilder = <
                     entry.bitmasks.with |= 1 << component.type;
                     entry.bitmasks.withAny |= 1 << component.type;
 
-                    updateQueries(_queries, entry.bitmasks, entity, entry.componentsByType);
+                    updateQueriesForSpawnAndAddComponent(_queries, entry.bitmasks, entity, entry.componentsByType);
 
                     return true;
                 },
@@ -185,33 +186,7 @@ export const worldBuilder = <
                         return false;
                     }
 
-                    for (let i = 0; i < _queries.length; i++) {
-                        const qry = _queries[i];
-
-                        const withSatisfied = qry.flags.hasWith
-                            ? (entry.bitmasks.with & qry.bitmasks.with) === qry.bitmasks.with
-                            : true;
-
-                        const withAnySatisfied = qry.flags.hasWithAny
-                            ? (entry.bitmasks.withAny & qry.bitmasks.withAny) !== 0
-                            : true;
-
-                        if (!withSatisfied || !withAnySatisfied) {
-                            const idx = qry.entityToResultIdx.get(entity);
-                            if (idx === undefined) continue;
-
-                            const lastIdx = qry.result.length - 1;
-                            const swappedEntity = qry.entities[lastIdx];
-
-                            arraySwapDelete(qry.result, idx);
-                            arraySwapDelete(qry.entities, idx);
-                            qry.entityToResultIdx.delete(entity);
-
-                            if (idx !== lastIdx) {
-                                qry.entityToResultIdx.set(swappedEntity, idx);
-                            }
-                        }
-                    }
+                    updateQueriesForRemoveComponent(_queries, entity, entry.bitmasks);
 
                     return true;
                 },

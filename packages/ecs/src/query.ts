@@ -1,5 +1,6 @@
 import type { Component } from './component';
 import { Entity } from './entity';
+import { arraySwapDelete } from './internal';
 
 type QueryDefinitionItemWith<WorldComponent extends Component> = {
     with: WorldComponent['type'];
@@ -186,7 +187,7 @@ export type InternalQuery = {
     result: unknown[][];
 };
 
-export const updateQueries = (
+export const updateQueriesForSpawnAndAddComponent = (
     queries: InternalQuery[],
     entitiyBitmasks: Bitmasks,
     entity: Entity,
@@ -228,6 +229,54 @@ export const updateQueries = (
             qry.result.push(tuple);
             qry.entities.push(entity);
             qry.entityToResultIdx.set(entity, qry.result.length - 1);
+        }
+    }
+};
+
+export const updateQueriesForDespawn = (queries: InternalQuery[], entity: Entity) => {
+    for (let i = 0; i < queries.length; i++) {
+        const qry = queries[i];
+
+        const idx = qry.entityToResultIdx.get(entity);
+        if (idx === undefined) continue;
+
+        const lastIdx = qry.result.length - 1;
+        const swappedEntity = qry.entities[lastIdx];
+
+        arraySwapDelete(qry.result, idx);
+        arraySwapDelete(qry.entities, idx);
+        qry.entityToResultIdx.delete(entity);
+
+        if (idx !== lastIdx) {
+            qry.entityToResultIdx.set(swappedEntity, idx);
+        }
+    }
+};
+
+export const updateQueriesForRemoveComponent = (queries: InternalQuery[], entity: Entity, entityBitmasks: Bitmasks) => {
+    for (let i = 0; i < queries.length; i++) {
+        const qry = queries[i];
+
+        const withSatisfied = qry.flags.hasWith
+            ? (entityBitmasks.with & qry.bitmasks.with) === qry.bitmasks.with
+            : true;
+
+        const withAnySatisfied = qry.flags.hasWithAny ? (entityBitmasks.withAny & qry.bitmasks.withAny) !== 0 : true;
+
+        if (!withSatisfied || !withAnySatisfied) {
+            const idx = qry.entityToResultIdx.get(entity);
+            if (idx === undefined) continue;
+
+            const lastIdx = qry.result.length - 1;
+            const swappedEntity = qry.entities[lastIdx];
+
+            arraySwapDelete(qry.result, idx);
+            arraySwapDelete(qry.entities, idx);
+            qry.entityToResultIdx.delete(entity);
+
+            if (idx !== lastIdx) {
+                qry.entityToResultIdx.set(swappedEntity, idx);
+            }
         }
     }
 };
