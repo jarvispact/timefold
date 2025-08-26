@@ -1,5 +1,6 @@
 import type { Component } from './component';
 import { Entity } from './entity';
+import { arraySwapDelete } from './internal';
 import {
     Bitmasks,
     InternalQuery,
@@ -7,6 +8,7 @@ import {
     isWithItem,
     MapQueryDefinitionToTuple,
     QueryDefinitionGeneric,
+    QuerySubscriber,
     updateQueriesForDespawn,
     updateQueriesForRemoveComponent,
     updateQueriesForSpawnAndAddComponent,
@@ -28,7 +30,13 @@ export type World<
     getResource: <Name extends keyof Resources>(name: Name) => Resources[Name];
     setResource: <Name extends keyof Resources>(name: Name, data: Resources[Name]) => void;
     removeResource: (name: keyof Resources) => void;
-    getQuery: <Name extends keyof Queries>(name: Name) => MapQueryDefinitionToTuple<WorldComponent, Queries[Name]>[];
+    getQuery: <Name extends keyof Queries>(
+        name: Name,
+    ) => {
+        result: MapQueryDefinitionToTuple<WorldComponent, Queries[Name]>[];
+        onAdd: (callback: (item: MapQueryDefinitionToTuple<WorldComponent, Queries[Name]>) => void) => () => void;
+        onRemove: (callback: (item: MapQueryDefinitionToTuple<WorldComponent, Queries[Name]>) => void) => () => void;
+    };
 };
 
 export type WorldBuilderApi<
@@ -107,6 +115,8 @@ export const worldBuilder = <
                     entityToResultIdx: new Map(),
                     entities: [],
                     result: [],
+                    onAdd: [],
+                    onRemove: [],
                 });
 
                 nameToQueryIdx[name] = queries.length - 1;
@@ -200,7 +210,25 @@ export const worldBuilder = <
                 getQuery: (name: string) => {
                     const idx = nameToQueryIdx[name];
                     if (idx === undefined) return undefined;
-                    return queries[idx].result;
+                    const qry = queries[idx];
+
+                    return {
+                        result: qry.result,
+                        onAdd: (cb: QuerySubscriber) => {
+                            qry.onAdd.push(cb);
+                            const idx = qry.onAdd.length - 1;
+                            return () => {
+                                arraySwapDelete(qry.onAdd, idx);
+                            };
+                        },
+                        onRemove: (cb: QuerySubscriber) => {
+                            qry.onRemove.push(cb);
+                            const idx = qry.onRemove.length - 1;
+                            return () => {
+                                arraySwapDelete(qry.onRemove, idx);
+                            };
+                        },
+                    };
                 },
             };
 

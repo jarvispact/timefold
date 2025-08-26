@@ -1,5 +1,5 @@
 import { Component } from './component';
-import { EntityId } from './misc';
+import { Entity } from './entity';
 
 export type GenericEcsEvent = { type: string };
 
@@ -14,22 +14,22 @@ export type DefineEcsEvent<Type extends GenericEcsEvent['type'], Payload = undef
 
 export type SpawnEntityEcsEvent<Components extends Component[]> = {
     type: 'ecs/spawn-entity';
-    payload: { id: EntityId; components: Components };
+    payload: { id: Entity; components: Components };
 };
 
 export type DespawnEntityEcsEvent<Components extends Component[]> = {
     type: 'ecs/despawn-entity';
-    payload: { id: EntityId; components: Components };
+    payload: { id: Entity; components: Components };
 };
 
 export type AddComponentEcsEvent<Components extends Component[]> = {
     type: 'ecs/add-component';
-    payload: { entityId: EntityId; component: Components[number] };
+    payload: { entityId: Entity; component: Components[number] };
 };
 
 export type RemoveComponentEcsEvent<Components extends Component[]> = {
     type: 'ecs/remove-component';
-    payload: { entityId: EntityId; component: Components[number] };
+    payload: { entityId: Entity; component: Components[number] };
 };
 
 export type EcsEvent<Components extends Component[]> =

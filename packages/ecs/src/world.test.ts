@@ -273,21 +273,49 @@ describe('world', () => {
                 .compile();
 
             const one = world.getQuery('one');
-            expectTypeOf<typeof one>().toExtend<[number, { type: 0 }][]>();
+            expectTypeOf<typeof one>().toExtend<{
+                result: [number, { type: 0 }][];
+                onAdd: (cb: (item: [number, { type: 0 }]) => void) => void;
+                onRemove: (cb: (item: [number, { type: 0 }]) => void) => void;
+            }>();
 
             const two = world.getQuery('two');
-            expectTypeOf<typeof two>().toExtend<
-                [number, { type: 0 } | { type: 1; data: { pos: [number, number] } }][]
-            >();
+            expectTypeOf<typeof two>().toExtend<{
+                result: [number, { type: 0 } | { type: 1; data: { pos: [number, number] } }][];
+                onAdd: (
+                    cb: (item: [number, { type: 0 } | { type: 1; data: { pos: [number, number] } }]) => void,
+                ) => void;
+                onRemove: (
+                    cb: (item: [number, { type: 0 } | { type: 1; data: { pos: [number, number] } }]) => void,
+                ) => void;
+            }>();
 
             const three = world.getQuery('three');
-            expectTypeOf<typeof three>().toExtend<
-                [
+            expectTypeOf<typeof three>().toExtend<{
+                result: [
                     number,
                     { type: 1; data: { pos: [number, number] } },
                     { type: 2; data: { pos: [number, number, number] } },
-                ][]
-            >();
+                ][];
+                onAdd: (
+                    cb: (
+                        item: [
+                            number,
+                            { type: 1; data: { pos: [number, number] } },
+                            { type: 2; data: { pos: [number, number, number] } },
+                        ],
+                    ) => void,
+                ) => void;
+                onRemove: (
+                    cb: (
+                        item: [
+                            number,
+                            { type: 1; data: { pos: [number, number] } },
+                            { type: 2; data: { pos: [number, number, number] } },
+                        ],
+                    ) => void,
+                ) => void;
+            }>();
         });
 
         describe('with queries', () => {
@@ -303,12 +331,12 @@ describe('world', () => {
                     })
                     .compile();
 
-                const one = world.getQuery('one');
-                const two = world.getQuery('two');
-                const three = world.getQuery('three');
-                const four = world.getQuery('four');
-                const five = world.getQuery('five');
-                const six = world.getQuery('six');
+                const one = world.getQuery('one').result;
+                const two = world.getQuery('two').result;
+                const three = world.getQuery('three').result;
+                const four = world.getQuery('four').result;
+                const five = world.getQuery('five').result;
+                const six = world.getQuery('six').result;
 
                 const a: A = { type: 0 };
                 const b: B = { type: 1, data: { pos: [0, 0] } };
@@ -359,12 +387,12 @@ describe('world', () => {
                     })
                     .compile();
 
-                const one = world.getQuery('one');
-                const two = world.getQuery('two');
-                const three = world.getQuery('three');
-                const four = world.getQuery('four');
-                const five = world.getQuery('five');
-                const six = world.getQuery('six');
+                const one = world.getQuery('one').result;
+                const two = world.getQuery('two').result;
+                const three = world.getQuery('three').result;
+                const four = world.getQuery('four').result;
+                const five = world.getQuery('five').result;
+                const six = world.getQuery('six').result;
 
                 const a: A = { type: 0 };
                 const b: B = { type: 1, data: { pos: [0, 0] } };
@@ -423,8 +451,8 @@ describe('world', () => {
                     })
                     .compile();
 
-                const one = world.getQuery('one');
-                const two = world.getQuery('two');
+                const one = world.getQuery('one').result;
+                const two = world.getQuery('two').result;
 
                 const a: A = { type: 0 };
                 const b: B = { type: 1, data: { pos: [0, 0] } };
@@ -473,9 +501,9 @@ describe('world', () => {
                     })
                     .compile();
 
-                const one = world.getQuery('one');
-                const two = world.getQuery('two');
-                const three = world.getQuery('three');
+                const one = world.getQuery('one').result;
+                const two = world.getQuery('two').result;
+                const three = world.getQuery('three').result;
 
                 const a: A = { type: 0 };
                 const b: B = { type: 1, data: { pos: [0, 0] } };
@@ -530,9 +558,9 @@ describe('world', () => {
                     })
                     .compile();
 
-                const one = world.getQuery('one');
-                const two = world.getQuery('two');
-                const three = world.getQuery('three');
+                const one = world.getQuery('one').result;
+                const two = world.getQuery('two').result;
+                const three = world.getQuery('three').result;
 
                 const a: A = { type: 0 };
                 const b: B = { type: 1, data: { pos: [0, 0] } };
@@ -591,11 +619,11 @@ describe('world', () => {
                     })
                     .compile();
 
-                const one = world.getQuery('one');
-                const two = world.getQuery('two');
-                const three = world.getQuery('three');
-                const four = world.getQuery('four');
-                const five = world.getQuery('five');
+                const one = world.getQuery('one').result;
+                const two = world.getQuery('two').result;
+                const three = world.getQuery('three').result;
+                const four = world.getQuery('four').result;
+                const five = world.getQuery('five').result;
 
                 const a: A = { type: 0 };
                 const b: B = { type: 1, data: { pos: [0, 0] } };
@@ -630,8 +658,8 @@ describe('world', () => {
                     })
                     .compile();
 
-                const one = world.getQuery('one');
-                const two = world.getQuery('two');
+                const one = world.getQuery('one').result;
+                const two = world.getQuery('two').result;
 
                 const a: A = { type: 0 };
                 const b: B = { type: 1, data: { pos: [0, 0] } };
@@ -666,9 +694,9 @@ describe('world', () => {
                     })
                     .compile();
 
-                const one = world.getQuery('one');
-                const two = world.getQuery('two');
-                const three = world.getQuery('three');
+                const one = world.getQuery('one').result;
+                const two = world.getQuery('two').result;
+                const three = world.getQuery('three').result;
 
                 const a: A = { type: 0 };
                 const b: B = { type: 1, data: { pos: [0, 0] } };
@@ -713,9 +741,9 @@ describe('world', () => {
                     })
                     .compile();
 
-                const one = world.getQuery('one');
-                const two = world.getQuery('two');
-                const three = world.getQuery('three');
+                const one = world.getQuery('one').result;
+                const two = world.getQuery('two').result;
+                const three = world.getQuery('three').result;
 
                 const a: A = { type: 0 };
                 const b: B = { type: 1, data: { pos: [0, 0] } };
@@ -761,8 +789,8 @@ describe('world', () => {
                     })
                     .compile();
 
-                const one = world.getQuery('one');
-                const two = world.getQuery('two');
+                const one = world.getQuery('one').result;
+                const two = world.getQuery('two').result;
 
                 const a: A = { type: 0 };
                 const b: B = { type: 1, data: { pos: [0, 0] } };
@@ -808,9 +836,9 @@ describe('world', () => {
                     })
                     .compile();
 
-                const one = world.getQuery('one');
-                const two = world.getQuery('two');
-                const three = world.getQuery('three');
+                const one = world.getQuery('one').result;
+                const two = world.getQuery('two').result;
+                const three = world.getQuery('three').result;
 
                 const a: A = { type: 0 };
                 const b: B = { type: 1, data: { pos: [0, 0] } };
@@ -867,6 +895,79 @@ describe('world', () => {
                         e: e.data.health,
                     },
                 ]);
+            });
+        });
+
+        describe('query events', () => {
+            it('should notify query subscribers onAdd and onRemove', () => {
+                // make sure that all callbacks are called
+                // 4 event handler
+                // 2 calls per event handler = 4 * 2 = 8
+                // + 4 assertions for the final collected items
+                // = 12
+                expect.assertions(12);
+
+                const world = worldBuilder<WorldComponent, WorldResources>()
+                    .registerQueries({
+                        one: queryBuilder<WorldComponent>().includeEntity().with(0).with(1).compile(),
+                        two: queryBuilder<WorldComponent>()
+                            .includeEntity()
+                            .with(0)
+                            .with(1)
+                            .map(([id, a, b]) => ({ id, a: a.type, b: b.data.pos }))
+                            .compile(),
+                    })
+                    .compile();
+
+                const one = world.getQuery('one');
+                const two = world.getQuery('two');
+
+                const oneOnAddCollectedItems: unknown[] = [];
+                const oneOnRemoveCollectedItems: unknown[] = [];
+                const twoOnAddCollectedItems: unknown[] = [];
+                const twoOnRemoveCollectedItems: unknown[] = [];
+
+                one.onAdd((item) => {
+                    expect(item).toEqual(expect.any(Array)); // Called twice and we dont know yet if e0 or e1
+                    oneOnAddCollectedItems.push(item);
+                });
+
+                one.onRemove((item) => {
+                    expect(item).toEqual(expect.any(Array)); // Called twice and we dont know yet if e0 or e1
+                    oneOnRemoveCollectedItems.push(item);
+                });
+
+                two.onAdd((item) => {
+                    expect(item).toEqual(expect.any(Object)); // Called twice and we dont know yet if e0 or e1
+                    twoOnAddCollectedItems.push(item);
+                });
+
+                two.onRemove((item) => {
+                    expect(item).toEqual(expect.any(Object)); // Called twice and we dont know yet if e0 or e1
+                    twoOnRemoveCollectedItems.push(item);
+                });
+
+                const a: A = { type: 0 };
+                const b: B = { type: 1, data: { pos: [0, 0] } };
+
+                const e0 = world.spawn([a, b]);
+                const e1 = world.spawn([b, a]);
+                world.despawn(e0);
+                world.despawn(e1);
+
+                const e0Obj = { id: e0, a: a.type, b: b.data.pos };
+                const e1Obj = { id: e1, a: a.type, b: b.data.pos };
+
+                expect(oneOnAddCollectedItems).toEqual([
+                    [e0, a, b],
+                    [e1, a, b],
+                ]);
+                expect(oneOnRemoveCollectedItems).toEqual([
+                    [e0, a, b],
+                    [e1, a, b],
+                ]);
+                expect(twoOnAddCollectedItems).toEqual([e0Obj, e1Obj]);
+                expect(twoOnRemoveCollectedItems).toEqual([e0Obj, e1Obj]);
             });
         });
     });
