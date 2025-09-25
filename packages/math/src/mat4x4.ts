@@ -2,9 +2,11 @@ import { Mat4x4Type, QuatType, Vec3Type } from './types';
 import { EPSILON } from './utils';
 import { one as vec3One } from './vec3';
 
-export const create = (): Mat4x4Type => [1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1];
+export function create(): Mat4x4Type {
+    return [1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1];
+}
 
-export const copy = (out: Mat4x4Type, mat4x4: Mat4x4Type): Mat4x4Type => {
+export function copy(out: Mat4x4Type, mat4x4: Mat4x4Type): Mat4x4Type {
     out[0] = mat4x4[0];
     out[1] = mat4x4[1];
     out[2] = mat4x4[2];
@@ -22,13 +24,14 @@ export const copy = (out: Mat4x4Type, mat4x4: Mat4x4Type): Mat4x4Type => {
     out[14] = mat4x4[14];
     out[15] = mat4x4[15];
     return out;
-};
+}
 
-export const createCopy = (mat4x4: Mat4x4Type): Mat4x4Type => {
+// [INLINE]
+export function createCopy(mat4x4: Mat4x4Type): Mat4x4Type {
     return copy(create(), mat4x4);
-};
+}
 
-export const identity = (out: Mat4x4Type) => {
+export function identity(out: Mat4x4Type) {
     out[0] = 1;
     out[1] = 0;
     out[2] = 0;
@@ -46,9 +49,9 @@ export const identity = (out: Mat4x4Type) => {
     out[14] = 0;
     out[15] = 1;
     return out;
-};
+}
 
-export const transpose = (out: Mat4x4Type, mat4x4: Mat4x4Type) => {
+export function transpose(out: Mat4x4Type, mat4x4: Mat4x4Type) {
     // If we are transposing ourselves we can skip a few steps but have to cache some values
     if (out === mat4x4) {
         const a01 = mat4x4[1],
@@ -90,11 +93,14 @@ export const transpose = (out: Mat4x4Type, mat4x4: Mat4x4Type) => {
     }
 
     return out;
-};
+}
 
-export const transposed = (out: Mat4x4Type) => transpose(out, out);
+// [INLINE]
+export function transposed(out: Mat4x4Type) {
+    return transpose(out, out);
+}
 
-export const invert = (out: Mat4x4Type, mat4x4: Mat4x4Type) => {
+export function invert(out: Mat4x4Type, mat4x4: Mat4x4Type) {
     const a00 = mat4x4[0],
         a01 = mat4x4[1],
         a02 = mat4x4[2],
@@ -151,11 +157,14 @@ export const invert = (out: Mat4x4Type, mat4x4: Mat4x4Type) => {
     out[15] = (a20 * b03 - a21 * b01 + a22 * b00) * det;
 
     return out;
-};
+}
 
-export const inverted = (out: Mat4x4Type) => invert(out, out);
+// [INLINE]
+export function inverted(out: Mat4x4Type) {
+    return invert(out, out);
+}
 
-export const multiplication = (out: Mat4x4Type, a: Mat4x4Type, b: Mat4x4Type) => {
+export function multiplication(out: Mat4x4Type, a: Mat4x4Type, b: Mat4x4Type) {
     const a00 = a[0],
         a01 = a[1],
         a02 = a[2],
@@ -210,11 +219,14 @@ export const multiplication = (out: Mat4x4Type, a: Mat4x4Type, b: Mat4x4Type) =>
     out[14] = b0 * a02 + b1 * a12 + b2 * a22 + b3 * a32;
     out[15] = b0 * a03 + b1 * a13 + b2 * a23 + b3 * a33;
     return out;
-};
+}
 
-export const multiply = (out: Mat4x4Type, mat4x4: Mat4x4Type) => multiplication(out, out, mat4x4);
+// [INLINE]
+export function multiply(out: Mat4x4Type, mat4x4: Mat4x4Type) {
+    return multiplication(out, out, mat4x4);
+}
 
-export const fromRotationTranslationScale = (out: Mat4x4Type, q: QuatType, v: Vec3Type, s: Vec3Type) => {
+export function fromRotationTranslationScale(out: Mat4x4Type, q: QuatType, v: Vec3Type, s: Vec3Type) {
     // Quaternion math
     const x = q[0],
         y = q[1],
@@ -255,18 +267,20 @@ export const fromRotationTranslationScale = (out: Mat4x4Type, q: QuatType, v: Ve
     out[15] = 1;
 
     return out;
-};
+}
 
-export const createFromRotationTranslationScale = (q: QuatType, v: Vec3Type, s: Vec3Type) =>
-    fromRotationTranslationScale(create(), q, v, s);
+// [INLINE]
+export function createFromRotationTranslationScale(q: QuatType, v: Vec3Type, s: Vec3Type) {
+    return fromRotationTranslationScale(create(), q, v, s);
+}
 
-export const fromRotationTranslationScaleOrigin = (
+export function fromRotationTranslationScaleOrigin(
     out: Mat4x4Type,
     q: QuatType,
     v: Vec3Type,
     s: Vec3Type,
     o: Vec3Type,
-) => {
+) {
     // Quaternion math
     const x = q[0],
         y = q[1],
@@ -322,12 +336,14 @@ export const fromRotationTranslationScaleOrigin = (
     out[15] = 1;
 
     return out;
-};
+}
 
-export const createFromRotationTranslationScaleOrigin = (q: QuatType, v: Vec3Type, s: Vec3Type, o: Vec3Type) =>
-    fromRotationTranslationScaleOrigin(create(), q, v, s, o);
+// [INLINE]
+export function createFromRotationTranslationScaleOrigin(q: QuatType, v: Vec3Type, s: Vec3Type, o: Vec3Type) {
+    return fromRotationTranslationScaleOrigin(create(), q, v, s, o);
+}
 
-export const perspective = (out: Mat4x4Type, fovy: number, aspect: number, near: number, far?: number) => {
+export function perspective(out: Mat4x4Type, fovy: number, aspect: number, near: number, far?: number) {
     const f = 1.0 / Math.tan(fovy / 2);
     out[0] = f / aspect;
     out[1] = 0;
@@ -352,12 +368,14 @@ export const perspective = (out: Mat4x4Type, fovy: number, aspect: number, near:
         out[14] = -near;
     }
     return out;
-};
+}
 
-export const createPerspective = (fovy: number, aspect: number, near: number, far?: number) =>
-    perspective(create(), fovy, aspect, near, far);
+// [INLINE]
+export function createPerspective(fovy: number, aspect: number, near: number, far?: number) {
+    return perspective(create(), fovy, aspect, near, far);
+}
 
-export const ortho = (
+export function ortho(
     out: Mat4x4Type,
     left: number,
     right: number,
@@ -365,7 +383,7 @@ export const ortho = (
     top: number,
     near: number,
     far: number,
-) => {
+) {
     const lr = 1 / (left - right);
     const bt = 1 / (bottom - top);
     const nf = 1 / (near - far);
@@ -386,12 +404,14 @@ export const ortho = (
     out[14] = near * nf;
     out[15] = 1;
     return out;
-};
+}
 
-export const createOrtho = (left: number, right: number, bottom: number, top: number, near: number, far: number) =>
-    ortho(create(), left, right, bottom, top, near, far);
+// [INLINE]
+export function createOrtho(left: number, right: number, bottom: number, top: number, near: number, far: number) {
+    return ortho(create(), left, right, bottom, top, near, far);
+}
 
-export const lookAt = (out: Mat4x4Type, eye: Vec3Type, center: Vec3Type, up: Vec3Type) => {
+export function lookAt(out: Mat4x4Type, eye: Vec3Type, center: Vec3Type, up: Vec3Type) {
     let x0, x1, x2, y0, y1, y2, z0, z1, z2, len;
     const eyex = eye[0];
     const eyey = eye[1];
@@ -469,11 +489,14 @@ export const lookAt = (out: Mat4x4Type, eye: Vec3Type, center: Vec3Type, up: Vec
     out[15] = 1;
 
     return out;
-};
+}
 
-export const createLookAt = (eye: Vec3Type, center: Vec3Type, up: Vec3Type) => lookAt(create(), eye, center, up);
+// [INLINE]
+export function createLookAt(eye: Vec3Type, center: Vec3Type, up: Vec3Type) {
+    return lookAt(create(), eye, center, up);
+}
 
-export const targetTo = (out: Mat4x4Type, eye: Vec3Type, target: Vec3Type, up: Vec3Type) => {
+export function targetTo(out: Mat4x4Type, eye: Vec3Type, target: Vec3Type, up: Vec3Type) {
     const eyex = eye[0],
         eyey = eye[1],
         eyez = eye[2],
@@ -522,11 +545,14 @@ export const targetTo = (out: Mat4x4Type, eye: Vec3Type, target: Vec3Type, up: V
     out[14] = eyez;
     out[15] = 1;
     return out;
-};
+}
 
-export const createTargetTo = (eye: Vec3Type, target: Vec3Type, up: Vec3Type) => targetTo(create(), eye, target, up);
+// [INLINE]
+export function createTargetTo(eye: Vec3Type, target: Vec3Type, up: Vec3Type) {
+    return targetTo(create(), eye, target, up);
+}
 
-export const rotationX = (out: Mat4x4Type, mat4x4: Mat4x4Type, rad: number) => {
+export function rotationX(out: Mat4x4Type, mat4x4: Mat4x4Type, rad: number) {
     const s = Math.sin(rad);
     const c = Math.cos(rad);
     const a10 = mat4x4[4];
@@ -560,11 +586,14 @@ export const rotationX = (out: Mat4x4Type, mat4x4: Mat4x4Type, rad: number) => {
     out[10] = a22 * c - a12 * s;
     out[11] = a23 * c - a13 * s;
     return out;
-};
+}
 
-export const rotateX = (out: Mat4x4Type, rad: number) => rotationX(out, out, rad);
+// [INLINE]
+export function rotateX(out: Mat4x4Type, rad: number) {
+    return rotationX(out, out, rad);
+}
 
-export const rotationY = (out: Mat4x4Type, mat4x4: Mat4x4Type, rad: number) => {
+export function rotationY(out: Mat4x4Type, mat4x4: Mat4x4Type, rad: number) {
     const s = Math.sin(rad);
     const c = Math.cos(rad);
     const a00 = mat4x4[0];
@@ -598,11 +627,14 @@ export const rotationY = (out: Mat4x4Type, mat4x4: Mat4x4Type, rad: number) => {
     out[10] = a02 * s + a22 * c;
     out[11] = a03 * s + a23 * c;
     return out;
-};
+}
 
-export const rotateY = (out: Mat4x4Type, rad: number) => rotationY(out, out, rad);
+// [INLINE]
+export function rotateY(out: Mat4x4Type, rad: number) {
+    return rotationY(out, out, rad);
+}
 
-export const rotationZ = (out: Mat4x4Type, mat4x4: Mat4x4Type, rad: number) => {
+export function rotationZ(out: Mat4x4Type, mat4x4: Mat4x4Type, rad: number) {
     const s = Math.sin(rad);
     const c = Math.cos(rad);
     const a00 = mat4x4[0];
@@ -636,9 +668,12 @@ export const rotationZ = (out: Mat4x4Type, mat4x4: Mat4x4Type, rad: number) => {
     out[6] = a12 * c - a02 * s;
     out[7] = a13 * c - a03 * s;
     return out;
-};
+}
 
-export const rotateZ = (out: Mat4x4Type, rad: number) => rotationZ(out, out, rad);
+// [INLINE]
+export function rotateZ(out: Mat4x4Type, rad: number) {
+    return rotationZ(out, out, rad);
+}
 
 export function extractScale(out: Vec3Type, mat4x4: Mat4x4Type) {
     const m11 = mat4x4[0];
@@ -708,15 +743,19 @@ export function extractRotation(out: QuatType, mat4x4: Mat4x4Type) {
     return out;
 }
 
-export const modelToNormal = (out: Mat4x4Type, modelMatrix: Mat4x4Type) => {
+// [INLINE]
+export function modelToNormal(out: Mat4x4Type, modelMatrix: Mat4x4Type) {
     transpose(out, modelMatrix);
     inverted(out);
     return out;
-};
+}
 
-export const createNormalFromModel = (modelMatrix: Mat4x4Type) => modelToNormal(create(), modelMatrix);
+// [INLINE]
+export function createNormalFromModel(modelMatrix: Mat4x4Type) {
+    return modelToNormal(create(), modelMatrix);
+}
 
-export const translation = (out: Mat4x4Type, mat4x4: Mat4x4Type, vec3: Vec3Type) => {
+export function translation(out: Mat4x4Type, mat4x4: Mat4x4Type, vec3: Vec3Type) {
     const x = vec3[0],
         y = vec3[1],
         z = vec3[2];
@@ -763,11 +802,14 @@ export const translation = (out: Mat4x4Type, mat4x4: Mat4x4Type, vec3: Vec3Type)
     }
 
     return out;
-};
+}
 
-export const translate = (out: Mat4x4Type, vec3: Vec3Type) => translation(out, out, vec3);
+// [INLINE]
+export function translate(out: Mat4x4Type, vec3: Vec3Type) {
+    return translation(out, out, vec3);
+}
 
-export const fromTranslation = (out: Mat4x4Type, vec3: Vec3Type) => {
+export function fromTranslation(out: Mat4x4Type, vec3: Vec3Type) {
     out[0] = 1;
     out[1] = 0;
     out[2] = 0;
@@ -785,4 +827,4 @@ export const fromTranslation = (out: Mat4x4Type, vec3: Vec3Type) => {
     out[14] = vec3[2];
     out[15] = 1;
     return out;
-};
+}

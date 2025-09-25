@@ -1,72 +1,99 @@
 import { Vec2Type } from './types';
 
-export const create = (x: number, y: number): Vec2Type => [x, y];
-export const fromScalar = (scalar: number): Vec2Type => [scalar, scalar];
+export function create(x: number, y: number): Vec2Type {
+    return [x, y];
+}
 
-export const zero = (): Vec2Type => [0, 0];
-export const one = (): Vec2Type => [1, 1];
-export const left = (): Vec2Type => [-1, 0];
-export const right = (): Vec2Type => [1, 0];
-export const up = (): Vec2Type => [0, 1];
-export const down = (): Vec2Type => [0, -1];
+export function fromScalar(scalar: number): Vec2Type {
+    return [scalar, scalar];
+}
 
-export const copy = (out: Vec2Type, vec2: Vec2Type): Vec2Type => {
+export function zero(): Vec2Type {
+    return [0, 0];
+}
+
+export function one(): Vec2Type {
+    return [1, 1];
+}
+
+export function left(): Vec2Type {
+    return [-1, 0];
+}
+
+export function right(): Vec2Type {
+    return [1, 0];
+}
+
+export function up(): Vec2Type {
+    return [0, 1];
+}
+
+export function down(): Vec2Type {
+    return [0, -1];
+}
+
+export function copy(out: Vec2Type, vec2: Vec2Type): Vec2Type {
     out[0] = vec2[0];
     out[1] = vec2[1];
     return out;
-};
+}
 
-export const set = (out: Vec2Type, x: number, y: number): Vec2Type => {
+// [INLINE]
+export function createCopy(vec2: Vec2Type): Vec2Type {
+    return copy(create(0, 0), vec2);
+}
+
+export function set(out: Vec2Type, x: number, y: number): Vec2Type {
     out[0] = x;
     out[1] = y;
     return out;
-};
+}
 
-export const createCopy = (vec2: Vec2Type): Vec2Type => {
-    return copy(create(0, 0), vec2);
-};
-
-export const addition = (out: Vec2Type, a: Vec2Type, b: Vec2Type) => {
+export function addition(out: Vec2Type, a: Vec2Type, b: Vec2Type) {
     out[0] = a[0] + b[0];
     out[1] = a[1] + b[1];
     return out;
-};
+}
 
-export const add = (out: Vec2Type, vec2: Vec2Type) => {
+// [INLINE]
+export function add(out: Vec2Type, vec2: Vec2Type) {
     return addition(out, out, vec2);
-};
+}
 
-export const subtraction = (out: Vec2Type, a: Vec2Type, b: Vec2Type) => {
+export function subtraction(out: Vec2Type, a: Vec2Type, b: Vec2Type) {
     out[0] = a[0] - b[0];
     out[1] = a[1] - b[1];
     return out;
-};
+}
 
-export const subtract = (out: Vec2Type, vec2: Vec2Type) => {
+// [INLINE]
+export function subtract(out: Vec2Type, vec2: Vec2Type) {
     return subtraction(out, out, vec2);
-};
+}
 
-export const multiplication = (out: Vec2Type, a: Vec2Type, b: Vec2Type) => {
+export function multiplication(out: Vec2Type, a: Vec2Type, b: Vec2Type) {
     out[0] = a[0] * b[0];
     out[1] = a[1] * b[1];
     return out;
-};
+}
 
-export const multiply = (out: Vec2Type, vec2: Vec2Type) => {
+// [INLINE]
+export function multiply(out: Vec2Type, vec2: Vec2Type) {
     return multiplication(out, out, vec2);
-};
+}
 
-export const scaling = (out: Vec2Type, vec2: Vec2Type, factor: number) => {
+export function scaling(out: Vec2Type, vec2: Vec2Type, factor: number) {
     out[0] = vec2[0] * factor;
     out[1] = vec2[1] * factor;
     return out;
-};
+}
 
-export const scale = (out: Vec2Type, factor: number) => {
+// [INLINE]
+export function scale(out: Vec2Type, factor: number) {
     return scaling(out, out, factor);
-};
+}
 
-export const normalization = (out: Vec2Type, vec2: Vec2Type) => {
+export function normalization(out: Vec2Type, vec2: Vec2Type) {
     const x = vec2[0],
         y = vec2[1];
 
@@ -79,17 +106,19 @@ export const normalization = (out: Vec2Type, vec2: Vec2Type) => {
     out[1] = vec2[1] * len;
 
     return out;
-};
+}
 
-export const normalize = (out: Vec2Type) => {
+// [INLINE]
+export function normalize(out: Vec2Type) {
     return normalization(out, out);
-};
+}
 
-export const createNormalized = (x: number, y: number) => {
+// [INLINE]
+export function createNormalized(x: number, y: number) {
     return normalize(create(x, y));
-};
+}
 
-export const linearInterpolation = (out: Vec2Type, a: Vec2Type, b: Vec2Type, t: number) => {
+export function linearInterpolation(out: Vec2Type, a: Vec2Type, b: Vec2Type, t: number) {
     const ax = a[0],
         ay = a[1];
 
@@ -97,13 +126,14 @@ export const linearInterpolation = (out: Vec2Type, a: Vec2Type, b: Vec2Type, t: 
     out[1] = ay + t * (b[1] - ay);
 
     return out;
-};
+}
 
-export const lerp = (out: Vec2Type, vec2: Vec2Type, t: number) => {
+// [INLINE]
+export function lerp(out: Vec2Type, vec2: Vec2Type, t: number) {
     return linearInterpolation(out, out, vec2, t);
-};
+}
 
-export const rotation = (out: Vec2Type, a: Vec2Type, b: Vec2Type, rad: number) => {
+export function rotation(out: Vec2Type, a: Vec2Type, b: Vec2Type, rad: number) {
     //Translate point to the origin
     const p0 = a[0] - b[0],
         p1 = a[1] - b[1],
@@ -115,8 +145,9 @@ export const rotation = (out: Vec2Type, a: Vec2Type, b: Vec2Type, rad: number) =
     out[1] = p0 * sinC + p1 * cosC + b[1];
 
     return out;
-};
+}
 
-export const rotate = (out: Vec2Type, vec2: Vec2Type, rad: number) => {
+// [INLINE]
+export function rotate(out: Vec2Type, vec2: Vec2Type, rad: number) {
     return rotation(out, out, vec2, rad);
-};
+}
