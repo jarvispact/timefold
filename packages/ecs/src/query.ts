@@ -266,9 +266,12 @@ export const updateQueriesForSpawnAndAddComponent = (
             }
 
             const item = map(tuple);
-            qry.result.push(item);
-            qry.entities.push(entity);
-            qry.entityToResultIdx.set(entity, qry.result.length - 1);
+
+            if (!qry.entities.includes(entity)) {
+                qry.entities.push(entity);
+                qry.result.push(item);
+                qry.entityToResultIdx.set(entity, qry.result.length - 1);
+            }
 
             for (let j = 0; j < qry.onAdd.length; j++) {
                 const subscriber = qry.onAdd[j];
