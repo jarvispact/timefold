@@ -223,23 +223,23 @@ export type InternalQuery = {
 
 export const updateQueriesForSpawnAndAddComponent = (
     queries: InternalQuery[],
-    entitiyBitmasks: Bitmasks,
+    entityBitmasks: Bitmasks,
     entity: Entity,
     componentsByType: Map<number, Component>,
 ) => {
     for (let i = 0; i < queries.length; i++) {
         const qry = queries[i];
-        if (qry.entityToResultIdx.get(entity) !== undefined) continue;
+        if (qry.entityToResultIdx.has(entity)) continue;
 
         const map = qry.defintion.map as (tuple: unknown[]) => unknown;
 
         const withSatisfied = qry.flags.hasWith
-            ? (entitiyBitmasks.with & qry.bitmasks.with) === qry.bitmasks.with
+            ? (entityBitmasks.with & qry.bitmasks.with) === qry.bitmasks.with
             : true;
 
         if (!withSatisfied) continue;
 
-        const withAnySatisfied = qry.flags.hasWithAny ? (entitiyBitmasks.withAny & qry.bitmasks.withAny) !== 0 : true;
+        const withAnySatisfied = qry.flags.hasWithAny ? (entityBitmasks.withAny & qry.bitmasks.withAny) !== 0 : true;
 
         if (!withAnySatisfied) continue;
 
