@@ -12,28 +12,38 @@ export type DefineEcsEvent<Type extends GenericEcsEvent['type'], Payload = undef
           payload: Payload;
       };
 
-export type SpawnEntityEcsEvent<Components extends Component[]> = {
+export type SpawnEntityEcsEvent<C extends Component> = {
     type: 'ecs/spawn-entity';
-    payload: { id: Entity; components: Components };
+    payload: { entity: Entity; components: C[] };
 };
 
-export type DespawnEntityEcsEvent<Components extends Component[]> = {
+export const createSpawnEntityEvent = (event: SpawnEntityEcsEvent<Component>) => event;
+
+export type DespawnEntityEcsEvent<C extends Component> = {
     type: 'ecs/despawn-entity';
-    payload: { id: Entity; components: Components };
+    payload: { entity: Entity; components: C[] };
 };
 
-export type AddComponentEcsEvent<Components extends Component[]> = {
+export const createDespawnEntityEvent = (event: DespawnEntityEcsEvent<Component>) => event;
+
+export type AddComponentEcsEvent<C extends Component> = {
     type: 'ecs/add-component';
-    payload: { entityId: Entity; component: Components[number] };
+    payload: { entity: Entity; component: C };
 };
 
-export type RemoveComponentEcsEvent<Components extends Component[]> = {
+export const createAddComponentEvent = (event: AddComponentEcsEvent<Component>) => event;
+
+export type RemoveComponentEcsEvent<C extends Component> = {
     type: 'ecs/remove-component';
-    payload: { entityId: Entity; component: Components[number] };
+    payload: { entity: Entity; component: C };
 };
 
-export type EcsEvent<Components extends Component[]> =
-    | SpawnEntityEcsEvent<Components>
-    | DespawnEntityEcsEvent<Components>
-    | AddComponentEcsEvent<Components>
-    | RemoveComponentEcsEvent<Components>;
+export const createRemoveComponentEvent = (event: RemoveComponentEcsEvent<Component>) => event;
+
+export type EcsEvent<C extends Component> =
+    | SpawnEntityEcsEvent<C>
+    | DespawnEntityEcsEvent<C>
+    | AddComponentEcsEvent<C>
+    | RemoveComponentEcsEvent<C>;
+
+export type ExtendEcsEvent<C extends Component, CustomEvent extends GenericEcsEvent> = EcsEvent<C> | CustomEvent;

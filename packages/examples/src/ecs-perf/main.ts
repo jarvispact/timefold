@@ -36,20 +36,34 @@ const world = worldBuilder<WorldComponent>()
     })
     .compile();
 
+// world.on('ecs/spawn-entity', (payload) => {
+//     console.log('spawn-entity', payload);
+// });
+
+// world.on('ecs/despawn-entity', (payload) => {
+//     console.log('despawn-entity', payload);
+// });
+
+// world.on('ecs/add-component', (payload) => {
+//     console.log('add-component', payload);
+// });
+
+// world.on('ecs/remove-component', (payload) => {
+//     console.log('remove-comopnent', payload);
+// });
+
 const posOnly = world.getQuery('posOnly');
 const velOnly = world.getQuery('velOnly');
 const movable = world.getQuery('movable');
 
-const ENTITY_COUNT = 3;
-const SYSTEM_RUNS = 1;
-const entities: number[] = [];
+const ENTITY_COUNT = 10_000;
+const SYSTEM_RUNS = 100;
 
 // spawn test
 
 const spawnT0 = performance.now();
 for (let i = 0; i < ENTITY_COUNT; i++) {
-    const id = world.spawn([createPosition(Vec2.create(0, 0)), createVelocity(Vec2.create(1, 1))]);
-    entities.push(id);
+    world.spawn(i, [createPosition(Vec2.create(0, 0)), createVelocity(Vec2.create(1, 1))]);
 }
 const spawnT1 = performance.now();
 const spawnTime = `${(spawnT1 - spawnT0).toFixed(4)}ms`;
@@ -58,26 +72,24 @@ console.log(`Spawned ${ENTITY_COUNT} entities in ${spawnTime}`);
 // addComponent test
 
 const addCompT0 = performance.now();
-for (let i = 0; i < entities.length; i++) {
-    const entity = entities[i];
-    world.addComponent(entity, createColor(Vec3.one()));
-    world.addComponent(entity, createRenderable());
+for (let i = 0; i < ENTITY_COUNT; i++) {
+    world.addComponent(i, createColor(Vec3.one()));
+    world.addComponent(i, createRenderable());
 }
 const addCompT1 = performance.now();
 const addCompTime = `${(addCompT1 - addCompT0).toFixed(4)}ms`;
-console.log(`add 2 components to ${entities.length} entities in ${addCompTime}`);
+console.log(`add 2 components to ${ENTITY_COUNT} entities in ${addCompTime}`);
 
 // removeComponent test
 
 const removeCompT0 = performance.now();
-for (let i = 0; i < entities.length; i++) {
-    const entity = entities[i];
-    world.removeComponent(entity, T.COLOR);
-    world.removeComponent(entity, T.RENDERABLE);
+for (let i = 0; i < ENTITY_COUNT; i++) {
+    world.removeComponent(i, T.COLOR);
+    world.removeComponent(i, T.RENDERABLE);
 }
 const removeCompT1 = performance.now();
 const removeCompTime = `${(removeCompT1 - removeCompT0).toFixed(4)}ms`;
-console.log(`remove 2 components from ${entities.length} entities in ${removeCompTime}`);
+console.log(`remove 2 components from ${ENTITY_COUNT} entities in ${removeCompTime}`);
 
 // system test
 
@@ -115,10 +127,9 @@ console.log(`Ran 3 systems with avg time: ${systemTime}`);
 // despawn test
 
 const despawnT0 = performance.now();
-for (let i = 0; i < entities.length; i++) {
-    const entity = entities[i];
-    world.despawn(entity);
+for (let i = 0; i < ENTITY_COUNT; i++) {
+    world.despawn(i);
 }
 const despawnT1 = performance.now();
 const despawnTime = `${(despawnT1 - despawnT0).toFixed(4)}ms`;
-console.log(`despawn ${entities.length} entities in ${despawnTime}`);
+console.log(`despawn ${ENTITY_COUNT} entities in ${despawnTime}`);

@@ -1,6 +1,14 @@
 import type { Component } from './component';
 import { Entity } from './entity';
 import {
+    createAddComponentEvent,
+    createDespawnEntityEvent,
+    createRemoveComponentEvent,
+    createSpawnEntityEvent,
+    EcsEvent,
+    GenericEcsEvent,
+} from './event';
+import {
     Bitmasks,
     InternalQuery,
     isWithAnyItem,
@@ -12,12 +20,15 @@ import {
     updateQueriesForSpawnAndAddComponent,
 } from './query';
 
+type EventSubscriber = (payload: unknown) => void;
+
 export type World<
     WorldComponent extends Component,
+    WorldEvent extends GenericEcsEvent = EcsEvent<WorldComponent>,
     Resources extends Record<string, unknown> = NonNullable<unknown>,
     Queries extends Record<string, QueryDefinitionGeneric<WorldComponent>> = NonNullable<unknown>,
 > = {
-    spawn: (components: WorldComponent[]) => Entity;
+    spawn: (entity: Entity, components: WorldComponent[]) => Entity;
     despawn: (id: Entity) => boolean;
     getComponent: <ComponentType extends WorldComponent['type']>(
         entity: Entity,
@@ -33,10 +44,21 @@ export type World<
     ) => {
         result: MapQueryDefinitionToTuple<WorldComponent, Queries[Name]>[];
     };
+    emit: <EventType extends WorldEvent['type']>(
+        type: EventType,
+        ...payload: Extract<WorldEvent, { type: EventType }> extends { payload: infer Payload } ? [Payload] : []
+    ) => void;
+    on: <EventType extends WorldEvent['type']>(
+        type: EventType,
+        cb: (
+            ...payload: Extract<WorldEvent, { type: EventType }> extends { payload: infer Payload } ? [Payload] : []
+        ) => void,
+    ) => void;
 };
 
 export type WorldBuilderApi<
     WorldComponent extends Component,
+    WorldEvent extends GenericEcsEvent = EcsEvent<WorldComponent>,
     Resources extends Record<string, unknown> = NonNullable<unknown>,
     Queries extends Record<string, QueryDefinitionGeneric<WorldComponent>> = NonNullable<unknown>,
     UsedMethods extends string = never,
@@ -44,17 +66,18 @@ export type WorldBuilderApi<
     {
         defineResources: <Resources extends Record<string, unknown>>(
             resources: Resources,
-        ) => WorldBuilderApi<WorldComponent, Resources, Queries, UsedMethods | 'defineResources'>;
+        ) => WorldBuilderApi<WorldComponent, WorldEvent, Resources, Queries, UsedMethods | 'defineResources'>;
         registerQueries: <Queries extends Record<string, QueryDefinitionGeneric<WorldComponent>>>(
             queries: Queries,
-        ) => WorldBuilderApi<WorldComponent, Resources, Queries, UsedMethods | 'registerQueries'>;
-        compile: () => World<WorldComponent, Resources, Queries>;
+        ) => WorldBuilderApi<WorldComponent, WorldEvent, Resources, Queries, UsedMethods | 'registerQueries'>;
+        compile: () => World<WorldComponent, WorldEvent, Resources, Queries>;
     },
     UsedMethods
 >;
 
 export const worldBuilder = <
     WorldComponent extends Component,
+    WorldEvent extends GenericEcsEvent = EcsEvent<WorldComponent>,
     Resources extends Record<string, unknown> = NonNullable<unknown>,
     Queries extends Record<string, QueryDefinitionGeneric<WorldComponent>> = NonNullable<unknown>,
     UsedMethods extends string = never,
@@ -68,12 +91,12 @@ export const worldBuilder = <
             resources = recordOfResources;
             return api;
         },
-        registerQueries: (recordOrQueries: Record<string, QueryDefinitionGeneric<WorldComponent>>) => {
-            const queryKeys = Object.keys(recordOrQueries);
+        registerQueries: (recordOfQueries: Record<string, QueryDefinitionGeneric<WorldComponent>>) => {
+            const queryKeys = Object.keys(recordOfQueries);
 
             for (let i = 0; i < queryKeys.length; i++) {
                 const name = queryKeys[i];
-                const query = recordOrQueries[name];
+                const query = recordOfQueries[name];
 
                 const bitmasks = {
                     with: 0,
@@ -117,11 +140,12 @@ export const worldBuilder = <
             return api;
         },
         compile: () => {
-            let entityId = -1;
             const entities = new Map<number, { componentsByType: Map<number, WorldComponent>; bitmasks: Bitmasks }>();
 
+            const subscribersByEventType: Record<string, EventSubscriber[] | undefined> = {};
+
             const world = {
-                spawn: (components: WorldComponent[]) => {
+                spawn: (entity: number, components: WorldComponent[]) => {
                     const componentsByType = new Map<number, WorldComponent>();
 
                     const bitmasks = {
@@ -136,17 +160,31 @@ export const worldBuilder = <
                         bitmasks.withAny |= 1 << component.type;
                     }
 
-                    entityId += 1;
-                    entities.set(entityId, { componentsByType, bitmasks });
+                    entities.set(entity, { componentsByType, bitmasks });
 
-                    updateQueriesForSpawnAndAddComponent(queries, bitmasks, entityId, componentsByType);
+                    const event = createSpawnEntityEvent({
+                        type: 'ecs/spawn-entity',
+                        payload: { entity, components },
+                    });
 
-                    return entityId;
+                    world.emit(event.type, event.payload);
+
+                    updateQueriesForSpawnAndAddComponent(queries, bitmasks, entity, componentsByType);
+
+                    return entity;
                 },
                 despawn: (entity: Entity): boolean => {
                     const entry = entities.get(entity);
                     if (entry === undefined) return false;
                     entities.delete(entity);
+
+                    const event = createDespawnEntityEvent({
+                        type: 'ecs/despawn-entity',
+                        // TODO
+                        payload: { entity, components: [...entry.componentsByType.values()] },
+                    });
+
+                    world.emit(event.type, event.payload);
 
                     updateQueriesForDespawn(queries, entity);
 
@@ -165,6 +203,13 @@ export const worldBuilder = <
 
                     entry.bitmasks.with |= 1 << component.type;
                     entry.bitmasks.withAny |= 1 << component.type;
+
+                    const event = createAddComponentEvent({
+                        type: 'ecs/add-component',
+                        payload: { entity, component },
+                    });
+
+                    world.emit(event.type, event.payload);
 
                     updateQueriesForSpawnAndAddComponent(queries, entry.bitmasks, entity, entry.componentsByType);
 
@@ -190,6 +235,13 @@ export const worldBuilder = <
                         return false;
                     }
 
+                    const event = createRemoveComponentEvent({
+                        type: 'ecs/remove-component',
+                        payload: { entity, component },
+                    });
+
+                    world.emit(event.type, event.payload);
+
                     updateQueriesForRemoveComponent(queries, entity, entry.bitmasks);
 
                     return true;
@@ -210,11 +262,27 @@ export const worldBuilder = <
                         result: qry.result,
                     };
                 },
+                emit: (eventType: string, payload: unknown) => {
+                    const subscribers = subscribersByEventType[eventType];
+                    if (!subscribers) return;
+
+                    for (let i = 0; i < subscribers.length; i++) {
+                        const subscriber = subscribers[i];
+                        subscriber(payload);
+                    }
+                },
+                on: (eventType: string, cb: EventSubscriber) => {
+                    if (!subscribersByEventType[eventType]) {
+                        subscribersByEventType[eventType] = [];
+                    }
+
+                    subscribersByEventType[eventType].push(cb);
+                },
             };
 
-            return world as unknown as World<WorldComponent, Resources, Queries>;
+            return world as unknown as World<WorldComponent, WorldEvent, Resources, Queries>;
         },
     };
 
-    return api as unknown as WorldBuilderApi<WorldComponent, Resources, Queries, UsedMethods>;
+    return api as unknown as WorldBuilderApi<WorldComponent, WorldEvent, Resources, Queries, UsedMethods>;
 };
