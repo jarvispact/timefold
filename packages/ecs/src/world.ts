@@ -130,8 +130,6 @@ export const worldBuilder = <
                     entityToResultIdx: new Map(),
                     entities: [],
                     result: [],
-                    onAdd: [],
-                    onRemove: [],
                 });
 
                 nameToQueryIdx[name] = queries.length - 1;

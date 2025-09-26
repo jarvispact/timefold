@@ -208,8 +208,6 @@ export type Bitmasks = {
     withAny: number;
 };
 
-export type QuerySubscriber = (item: unknown) => void;
-
 export type InternalQuery = {
     name: string;
     defintion: QueryDefinitionGeneric;
@@ -221,8 +219,6 @@ export type InternalQuery = {
     entityToResultIdx: Map<Entity, number>;
     entities: Entity[];
     result: unknown[];
-    onAdd: QuerySubscriber[];
-    onRemove: QuerySubscriber[];
 };
 
 export const updateQueriesForSpawnAndAddComponent = (
@@ -265,17 +261,11 @@ export const updateQueriesForSpawnAndAddComponent = (
                 }
             }
 
-            const item = map(tuple);
-
             if (!qry.entities.includes(entity)) {
                 qry.entities.push(entity);
+                const item = map(tuple);
                 qry.result.push(item);
                 qry.entityToResultIdx.set(entity, qry.result.length - 1);
-            }
-
-            for (let j = 0; j < qry.onAdd.length; j++) {
-                const subscriber = qry.onAdd[j];
-                subscriber(item);
             }
         }
     }
@@ -291,18 +281,12 @@ export const updateQueriesForDespawn = (queries: InternalQuery[], entity: Entity
         const lastIdx = qry.result.length - 1;
         const swappedEntity = qry.entities[lastIdx];
 
-        const item = qry.result[idx];
         arraySwapDelete(qry.result, idx);
         arraySwapDelete(qry.entities, idx);
         qry.entityToResultIdx.delete(entity);
 
         if (idx !== lastIdx) {
             qry.entityToResultIdx.set(swappedEntity, idx);
-        }
-
-        for (let j = 0; j < qry.onRemove.length; j++) {
-            const subscriber = qry.onRemove[j];
-            subscriber(item);
         }
     }
 };
@@ -324,18 +308,12 @@ export const updateQueriesForRemoveComponent = (queries: InternalQuery[], entity
             const lastIdx = qry.result.length - 1;
             const swappedEntity = qry.entities[lastIdx];
 
-            const item = qry.result[idx];
             arraySwapDelete(qry.result, idx);
             arraySwapDelete(qry.entities, idx);
             qry.entityToResultIdx.delete(entity);
 
             if (idx !== lastIdx) {
                 qry.entityToResultIdx.set(swappedEntity, idx);
-            }
-
-            for (let j = 0; j < qry.onRemove.length; j++) {
-                const subscriber = qry.onRemove[j];
-                subscriber(item);
             }
         }
     }
