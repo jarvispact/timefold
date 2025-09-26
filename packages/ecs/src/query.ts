@@ -229,6 +229,7 @@ export const updateQueriesForSpawnAndAddComponent = (
 ) => {
     for (let i = 0; i < queries.length; i++) {
         const qry = queries[i];
+
         const map = qry.defintion.map as (tuple: unknown[]) => unknown;
 
         const withSatisfied = qry.flags.hasWith
@@ -261,7 +262,17 @@ export const updateQueriesForSpawnAndAddComponent = (
                 }
             }
 
-            if (!qry.entities.includes(entity)) {
+            // console.log([...qry.entityToResultIdx.entries()]);
+
+            // if (!qry.entities.includes(entity)) {
+            //     qry.entities.push(entity);
+            //     const item = map(tuple);
+            //     qry.result.push(item);
+            //     qry.entityToResultIdx.set(entity, qry.result.length - 1);
+            // }
+            // console.log(qry.entityToResultIdx.get(entity));
+
+            if (qry.entityToResultIdx.get(entity) === undefined) {
                 qry.entities.push(entity);
                 const item = map(tuple);
                 qry.result.push(item);

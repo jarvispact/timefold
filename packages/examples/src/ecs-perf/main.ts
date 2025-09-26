@@ -133,3 +133,7 @@ for (let i = 0; i < ENTITY_COUNT; i++) {
 const despawnT1 = performance.now();
 const despawnTime = `${(despawnT1 - despawnT0).toFixed(4)}ms`;
 console.log(`despawn ${ENTITY_COUNT} entities in ${despawnTime}`);
+
+console.log('posOnly', posOnly.result.length);
+console.log('velOnly', velOnly.result.length);
+console.log('movable', movable.result.length);

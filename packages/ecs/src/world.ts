@@ -254,10 +254,8 @@ export const worldBuilder = <
                 getQuery: (name: string) => {
                     const idx = nameToQueryIdx[name];
                     if (idx === undefined) return undefined;
-                    const qry = queries[idx];
-
                     return {
-                        result: qry.result,
+                        result: queries[idx].result,
                     };
                 },
                 emit: (eventType: string, payload: unknown) => {

@@ -641,6 +641,86 @@ describe('world', () => {
                 expect(two).toEqual([]);
                 expect(three).toEqual([]);
             });
+
+            it('should return the correct final result with single "with" queries when performing various updates', () => {
+                const world = worldBuilder<WorldComponent, WorldEvent, WorldResources>()
+                    .registerQueries({
+                        one: queryBuilder<WorldComponent>().includeEntity().with(0).with(1).compile(),
+                        two: queryBuilder<WorldComponent>().includeEntity().with(0).with(2).compile(),
+                        three: queryBuilder<WorldComponent>().includeEntity().with(1).with(2).compile(),
+                    })
+                    .compile();
+
+                const one = world.getQuery('one').result;
+                const two = world.getQuery('two').result;
+                const three = world.getQuery('three').result;
+
+                const a: A = { type: 0 };
+                const b: B = { type: 1, data: { pos: [0, 0] } };
+                const c: C = { type: 2, data: { pos: [0, 0, 0] } };
+
+                const e0 = world.spawn(0, [a, b]);
+                const e1 = world.spawn(1, [a, b]);
+                const e2 = world.spawn(2, [a, b]);
+
+                expect(one).toEqual([
+                    [e0, a, b],
+                    [e1, a, b],
+                    [e2, a, b],
+                ]);
+                expect(two).toEqual([]);
+                expect(three).toEqual([]);
+
+                world.addComponent(e0, c);
+                world.addComponent(e1, c);
+                world.addComponent(e2, c);
+
+                expect(one).toEqual([
+                    [e0, a, b],
+                    [e1, a, b],
+                    [e2, a, b],
+                ]);
+                expect(two).toEqual([
+                    [e0, a, c],
+                    [e1, a, c],
+                    [e2, a, c],
+                ]);
+                expect(three).toEqual([
+                    [e0, b, c],
+                    [e1, b, c],
+                    [e2, b, c],
+                ]);
+
+                world.removeComponent(e0, a.type);
+                world.removeComponent(e1, a.type);
+                world.removeComponent(e2, a.type);
+
+                expect(one).toEqual([]);
+                expect(two).toEqual([]);
+                expect(three).toEqual([
+                    [e0, b, c],
+                    [e1, b, c],
+                    [e2, b, c],
+                ]);
+
+                world.addComponent(e0, a);
+
+                expect(one).toEqual([[e0, a, b]]);
+                expect(two).toEqual([[e0, a, c]]);
+                expect(three).toEqual([
+                    [e0, b, c],
+                    [e1, b, c],
+                    [e2, b, c],
+                ]);
+
+                world.despawn(e0);
+                world.despawn(e1);
+                world.despawn(e2);
+
+                expect(one).toEqual([]);
+                expect(two).toEqual([]);
+                expect(three).toEqual([]);
+            });
         });
 
         describe('withAny queries', () => {
