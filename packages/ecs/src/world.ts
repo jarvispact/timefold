@@ -1,6 +1,5 @@
 import type { Component } from './component';
 import { Entity } from './entity';
-import { arraySwapDelete } from './internal';
 import {
     Bitmasks,
     InternalQuery,
@@ -8,7 +7,6 @@ import {
     isWithItem,
     MapQueryDefinitionToTuple,
     QueryDefinitionGeneric,
-    QuerySubscriber,
     updateQueriesForDespawn,
     updateQueriesForRemoveComponent,
     updateQueriesForSpawnAndAddComponent,
@@ -34,8 +32,6 @@ export type World<
         name: Name,
     ) => {
         result: MapQueryDefinitionToTuple<WorldComponent, Queries[Name]>[];
-        onAdd: (callback: (item: MapQueryDefinitionToTuple<WorldComponent, Queries[Name]>) => void) => () => void;
-        onRemove: (callback: (item: MapQueryDefinitionToTuple<WorldComponent, Queries[Name]>) => void) => () => void;
     };
 };
 
@@ -214,20 +210,6 @@ export const worldBuilder = <
 
                     return {
                         result: qry.result,
-                        onAdd: (cb: QuerySubscriber) => {
-                            qry.onAdd.push(cb);
-                            const idx = qry.onAdd.length - 1;
-                            return () => {
-                                arraySwapDelete(qry.onAdd, idx);
-                            };
-                        },
-                        onRemove: (cb: QuerySubscriber) => {
-                            qry.onRemove.push(cb);
-                            const idx = qry.onRemove.length - 1;
-                            return () => {
-                                arraySwapDelete(qry.onRemove, idx);
-                            };
-                        },
                     };
                 },
             };
