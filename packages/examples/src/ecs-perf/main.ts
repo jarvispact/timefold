@@ -134,6 +134,42 @@ const despawnT1 = performance.now();
 const despawnTime = `${(despawnT1 - despawnT0).toFixed(4)}ms`;
 console.log(`despawn ${ENTITY_COUNT} entities in ${despawnTime}`);
 
-console.log('posOnly', posOnly.result.length);
-console.log('velOnly', velOnly.result.length);
-console.log('movable', movable.result.length);
+/**
+New system:
+
+Spawned 10000 entities in 20.9700ms
+add 2 components to 10000 entities in 9.6400ms
+remove 2 components from 10000 entities in 2.8350ms
+Ran 3 systems with avg time: 0.1654ms
+despawn 10000 entities in 6.1700ms
+
+Spawned 10000 entities in 20.3750ms
+add 2 components to 10000 entities in 15.5750ms
+remove 2 components from 10000 entities in 2.7300ms
+Ran 3 systems with avg time: 0.2304ms
+despawn 10000 entities in 6.1300ms
+
+Spawned 10000 entities in 17.0550ms
+add 2 components to 10000 entities in 8.4500ms
+remove 2 components from 10000 entities in 3.6950ms
+Ran 3 systems with avg time: 0.2859ms
+despawn 10000 entities in 13.3750ms
+
+Spawned 10000 entities in 12.8550ms
+add 2 components to 10000 entities in 10.3050ms
+remove 2 components from 10000 entities in 2.5150ms
+Ran 3 systems with avg time: 0.1707ms
+despawn 10000 entities in 6.7650ms
+
+Spawned 10000 entities in 8.1000ms
+add 2 components to 10000 entities in 16.1250ms
+remove 2 components from 10000 entities in 2.3400ms
+Ran 3 systems with avg time: 0.1820ms
+despawn 10000 entities in 5.8400ms
+
+Spawned 10000 entities in 16.2850ms
+add 2 components to 10000 entities in 7.8500ms
+remove 2 components from 10000 entities in 3.1600ms
+Ran 3 systems with avg time: 0.3030ms
+despawn 10000 entities in 8.0550ms
+ */
