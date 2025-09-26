@@ -19,12 +19,12 @@ export type SpawnEntityEcsEvent<C extends Component> = {
 
 export const createSpawnEntityEvent = (event: SpawnEntityEcsEvent<Component>) => event;
 
-export type DespawnEntityEcsEvent<C extends Component> = {
+export type DespawnEntityEcsEvent = {
     type: 'ecs/despawn-entity';
-    payload: { entity: Entity; components: C[] };
+    payload: { entity: Entity };
 };
 
-export const createDespawnEntityEvent = (event: DespawnEntityEcsEvent<Component>) => event;
+export const createDespawnEntityEvent = (event: DespawnEntityEcsEvent) => event;
 
 export type AddComponentEcsEvent<C extends Component> = {
     type: 'ecs/add-component';
@@ -42,7 +42,7 @@ export const createRemoveComponentEvent = (event: RemoveComponentEcsEvent<Compon
 
 export type EcsEvent<C extends Component> =
     | SpawnEntityEcsEvent<C>
-    | DespawnEntityEcsEvent<C>
+    | DespawnEntityEcsEvent
     | AddComponentEcsEvent<C>
     | RemoveComponentEcsEvent<C>;
 

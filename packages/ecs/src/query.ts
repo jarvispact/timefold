@@ -229,7 +229,6 @@ export const updateQueriesForSpawnAndAddComponent = (
 ) => {
     for (let i = 0; i < queries.length; i++) {
         const qry = queries[i];
-
         if (qry.entityToResultIdx.get(entity) !== undefined) continue;
 
         const map = qry.defintion.map as (tuple: unknown[]) => unknown;
@@ -238,37 +237,39 @@ export const updateQueriesForSpawnAndAddComponent = (
             ? (entitiyBitmasks.with & qry.bitmasks.with) === qry.bitmasks.with
             : true;
 
+        if (!withSatisfied) continue;
+
         const withAnySatisfied = qry.flags.hasWithAny ? (entitiyBitmasks.withAny & qry.bitmasks.withAny) !== 0 : true;
 
-        if (withSatisfied && withAnySatisfied) {
-            const tuple: unknown[] = [];
+        if (!withAnySatisfied) continue;
 
-            if (qry.defintion.includeEntity) {
-                tuple.push(entity);
-            }
+        const tuple: unknown[] = [];
 
-            for (let j = 0; j < qry.defintion.tuple.length; j++) {
-                const item = qry.defintion.tuple[j];
-                if (isWithItem(item)) {
-                    const c = componentsByType.get(item.with);
-                    if (c) tuple.push(c);
-                } else if (isWithAnyItem(item)) {
-                    for (let k = 0; k < item.withAny.length; k++) {
-                        const element = item.withAny[k];
-                        const c = componentsByType.get(element);
-                        if (c) {
-                            tuple.push(c);
-                            break;
-                        }
+        if (qry.defintion.includeEntity) {
+            tuple.push(entity);
+        }
+
+        for (let j = 0; j < qry.defintion.tuple.length; j++) {
+            const item = qry.defintion.tuple[j];
+            if (isWithItem(item)) {
+                const c = componentsByType.get(item.with);
+                if (c) tuple.push(c);
+            } else if (isWithAnyItem(item)) {
+                for (let k = 0; k < item.withAny.length; k++) {
+                    const element = item.withAny[k];
+                    const c = componentsByType.get(element);
+                    if (c) {
+                        tuple.push(c);
+                        break;
                     }
                 }
             }
-
-            qry.entities.push(entity);
-            const item = map(tuple);
-            qry.result.push(item);
-            qry.entityToResultIdx.set(entity, qry.result.length - 1);
         }
+
+        qry.entities.push(entity);
+        const item = map(tuple);
+        qry.result.push(item);
+        qry.entityToResultIdx.set(entity, qry.result.length - 1);
     }
 };
 

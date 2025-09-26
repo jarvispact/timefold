@@ -174,18 +174,17 @@ export const worldBuilder = <
                 despawn: (entity: Entity): boolean => {
                     const entry = entities.get(entity);
                     if (entry === undefined) return false;
-                    entities.delete(entity);
 
                     const event = createDespawnEntityEvent({
                         type: 'ecs/despawn-entity',
-                        // TODO
-                        payload: { entity, components: [...entry.componentsByType.values()] },
+                        payload: { entity },
                     });
 
                     world.emit(event.type, event.payload);
 
                     updateQueriesForDespawn(queries, entity);
 
+                    entities.delete(entity);
                     return true;
                 },
                 getComponent: (entity: Entity, componentType: WorldComponent['type']) => {
