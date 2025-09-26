@@ -229,7 +229,7 @@ export const updateQueriesForSpawnAndAddComponent = (
     queries: InternalQuery[],
     entitiyBitmasks: Bitmasks,
     entity: Entity,
-    componentsByType: Record<string, Component | undefined>,
+    componentsByType: Map<number, Component>,
 ) => {
     for (let i = 0; i < queries.length; i++) {
         const qry = queries[i];
@@ -251,12 +251,12 @@ export const updateQueriesForSpawnAndAddComponent = (
             for (let j = 0; j < qry.defintion.tuple.length; j++) {
                 const item = qry.defintion.tuple[j];
                 if (isWithItem(item)) {
-                    const c = componentsByType[item.with];
+                    const c = componentsByType.get(item.with);
                     if (c) tuple.push(c);
                 } else if (isWithAnyItem(item)) {
                     for (let k = 0; k < item.withAny.length; k++) {
                         const element = item.withAny[k];
-                        const c = componentsByType[element];
+                        const c = componentsByType.get(element);
                         if (c) {
                             tuple.push(c);
                             break;

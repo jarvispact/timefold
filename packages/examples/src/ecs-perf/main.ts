@@ -40,8 +40,8 @@ const posOnly = world.getQuery('posOnly');
 const velOnly = world.getQuery('velOnly');
 const movable = world.getQuery('movable');
 
-const ENTITY_COUNT = 10_000;
-const SYSTEM_RUNS = 100;
+const ENTITY_COUNT = 3;
+const SYSTEM_RUNS = 1;
 const entities: number[] = [];
 
 // spawn test

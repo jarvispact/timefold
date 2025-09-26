@@ -59,10 +59,6 @@ export const worldBuilder = <
     Queries extends Record<string, QueryDefinitionGeneric<WorldComponent>> = NonNullable<unknown>,
     UsedMethods extends string = never,
 >() => {
-    const entities: (
-        | { componentsByType: Record<number, WorldComponent | undefined>; bitmasks: Bitmasks }
-        | undefined
-    )[] = [];
     let resources: Record<string, unknown> = {};
     const queries: InternalQuery[] = [];
     const nameToQueryIdx: Record<string, number | undefined> = {};
@@ -121,9 +117,12 @@ export const worldBuilder = <
             return api;
         },
         compile: () => {
+            let entityId = -1;
+            const entities = new Map<number, { componentsByType: Map<number, WorldComponent>; bitmasks: Bitmasks }>();
+
             const world = {
                 spawn: (components: WorldComponent[]) => {
-                    const componentsByType: Record<number, WorldComponent> = {};
+                    const componentsByType = new Map<number, WorldComponent>();
 
                     const bitmasks = {
                         with: 0,
@@ -132,38 +131,37 @@ export const worldBuilder = <
 
                     for (let i = 0; i < components.length; i++) {
                         const component = components[i];
-                        componentsByType[component.type] = component;
+                        componentsByType.set(component.type, component);
                         bitmasks.with |= 1 << component.type;
                         bitmasks.withAny |= 1 << component.type;
                     }
 
-                    entities.push({ componentsByType, bitmasks });
-                    const id = entities.length - 1;
+                    entityId += 1;
+                    entities.set(entityId, { componentsByType, bitmasks });
 
-                    updateQueriesForSpawnAndAddComponent(queries, bitmasks, id, componentsByType);
+                    updateQueriesForSpawnAndAddComponent(queries, bitmasks, entityId, componentsByType);
 
-                    return id;
+                    return entityId;
                 },
                 despawn: (entity: Entity): boolean => {
-                    const entry = entities[entity];
+                    const entry = entities.get(entity);
                     if (entry === undefined) return false;
-                    entities[entity] = undefined;
+                    entities.delete(entity);
 
                     updateQueriesForDespawn(queries, entity);
 
                     return true;
                 },
                 getComponent: (entity: Entity, componentType: WorldComponent['type']) => {
-                    const entry = entities[entity];
+                    const entry = entities.get(entity);
                     if (entry === undefined) return undefined;
-                    const component = entry.componentsByType[componentType];
-                    return component;
+                    return entry.componentsByType.get(componentType);
                 },
                 addComponent: (entity: Entity, component: WorldComponent): boolean => {
-                    const entry = entities[entity];
+                    const entry = entities.get(entity);
                     if (entry === undefined) return false;
-                    if (entry.componentsByType[component.type] !== undefined) return false;
-                    entry.componentsByType[component.type] = component;
+                    if (entry.componentsByType.get(component.type) !== undefined) return false;
+                    entry.componentsByType.set(component.type, component);
 
                     entry.bitmasks.with |= 1 << component.type;
                     entry.bitmasks.withAny |= 1 << component.type;
@@ -173,11 +171,11 @@ export const worldBuilder = <
                     return true;
                 },
                 removeComponent: (entity: Entity, componentType: WorldComponent['type']): boolean => {
-                    const entry = entities[entity];
+                    const entry = entities.get(entity);
                     if (entry === undefined) return false;
-                    const component = entry.componentsByType[componentType];
+                    const component = entry.componentsByType.get(componentType);
                     if (component === undefined) return false;
-                    entry.componentsByType[componentType] = undefined;
+                    entry.componentsByType.delete(componentType);
 
                     const withBefore = entry.bitmasks.with;
                     const withAnyBefore = entry.bitmasks.withAny;
