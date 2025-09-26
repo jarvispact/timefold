@@ -134,6 +134,10 @@ const despawnT1 = performance.now();
 const despawnTime = `${(despawnT1 - despawnT0).toFixed(4)}ms`;
 console.log(`despawn ${ENTITY_COUNT} entities in ${despawnTime}`);
 
+console.log(posOnly.result.length);
+console.log(velOnly.result.length);
+console.log(movable.result.length);
+
 /**
 Old system:
 Spawned 10000 entities in 28.5500ms
@@ -172,38 +176,38 @@ remove = 21 + 13 + 12 + 8 + 21 + 17 = 92 = avg [15]
 despawn = 5 + 5 + 11 + 5 + 4 + 4 = 34 = avg [5]
 
 New system:
-Spawned 10000 entities in 18.0500ms
-add 2 components to 10000 entities in 13.7050ms
-remove 2 components from 10000 entities in 2.7050ms
-despawn 10000 entities in 14.3400ms
+Spawned 10000 entities in 13.4900ms
+add 2 components to 10000 entities in 15.4550ms
+remove 2 components from 10000 entities in 7.5200ms
+despawn 10000 entities in 5.9850ms
 
-Spawned 10000 entities in 12.2050ms
-add 2 components to 10000 entities in 15.5600ms
-remove 2 components from 10000 entities in 2.8150ms
-despawn 10000 entities in 6.4350ms
+Spawned 10000 entities in 9.1100ms
+add 2 components to 10000 entities in 5.8800ms
+remove 2 components from 10000 entities in 4.0400ms
+despawn 10000 entities in 13.1650ms
 
-Spawned 10000 entities in 8.1600ms
-add 2 components to 10000 entities in 17.2300ms
-remove 2 components from 10000 entities in 2.8350ms
-despawn 10000 entities in 5.8700ms
+Spawned 10000 entities in 18.5600ms
+add 2 components to 10000 entities in 11.0350ms
+remove 2 components from 10000 entities in 6.9100ms
+despawn 10000 entities in 5.6100ms
 
-Spawned 10000 entities in 16.2800ms
-add 2 components to 10000 entities in 7.4100ms
-remove 2 components from 10000 entities in 3.2350ms
-despawn 10000 entities in 8.0650ms
+Spawned 10000 entities in 13.2400ms
+add 2 components to 10000 entities in 4.8900ms
+remove 2 components from 10000 entities in 2.7600ms
+despawn 10000 entities in 6.6850ms
 
-Spawned 10000 entities in 10.9000ms
-add 2 components to 10000 entities in 15.9600ms
-remove 2 components from 10000 entities in 2.2750ms
-despawn 10000 entities in 5.7850ms
+Spawned 10000 entities in 7.9550ms
+add 2 components to 10000 entities in 5.1750ms
+remove 2 components from 10000 entities in 3.5800ms
+despawn 10000 entities in 6.7800ms
 
-Spawned 10000 entities in 10.7550ms
-add 2 components to 10000 entities in 21.6600ms
-remove 2 components from 10000 entities in 2.4550ms
-despawn 10000 entities in 5.7750ms
+Spawned 10000 entities in 11.0750ms
+add 2 components to 10000 entities in 9.3750ms
+remove 2 components from 10000 entities in 5.8450ms
+despawn 10000 entities in 5.9750ms
 
-spawn = 18 + 12 + 8 + 16 + 11 + 10 = 75 / [12.5]
-add = 13 + 15 + 17 + 7 + 15 + 21 = 88 / [14.6]
-remove = 3 + 2 + 2 + 3 + 2 + 2 = 14 / [2.3]
-despawn = 14 + 6 + 5 + 8 + 5 + 6 = 44 / [7.3]
+spawn = 13 + 9 + 18 + 13 + 8 + 11 = 72 = [12]
+add = 15 + 5 + 11 + 5 + 5 + 9 = 50 = [8.3]
+remove = 7 + 4 + 7 + 3 + 3 + 5 = 29 = [4.8]
+despawn = 6 + 13 + 5 + 6 + 6 + 6 = 42 = [7]
  */
