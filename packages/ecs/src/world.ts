@@ -72,13 +72,158 @@ export type WorldBuilderApi<
     UsedMethods
 >;
 
-export const worldBuilder = <
+function createWorld<
+    WorldComponent extends Component,
+    WorldEvent extends GenericEcsEvent = EcsEvent<WorldComponent>,
+    Resources extends Record<string, unknown> = NonNullable<unknown>,
+    Queries extends Record<string, QueryDefinitionGeneric<WorldComponent>> = NonNullable<unknown>,
+>(resources: Record<string, unknown>, queries: InternalQuery[], nameToQueryIdx: Record<string, number | undefined>) {
+    const entities = new Map<number, { componentsByType: Map<number, WorldComponent>; bitmasks: Bitmasks }>();
+    const subscribersByEventType: Record<string, EventSubscriber[] | undefined> = {};
+
+    const world = {
+        spawn: (entity: number, components: WorldComponent[]) => {
+            const componentsByType = new Map<number, WorldComponent>();
+
+            const bitmasks = {
+                with: 0,
+                withAny: 0,
+            };
+
+            for (let i = 0; i < components.length; i++) {
+                const component = components[i];
+                componentsByType.set(component.type, component);
+                bitmasks.with |= 1 << component.type;
+                bitmasks.withAny |= 1 << component.type;
+            }
+
+            entities.set(entity, { componentsByType, bitmasks });
+
+            const event: SpawnEntityEcsEvent<WorldComponent> = {
+                type: 'ecs/spawn-entity',
+                payload: { entity, components },
+            };
+
+            world.emit(event);
+
+            updateQueriesForSpawnAndAddComponent(queries, bitmasks, entity, componentsByType);
+
+            return entity;
+        },
+        despawn: (entity: Entity): boolean => {
+            const entry = entities.get(entity);
+            if (entry === undefined) return false;
+
+            const event: DespawnEntityEcsEvent = {
+                type: 'ecs/despawn-entity',
+                payload: { entity },
+            };
+
+            world.emit(event);
+
+            updateQueriesForDespawn(queries, entity);
+
+            entities.delete(entity);
+            return true;
+        },
+        getComponent: (entity: Entity, componentType: WorldComponent['type']) => {
+            const entry = entities.get(entity);
+            if (entry === undefined) return undefined;
+            return entry.componentsByType.get(componentType);
+        },
+        addComponent: (entity: Entity, component: WorldComponent): boolean => {
+            const entry = entities.get(entity);
+            if (entry === undefined) return false;
+            if (entry.componentsByType.get(component.type) !== undefined) return false;
+            entry.componentsByType.set(component.type, component);
+
+            entry.bitmasks.with |= 1 << component.type;
+            entry.bitmasks.withAny |= 1 << component.type;
+
+            const event: AddComponentEcsEvent<WorldComponent> = {
+                type: 'ecs/add-component',
+                payload: { entity, component },
+            };
+
+            world.emit(event);
+
+            updateQueriesForSpawnAndAddComponent(queries, entry.bitmasks, entity, entry.componentsByType);
+
+            return true;
+        },
+        removeComponent: (entity: Entity, componentType: WorldComponent['type']): boolean => {
+            const entry = entities.get(entity);
+            if (entry === undefined) return false;
+            const component = entry.componentsByType.get(componentType);
+            if (component === undefined) return false;
+            entry.componentsByType.delete(componentType);
+
+            const withBefore = entry.bitmasks.with;
+            const withAnyBefore = entry.bitmasks.withAny;
+
+            entry.bitmasks.with &= ~(1 << componentType);
+            entry.bitmasks.withAny &= ~(1 << componentType);
+
+            const withChanged = entry.bitmasks.with !== withBefore;
+            const withAnyChanged = entry.bitmasks.withAny !== withAnyBefore;
+
+            if (!(withChanged && withAnyChanged)) {
+                return false;
+            }
+
+            const event: RemoveComponentEcsEvent<WorldComponent> = {
+                type: 'ecs/remove-component',
+                payload: { entity, component },
+            };
+
+            world.emit(event);
+
+            updateQueriesForRemoveComponent(queries, entity, entry.bitmasks);
+
+            return true;
+        },
+        getResource: (name: string) => resources[name],
+        setResource: (name: string, data: unknown) => {
+            resources[name] = data;
+        },
+        removeResource: (name: string) => {
+            resources[name] = undefined;
+        },
+        getQuery: (name: string) => {
+            const idx = nameToQueryIdx[name];
+            if (idx === undefined) return undefined;
+            return {
+                result: queries[idx].result,
+            };
+        },
+        emit: (event: EcsEvent<WorldComponent>) => {
+            const subscribers = subscribersByEventType[event.type];
+            if (!subscribers) return;
+
+            for (let i = 0; i < subscribers.length; i++) {
+                const subscriber = subscribers[i];
+                subscriber((event as unknown as { payload: unknown }).payload);
+            }
+        },
+        on: (eventType: string, cb: EventSubscriber) => {
+            if (!subscribersByEventType[eventType]) {
+                subscribersByEventType[eventType] = [];
+            }
+
+            subscribersByEventType[eventType].push(cb);
+        },
+    };
+
+    return world as unknown as World<WorldComponent, WorldEvent, Resources, Queries>;
+}
+
+export function worldBuilder<
     WorldComponent extends Component,
     WorldEvent extends GenericEcsEvent = EcsEvent<WorldComponent>,
     Resources extends Record<string, unknown> = NonNullable<unknown>,
     Queries extends Record<string, QueryDefinitionGeneric<WorldComponent>> = NonNullable<unknown>,
     UsedMethods extends string = never,
->() => {
+>() {
     let resources: Record<string, unknown> = {};
     const queries: InternalQuery[] = [];
     const nameToQueryIdx: Record<string, number | undefined> = {};
@@ -134,147 +279,8 @@ export const worldBuilder = <
 
             return api;
         },
-        compile: () => {
-            const entities = new Map<number, { componentsByType: Map<number, WorldComponent>; bitmasks: Bitmasks }>();
-
-            const subscribersByEventType: Record<string, EventSubscriber[] | undefined> = {};
-
-            const world = {
-                spawn: (entity: number, components: WorldComponent[]) => {
-                    const componentsByType = new Map<number, WorldComponent>();
-
-                    const bitmasks = {
-                        with: 0,
-                        withAny: 0,
-                    };
-
-                    for (let i = 0; i < components.length; i++) {
-                        const component = components[i];
-                        componentsByType.set(component.type, component);
-                        bitmasks.with |= 1 << component.type;
-                        bitmasks.withAny |= 1 << component.type;
-                    }
-
-                    entities.set(entity, { componentsByType, bitmasks });
-
-                    const event: SpawnEntityEcsEvent<WorldComponent> = {
-                        type: 'ecs/spawn-entity',
-                        payload: { entity, components },
-                    };
-
-                    world.emit(event);
-
-                    updateQueriesForSpawnAndAddComponent(queries, bitmasks, entity, componentsByType);
-
-                    return entity;
-                },
-                despawn: (entity: Entity): boolean => {
-                    const entry = entities.get(entity);
-                    if (entry === undefined) return false;
-
-                    const event: DespawnEntityEcsEvent = {
-                        type: 'ecs/despawn-entity',
-                        payload: { entity },
-                    };
-
-                    world.emit(event);
-
-                    updateQueriesForDespawn(queries, entity);
-
-                    entities.delete(entity);
-                    return true;
-                },
-                getComponent: (entity: Entity, componentType: WorldComponent['type']) => {
-                    const entry = entities.get(entity);
-                    if (entry === undefined) return undefined;
-                    return entry.componentsByType.get(componentType);
-                },
-                addComponent: (entity: Entity, component: WorldComponent): boolean => {
-                    const entry = entities.get(entity);
-                    if (entry === undefined) return false;
-                    if (entry.componentsByType.get(component.type) !== undefined) return false;
-                    entry.componentsByType.set(component.type, component);
-
-                    entry.bitmasks.with |= 1 << component.type;
-                    entry.bitmasks.withAny |= 1 << component.type;
-
-                    const event: AddComponentEcsEvent<WorldComponent> = {
-                        type: 'ecs/add-component',
-                        payload: { entity, component },
-                    };
-
-                    world.emit(event);
-
-                    updateQueriesForSpawnAndAddComponent(queries, entry.bitmasks, entity, entry.componentsByType);
-
-                    return true;
-                },
-                removeComponent: (entity: Entity, componentType: WorldComponent['type']): boolean => {
-                    const entry = entities.get(entity);
-                    if (entry === undefined) return false;
-                    const component = entry.componentsByType.get(componentType);
-                    if (component === undefined) return false;
-                    entry.componentsByType.delete(componentType);
-
-                    const withBefore = entry.bitmasks.with;
-                    const withAnyBefore = entry.bitmasks.withAny;
-
-                    entry.bitmasks.with &= ~(1 << componentType);
-                    entry.bitmasks.withAny &= ~(1 << componentType);
-
-                    const withChanged = entry.bitmasks.with !== withBefore;
-                    const withAnyChanged = entry.bitmasks.withAny !== withAnyBefore;
-
-                    if (!(withChanged && withAnyChanged)) {
-                        return false;
-                    }
-
-                    const event: RemoveComponentEcsEvent<WorldComponent> = {
-                        type: 'ecs/remove-component',
-                        payload: { entity, component },
-                    };
-
-                    world.emit(event);
-
-                    updateQueriesForRemoveComponent(queries, entity, entry.bitmasks);
-
-                    return true;
-                },
-                getResource: (name: string) => resources[name],
-                setResource: (name: string, data: unknown) => {
-                    resources[name] = data;
-                },
-                removeResource: (name: string) => {
-                    resources[name] = undefined;
-                },
-                getQuery: (name: string) => {
-                    const idx = nameToQueryIdx[name];
-                    if (idx === undefined) return undefined;
-                    return {
-                        result: queries[idx].result,
-                    };
-                },
-                emit: (event: EcsEvent<WorldComponent>) => {
-                    const subscribers = subscribersByEventType[event.type];
-                    if (!subscribers) return;
-
-                    for (let i = 0; i < subscribers.length; i++) {
-                        const subscriber = subscribers[i];
-                        subscriber((event as unknown as { payload: unknown }).payload);
-                    }
-                },
-                on: (eventType: string, cb: EventSubscriber) => {
-                    if (!subscribersByEventType[eventType]) {
-                        subscribersByEventType[eventType] = [];
-                    }
-
-                    subscribersByEventType[eventType].push(cb);
-                },
-            };
-
-            return world as unknown as World<WorldComponent, WorldEvent, Resources, Queries>;
-        },
+        compile: () => createWorld<WorldComponent, WorldEvent, Resources, Queries>(resources, queries, nameToQueryIdx),
     };
 
     return api as unknown as WorldBuilderApi<WorldComponent, WorldEvent, Resources, Queries, UsedMethods>;
-};
+}
