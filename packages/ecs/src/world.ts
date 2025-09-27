@@ -1,12 +1,12 @@
 import type { Component } from './component';
 import { Entity } from './entity';
 import {
-    createAddComponentEvent,
-    createDespawnEntityEvent,
-    createRemoveComponentEvent,
-    createSpawnEntityEvent,
+    AddComponentEcsEvent,
+    DespawnEntityEcsEvent,
     EcsEvent,
     GenericEcsEvent,
+    RemoveComponentEcsEvent,
+    SpawnEntityEcsEvent,
 } from './event';
 import {
     Bitmasks,
@@ -44,10 +44,7 @@ export type World<
     ) => {
         result: MapQueryDefinitionToTuple<WorldComponent, Queries[Name]>[];
     };
-    emit: <EventType extends WorldEvent['type']>(
-        type: EventType,
-        ...payload: Extract<WorldEvent, { type: EventType }> extends { payload: infer Payload } ? [Payload] : []
-    ) => void;
+    emit: (event: WorldEvent) => void;
     on: <EventType extends WorldEvent['type']>(
         type: EventType,
         cb: (
@@ -160,12 +157,12 @@ export const worldBuilder = <
 
                     entities.set(entity, { componentsByType, bitmasks });
 
-                    const event = createSpawnEntityEvent({
+                    const event: SpawnEntityEcsEvent<WorldComponent> = {
                         type: 'ecs/spawn-entity',
                         payload: { entity, components },
-                    });
+                    };
 
-                    world.emit(event.type, event.payload);
+                    world.emit(event);
 
                     updateQueriesForSpawnAndAddComponent(queries, bitmasks, entity, componentsByType);
 
@@ -175,12 +172,12 @@ export const worldBuilder = <
                     const entry = entities.get(entity);
                     if (entry === undefined) return false;
 
-                    const event = createDespawnEntityEvent({
+                    const event: DespawnEntityEcsEvent = {
                         type: 'ecs/despawn-entity',
                         payload: { entity },
-                    });
+                    };
 
-                    world.emit(event.type, event.payload);
+                    world.emit(event);
 
                     updateQueriesForDespawn(queries, entity);
 
@@ -201,12 +198,12 @@ export const worldBuilder = <
                     entry.bitmasks.with |= 1 << component.type;
                     entry.bitmasks.withAny |= 1 << component.type;
 
-                    const event = createAddComponentEvent({
+                    const event: AddComponentEcsEvent<WorldComponent> = {
                         type: 'ecs/add-component',
                         payload: { entity, component },
-                    });
+                    };
 
-                    world.emit(event.type, event.payload);
+                    world.emit(event);
 
                     updateQueriesForSpawnAndAddComponent(queries, entry.bitmasks, entity, entry.componentsByType);
 
@@ -232,12 +229,12 @@ export const worldBuilder = <
                         return false;
                     }
 
-                    const event = createRemoveComponentEvent({
+                    const event: RemoveComponentEcsEvent<WorldComponent> = {
                         type: 'ecs/remove-component',
                         payload: { entity, component },
-                    });
+                    };
 
-                    world.emit(event.type, event.payload);
+                    world.emit(event);
 
                     updateQueriesForRemoveComponent(queries, entity, entry.bitmasks);
 
@@ -257,13 +254,13 @@ export const worldBuilder = <
                         result: queries[idx].result,
                     };
                 },
-                emit: (eventType: string, payload: unknown) => {
-                    const subscribers = subscribersByEventType[eventType];
+                emit: (event: EcsEvent<WorldComponent>) => {
+                    const subscribers = subscribersByEventType[event.type];
                     if (!subscribers) return;
 
                     for (let i = 0; i < subscribers.length; i++) {
                         const subscriber = subscribers[i];
-                        subscriber(payload);
+                        subscriber((event as unknown as { payload: unknown }).payload);
                     }
                 },
                 on: (eventType: string, cb: EventSubscriber) => {

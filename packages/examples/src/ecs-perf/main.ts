@@ -207,4 +207,22 @@ spawn = 13 + 9 + 18 + 13 + 8 + 11 = 72 = [12]
 add = 15 + 5 + 11 + 5 + 5 + 9 = 50 = [8.3]
 remove = 7 + 4 + 7 + 3 + 3 + 5 = 29 = [4.8]
 despawn = 6 + 13 + 5 + 6 + 6 + 6 = 42 = [7]
+
+New new:
+
+{
+    "spawn": 7.1154,
+    "add": 2.6447,
+    "remove": 1.3612,
+    "system": 0.4437,
+    "despawn": 2.63516
+}
+
+difference:
+
+spawn: 2.25x faster
+add: 3.85x faster
+remove: 11x faster
+despawn: 1.92x faster
+
  */

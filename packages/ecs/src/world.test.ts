@@ -214,17 +214,11 @@ describe('world', () => {
             type Emit = Parameters<World['emit']>[0];
             type On = Parameters<World['on']>[0];
 
-            type ExpectedEventType =
-                | 'ecs/spawn-entity'
-                | 'ecs/despawn-entity'
-                | 'ecs/add-component'
-                | 'ecs/remove-component';
+            expectTypeOf<Emit>().toExtend<EcsEvent<WorldComponent>>();
+            expectTypeOf<On>().toExtend<EcsEvent<WorldComponent>['type']>();
 
-            expectTypeOf<Emit>().toExtend<ExpectedEventType>();
-            expectTypeOf<On>().toExtend<ExpectedEventType>();
-
-            expectTypeOf<ExpectedEventType>().toExtend<Emit>();
-            expectTypeOf<ExpectedEventType>().toExtend<On>();
+            expectTypeOf<EcsEvent<WorldComponent>>().toExtend<Emit>();
+            expectTypeOf<EcsEvent<WorldComponent>['type']>().toExtend<On>();
         });
 
         it('should return the correct type when passed as generic', () => {
@@ -233,20 +227,13 @@ describe('world', () => {
             type Emit = Parameters<World['emit']>[0];
             type On = Parameters<World['on']>[0];
 
-            type ExpectedEventType =
-                | 'ecs/spawn-entity'
-                | 'ecs/despawn-entity'
-                | 'ecs/add-component'
-                | 'ecs/remove-component'
-                | 'A'
-                | 'B'
-                | 'C';
+            type ExpectedEvent = WorldEvent | EcsEvent<WorldComponent>;
 
-            expectTypeOf<Emit>().toExtend<ExpectedEventType>();
-            expectTypeOf<On>().toExtend<ExpectedEventType>();
+            expectTypeOf<Emit>().toExtend<ExpectedEvent>();
+            expectTypeOf<On>().toExtend<ExpectedEvent['type']>();
 
-            expectTypeOf<ExpectedEventType>().toExtend<Emit>();
-            expectTypeOf<ExpectedEventType>().toExtend<On>();
+            expectTypeOf<ExpectedEvent>().toExtend<Emit>();
+            expectTypeOf<ExpectedEvent['type']>().toExtend<On>();
         });
     });
 
