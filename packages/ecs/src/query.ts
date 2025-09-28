@@ -204,8 +204,8 @@ export const queryBuilder = <
 export const defineQueries = <Queries extends Record<string, QueryDefinitionGeneric>>(queries: Queries) => queries;
 
 export type Bitmasks = {
-    with: number;
-    withAny: number;
+    with: [number, number, number, number];
+    withAny: [number, number, number, number];
 };
 
 export type InternalQuery = {
@@ -227,19 +227,41 @@ export const updateQueriesForSpawnAndAddComponent = (
     entity: Entity,
     componentsByType: Map<number, Component>,
 ) => {
+    const ew0 = entityBitmasks.with[0];
+    const ew1 = entityBitmasks.with[1];
+    const ew2 = entityBitmasks.with[2];
+    const ew3 = entityBitmasks.with[3];
+
+    const ewa0 = entityBitmasks.withAny[0];
+    const ewa1 = entityBitmasks.withAny[1];
+    const ewa2 = entityBitmasks.withAny[2];
+    const ewa3 = entityBitmasks.withAny[3];
+
     for (let i = 0; i < queries.length; i++) {
         const qry = queries[i];
         if (qry.entityToResultIdx.has(entity)) continue;
 
         const map = qry.defintion.map as (tuple: unknown[]) => unknown;
 
+        const qw0 = qry.bitmasks.with[0];
+        const qw1 = qry.bitmasks.with[1];
+        const qw2 = qry.bitmasks.with[2];
+        const qw3 = qry.bitmasks.with[3];
+
+        const qwa0 = qry.bitmasks.withAny[0];
+        const qwa1 = qry.bitmasks.withAny[1];
+        const qwa2 = qry.bitmasks.withAny[2];
+        const qwa3 = qry.bitmasks.withAny[3];
+
         const withSatisfied = qry.flags.hasWith
-            ? (entityBitmasks.with & qry.bitmasks.with) === qry.bitmasks.with
+            ? (ew0 & qw0) === qw0 && (ew1 & qw1) === qw1 && (ew2 & qw2) === qw2 && (ew3 & qw3) === qw3
             : true;
 
         if (!withSatisfied) continue;
 
-        const withAnySatisfied = qry.flags.hasWithAny ? (entityBitmasks.withAny & qry.bitmasks.withAny) !== 0 : true;
+        const withAnySatisfied = qry.flags.hasWithAny
+            ? (ewa0 & qwa0) !== 0 || (ewa1 & qwa1) !== 0 || (ewa2 & qwa2) !== 0 || (ewa3 & qwa3) !== 0
+            : true;
 
         if (!withAnySatisfied) continue;
 
@@ -294,14 +316,36 @@ export const updateQueriesForDespawn = (queries: InternalQuery[], entity: Entity
 };
 
 export const updateQueriesForRemoveComponent = (queries: InternalQuery[], entity: Entity, entityBitmasks: Bitmasks) => {
+    const ew0 = entityBitmasks.with[0];
+    const ew1 = entityBitmasks.with[1];
+    const ew2 = entityBitmasks.with[2];
+    const ew3 = entityBitmasks.with[3];
+
+    const ewa0 = entityBitmasks.withAny[0];
+    const ewa1 = entityBitmasks.withAny[1];
+    const ewa2 = entityBitmasks.withAny[2];
+    const ewa3 = entityBitmasks.withAny[3];
+
     for (let i = 0; i < queries.length; i++) {
         const qry = queries[i];
 
+        const qw0 = qry.bitmasks.with[0];
+        const qw1 = qry.bitmasks.with[1];
+        const qw2 = qry.bitmasks.with[2];
+        const qw3 = qry.bitmasks.with[3];
+
+        const qwa0 = qry.bitmasks.withAny[0];
+        const qwa1 = qry.bitmasks.withAny[1];
+        const qwa2 = qry.bitmasks.withAny[2];
+        const qwa3 = qry.bitmasks.withAny[3];
+
         const withSatisfied = qry.flags.hasWith
-            ? (entityBitmasks.with & qry.bitmasks.with) === qry.bitmasks.with
+            ? (ew0 & qw0) === qw0 && (ew1 & qw1) === qw1 && (ew2 & qw2) === qw2 && (ew3 & qw3) === qw3
             : true;
 
-        const withAnySatisfied = qry.flags.hasWithAny ? (entityBitmasks.withAny & qry.bitmasks.withAny) !== 0 : true;
+        const withAnySatisfied = qry.flags.hasWithAny
+            ? (ewa0 & qwa0) !== 0 || (ewa1 & qwa1) !== 0 || (ewa2 & qwa2) !== 0 || (ewa3 & qwa3) !== 0
+            : true;
 
         if (!withSatisfied || !withAnySatisfied) {
             const idx = qry.entityToResultIdx.get(entity);

@@ -172,57 +172,22 @@ add = 10 + 12 + 15 + 13 + 5 + 4 = 59 = avg [10]
 remove = 21 + 13 + 12 + 8 + 21 + 17 = 92 = avg [15]
 despawn = 5 + 5 + 11 + 5 + 4 + 4 = 34 = avg [5]
 
-New system:
-Spawned 10000 entities in 13.4900ms
-add 2 components to 10000 entities in 15.4550ms
-remove 2 components from 10000 entities in 7.5200ms
-despawn 10000 entities in 5.9850ms
-
-Spawned 10000 entities in 9.1100ms
-add 2 components to 10000 entities in 5.8800ms
-remove 2 components from 10000 entities in 4.0400ms
-despawn 10000 entities in 13.1650ms
-
-Spawned 10000 entities in 18.5600ms
-add 2 components to 10000 entities in 11.0350ms
-remove 2 components from 10000 entities in 6.9100ms
-despawn 10000 entities in 5.6100ms
-
-Spawned 10000 entities in 13.2400ms
-add 2 components to 10000 entities in 4.8900ms
-remove 2 components from 10000 entities in 2.7600ms
-despawn 10000 entities in 6.6850ms
-
-Spawned 10000 entities in 7.9550ms
-add 2 components to 10000 entities in 5.1750ms
-remove 2 components from 10000 entities in 3.5800ms
-despawn 10000 entities in 6.7800ms
-
-Spawned 10000 entities in 11.0750ms
-add 2 components to 10000 entities in 9.3750ms
-remove 2 components from 10000 entities in 5.8450ms
-despawn 10000 entities in 5.9750ms
-
-spawn = 13 + 9 + 18 + 13 + 8 + 11 = 72 = [12]
-add = 15 + 5 + 11 + 5 + 5 + 9 = 50 = [8.3]
-remove = 7 + 4 + 7 + 3 + 3 + 5 = 29 = [4.8]
-despawn = 6 + 13 + 5 + 6 + 6 + 6 = 42 = [7]
-
-New new:
+// =============================
+new system
+Support for 128 component types:
 
 {
-    "spawn": 7.1154,
-    "add": 2.6447,
-    "remove": 1.3612,
-    "system": 0.4437,
-    "despawn": 2.63516
+    "spawn": 8.492,
+    "add": 3.247,
+    "remove": 1.798,
+    "despawn": 2.563
 }
 
 difference:
 
-spawn: 2.25x faster
-add: 3.85x faster
-remove: 11x faster
-despawn: 1.92x faster
+spawn: 1.8x faster
+add: 3x faster
+remove: 8.3x faster
+despawn: 1.9x faster
 
  */

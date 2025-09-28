@@ -1,6 +1,6 @@
 import { Range, Increment, ComponentTypes } from './utils';
 
-const MAX_COMPONENT_TYPES = 32;
+const MAX_COMPONENT_TYPES = 128;
 type MaxComponentTypes = typeof MAX_COMPONENT_TYPES;
 type MaxComponentTypesRange = Range<Increment<MaxComponentTypes>>;
 

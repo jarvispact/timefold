@@ -22,6 +22,8 @@ import {
 
 type EventSubscriber = (payload: unknown) => void;
 
+const COMPONENT_TYPE_DIVISOR = 32;
+
 export type World<
     WorldComponent extends Component,
     WorldEvent extends GenericEcsEvent = EcsEvent<WorldComponent>,
@@ -85,16 +87,17 @@ function createWorld<
         spawn: (entity: number, components: WorldComponent[]) => {
             const componentsByType = new Map<number, WorldComponent>();
 
-            const bitmasks = {
-                with: 0,
-                withAny: 0,
+            const bitmasks: Bitmasks = {
+                with: [0, 0, 0, 0],
+                withAny: [0, 0, 0, 0],
             };
 
             for (let i = 0; i < components.length; i++) {
                 const component = components[i];
                 componentsByType.set(component.type, component);
-                bitmasks.with |= 1 << component.type;
-                bitmasks.withAny |= 1 << component.type;
+                const bitmaskIdx = Math.floor(component.type / COMPONENT_TYPE_DIVISOR);
+                bitmasks.with[bitmaskIdx] |= 1 << component.type % COMPONENT_TYPE_DIVISOR;
+                bitmasks.withAny[bitmaskIdx] |= 1 << component.type % COMPONENT_TYPE_DIVISOR;
             }
 
             entities.set(entity, { componentsByType, bitmasks });
@@ -137,8 +140,9 @@ function createWorld<
             if (entry.componentsByType.get(component.type) !== undefined) return false;
             entry.componentsByType.set(component.type, component);
 
-            entry.bitmasks.with |= 1 << component.type;
-            entry.bitmasks.withAny |= 1 << component.type;
+            const bitmaskIdx = Math.floor(component.type / COMPONENT_TYPE_DIVISOR);
+            entry.bitmasks.with[bitmaskIdx] |= 1 << component.type % COMPONENT_TYPE_DIVISOR;
+            entry.bitmasks.withAny[bitmaskIdx] |= 1 << component.type % COMPONENT_TYPE_DIVISOR;
 
             const event: AddComponentEcsEvent<WorldComponent> = {
                 type: 'ecs/add-component',
@@ -158,18 +162,9 @@ function createWorld<
             if (component === undefined) return false;
             entry.componentsByType.delete(componentType);
 
-            const withBefore = entry.bitmasks.with;
-            const withAnyBefore = entry.bitmasks.withAny;
-
-            entry.bitmasks.with &= ~(1 << componentType);
-            entry.bitmasks.withAny &= ~(1 << componentType);
-
-            const withChanged = entry.bitmasks.with !== withBefore;
-            const withAnyChanged = entry.bitmasks.withAny !== withAnyBefore;
-
-            if (!(withChanged && withAnyChanged)) {
-                return false;
-            }
+            const bitmaskIdx = Math.floor(componentType / COMPONENT_TYPE_DIVISOR);
+            entry.bitmasks.with[bitmaskIdx] &= ~(1 << componentType % COMPONENT_TYPE_DIVISOR);
+            entry.bitmasks.withAny[bitmaskIdx] &= ~(1 << componentType % COMPONENT_TYPE_DIVISOR);
 
             const event: RemoveComponentEcsEvent<WorldComponent> = {
                 type: 'ecs/remove-component',
@@ -240,9 +235,9 @@ export function worldBuilder<
                 const name = queryKeys[i];
                 const query = recordOfQueries[name];
 
-                const bitmasks = {
-                    with: 0,
-                    withAny: 0,
+                const bitmasks: Bitmasks = {
+                    with: [0, 0, 0, 0],
+                    withAny: [0, 0, 0, 0],
                 };
 
                 const flags = {
@@ -253,13 +248,15 @@ export function worldBuilder<
                 for (let j = 0; j < query.tuple.length; j++) {
                     const queryTuple = query.tuple[j];
                     if (isWithItem(queryTuple)) {
-                        bitmasks.with |= 1 << queryTuple.with;
+                        const bitmaskIdx = Math.floor(queryTuple.with / COMPONENT_TYPE_DIVISOR);
+                        bitmasks.with[bitmaskIdx] |= 1 << queryTuple.with % COMPONENT_TYPE_DIVISOR;
                         flags.hasWith = true;
                     } else if (isWithAnyItem(queryTuple)) {
                         flags.hasWithAny = true;
                         for (let k = 0; k < queryTuple.withAny.length; k++) {
                             const any = queryTuple.withAny[k];
-                            bitmasks.withAny |= 1 << any;
+                            const bitmaskIdx = Math.floor(any / COMPONENT_TYPE_DIVISOR);
+                            bitmasks.withAny[bitmaskIdx] |= 1 << any % COMPONENT_TYPE_DIVISOR;
                         }
                     }
                 }
