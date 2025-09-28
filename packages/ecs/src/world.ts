@@ -66,9 +66,9 @@ export type WorldBuilderApi<
         defineResources: <Resources extends Record<string, unknown>>(
             resources: Resources,
         ) => WorldBuilderApi<WorldComponent, WorldEvent, Resources, Queries, UsedMethods | 'defineResources'>;
-        registerQueries: <Queries extends Record<string, QueryDefinitionGeneric<WorldComponent>>>(
+        defineQueries: <Queries extends Record<string, QueryDefinitionGeneric<WorldComponent>>>(
             queries: Queries,
-        ) => WorldBuilderApi<WorldComponent, WorldEvent, Resources, Queries, UsedMethods | 'registerQueries'>;
+        ) => WorldBuilderApi<WorldComponent, WorldEvent, Resources, Queries, UsedMethods | 'defineQueries'>;
         compile: () => World<WorldComponent, WorldEvent, Resources, Queries>;
     },
     UsedMethods
@@ -228,7 +228,7 @@ export function worldBuilder<
             resources = recordOfResources;
             return api;
         },
-        registerQueries: (recordOfQueries: Record<string, QueryDefinitionGeneric<WorldComponent>>) => {
+        defineQueries: (recordOfQueries: Record<string, QueryDefinitionGeneric<WorldComponent>>) => {
             const queryKeys = Object.keys(recordOfQueries);
 
             for (let i = 0; i < queryKeys.length; i++) {

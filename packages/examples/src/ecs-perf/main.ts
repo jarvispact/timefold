@@ -1,6 +1,5 @@
-import { createComponent, defineComponentTypes, worldBuilder } from '@timefold/ecs';
+import { createComponent, defineComponentTypes, worldBuilder, queryBuilder, defineQueries } from '@timefold/ecs';
 import { Vec2, Vec2Type, Vec3, Vec3Type } from '@timefold/math';
-import { queryBuilder } from '../../../ecs/src/query';
 
 const T = defineComponentTypes(['POSITION', 'VELOCITY', 'COLOR', 'RENDERABLE']);
 
@@ -15,25 +14,32 @@ type WorldComponent =
     | ReturnType<typeof createColor>
     | ReturnType<typeof createRenderable>;
 
+const queries = defineQueries({
+    posOnly: queryBuilder<WorldComponent>()
+        .includeEntity()
+        .with(T.POSITION)
+        .map(([id, pos]) => ({ id, pos: pos.data }))
+        .compile(),
+    velOnly: queryBuilder<WorldComponent>()
+        .includeEntity()
+        .with(T.VELOCITY)
+        .map(([id, vel]) => ({ id, vel: vel.data }))
+        .compile(),
+    movable: queryBuilder<WorldComponent>()
+        .includeEntity()
+        .with(T.POSITION)
+        .with(T.VELOCITY)
+        .map(([id, pos, vel]) => ({ id, pos: pos.data, vel: vel.data }))
+        .compile(),
+});
+
+// type Queries = typeof queries;
+
 const world = worldBuilder<WorldComponent>()
-    .registerQueries({
-        posOnly: queryBuilder<WorldComponent>()
-            .includeEntity()
-            .with(T.POSITION)
-            .map(([id, pos]) => ({ id, pos: pos.data }))
-            .compile(),
-        velOnly: queryBuilder<WorldComponent>()
-            .includeEntity()
-            .with(T.VELOCITY)
-            .map(([id, vel]) => ({ id, vel: vel.data }))
-            .compile(),
-        movable: queryBuilder<WorldComponent>()
-            .includeEntity()
-            .with(T.POSITION)
-            .with(T.VELOCITY)
-            .map(([id, pos, vel]) => ({ id, pos: pos.data, vel: vel.data }))
-            .compile(),
+    .defineResources({
+        a: { foo: 'bar' },
     })
+    .defineQueries(queries)
     .compile();
 
 const posOnly = world.getQuery('posOnly');

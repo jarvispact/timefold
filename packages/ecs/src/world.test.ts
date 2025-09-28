@@ -277,7 +277,7 @@ describe('world', () => {
 
         it('should define queries in the builder api and infer the correct type', () => {
             const world = worldBuilder<WorldComponent, WorldEvent, WorldResources>()
-                .registerQueries({
+                .defineQueries({
                     one: queryBuilder<WorldComponent>().includeEntity().with(0).compile(),
                     two: queryBuilder<WorldComponent>().includeEntity().withAny([0, 1]).compile(),
                 })
@@ -314,7 +314,7 @@ describe('world', () => {
 
         it('should define queries in the builder api and infer the correct type', () => {
             const world = worldBuilder<WorldComponent, WorldEvent, WorldResources>()
-                .registerQueries({
+                .defineQueries({
                     one: queryBuilder<WorldComponent>().includeEntity().with(0).compile(),
                     two: queryBuilder<WorldComponent>().includeEntity().withAny([0, 1]).compile(),
                     three: queryBuilder<WorldComponent>().includeEntity().with(1).with(2).compile(),
@@ -344,7 +344,7 @@ describe('world', () => {
         describe('with queries', () => {
             it('should return the correct query result with single "with" queries when spawning', () => {
                 const world = worldBuilder<WorldComponent, WorldEvent, WorldResources>()
-                    .registerQueries({
+                    .defineQueries({
                         one: queryBuilder<WorldComponent>().includeEntity().compile(),
                         two: queryBuilder<WorldComponent>().includeEntity().with(0).compile(),
                         three: queryBuilder<WorldComponent>().includeEntity().with(1).compile(),
@@ -400,7 +400,7 @@ describe('world', () => {
 
             it('should return the correct query result with multiple "with" queries when spawning', () => {
                 const world = worldBuilder<WorldComponent, WorldEvent, WorldResources>()
-                    .registerQueries({
+                    .defineQueries({
                         one: queryBuilder<WorldComponent>().includeEntity().with(0).with(1).compile(),
                         two: queryBuilder<WorldComponent>().includeEntity().with(0).with(2).compile(),
                         three: queryBuilder<WorldComponent>().includeEntity().with(1).with(0).compile(),
@@ -468,7 +468,7 @@ describe('world', () => {
 
             it('should return the correct query result with single "with" queries when adding a component', () => {
                 const world = worldBuilder<WorldComponent, WorldEvent, WorldResources>()
-                    .registerQueries({
+                    .defineQueries({
                         one: queryBuilder<WorldComponent>().includeEntity().with(0).with(1).compile(),
                         two: queryBuilder<WorldComponent>().with(0).with(1).compile(),
                     })
@@ -517,7 +517,7 @@ describe('world', () => {
 
             it('should return the correct query result with single "with" queries when removing a component', () => {
                 const world = worldBuilder<WorldComponent, WorldEvent, WorldResources>()
-                    .registerQueries({
+                    .defineQueries({
                         one: queryBuilder<WorldComponent>().includeEntity().with(0).with(1).compile(),
                         two: queryBuilder<WorldComponent>().with(0).with(1).compile(),
                         three: queryBuilder<WorldComponent>().with(2).with(3).compile(),
@@ -574,7 +574,7 @@ describe('world', () => {
 
             it('should return the correct query result with single "with" queries when despwaning entities', () => {
                 const world = worldBuilder<WorldComponent, WorldEvent, WorldResources>()
-                    .registerQueries({
+                    .defineQueries({
                         one: queryBuilder<WorldComponent>().includeEntity().with(0).with(1).compile(),
                         two: queryBuilder<WorldComponent>().with(0).with(1).compile(),
                         three: queryBuilder<WorldComponent>().with(2).with(3).compile(),
@@ -631,7 +631,7 @@ describe('world', () => {
 
             it('should return the correct final result with single "with" queries when performing various updates', () => {
                 const world = worldBuilder<WorldComponent, WorldEvent, WorldResources>()
-                    .registerQueries({
+                    .defineQueries({
                         one: queryBuilder<WorldComponent>().includeEntity().with(0).with(1).compile(),
                         two: queryBuilder<WorldComponent>().includeEntity().with(0).with(2).compile(),
                         three: queryBuilder<WorldComponent>().includeEntity().with(1).with(2).compile(),
@@ -713,7 +713,7 @@ describe('world', () => {
         describe('withAny queries', () => {
             it('should return the correct query result with single "withAny" queries when spawning', () => {
                 const world = worldBuilder<WorldComponent, WorldEvent, WorldResources>()
-                    .registerQueries({
+                    .defineQueries({
                         one: queryBuilder<WorldComponent>().includeEntity().withAny([0, 1]).compile(),
                         two: queryBuilder<WorldComponent>().includeEntity().withAny([1, 2]).compile(),
                         three: queryBuilder<WorldComponent>().includeEntity().withAny([0, 1, 2]).compile(),
@@ -755,7 +755,7 @@ describe('world', () => {
 
             it('should return the correct query result with single "withAny" query when adding a component', () => {
                 const world = worldBuilder<WorldComponent, WorldEvent, WorldResources>()
-                    .registerQueries({
+                    .defineQueries({
                         one: queryBuilder<WorldComponent>().includeEntity().withAny([0, 1]).compile(),
                         two: queryBuilder<WorldComponent>().withAny([1, 2]).compile(),
                     })
@@ -790,7 +790,7 @@ describe('world', () => {
 
             it('should return the correct query result with single "withAny" query when removing a component', () => {
                 const world = worldBuilder<WorldComponent, WorldEvent, WorldResources>()
-                    .registerQueries({
+                    .defineQueries({
                         one: queryBuilder<WorldComponent>().includeEntity().withAny([0, 1]).compile(),
                         two: queryBuilder<WorldComponent>().withAny([1, 2]).compile(),
                         three: queryBuilder<WorldComponent>().withAny([3, 4]).compile(),
@@ -837,7 +837,7 @@ describe('world', () => {
 
             it('should return the correct query result with single "withAny" query when despawning entities', () => {
                 const world = worldBuilder<WorldComponent, WorldEvent, WorldResources>()
-                    .registerQueries({
+                    .defineQueries({
                         one: queryBuilder<WorldComponent>().includeEntity().withAny([0, 1]).compile(),
                         two: queryBuilder<WorldComponent>().withAny([1, 2]).compile(),
                         three: queryBuilder<WorldComponent>().withAny([3, 4]).compile(),
@@ -886,7 +886,7 @@ describe('world', () => {
         describe('combined with and withAny queries', () => {
             it('should respect the query order and ignore the component order', () => {
                 const world = worldBuilder<WorldComponent, WorldEvent, WorldResources>()
-                    .registerQueries({
+                    .defineQueries({
                         one: queryBuilder<WorldComponent>().includeEntity().with(0).with(1).compile(),
                         two: queryBuilder<WorldComponent>().includeEntity().with(1).with(0).compile(),
                     })
@@ -913,7 +913,7 @@ describe('world', () => {
 
             it('should return the correct query result for a complex query (with and without map)', () => {
                 const world = worldBuilder<WorldComponent, WorldEvent, WorldResources>()
-                    .registerQueries({
+                    .defineQueries({
                         one: queryBuilder<WorldComponent>().with(0).with(1).withAny([2, 3]).with(4).compile(),
                         two: queryBuilder<WorldComponent>()
                             .includeEntity()
