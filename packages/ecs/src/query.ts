@@ -260,7 +260,10 @@ export const updateQueriesForSpawnAndAddComponent = (
         if (!withSatisfied) continue;
 
         const withAnySatisfied = qry.flags.hasWithAny
-            ? (ewa0 & qwa0) !== 0 || (ewa1 & qwa1) !== 0 || (ewa2 & qwa2) !== 0 || (ewa3 & qwa3) !== 0
+            ? (qwa0 === 0 || (ewa0 & qwa0) !== 0) &&
+              (qwa1 === 0 || (ewa1 & qwa1) !== 0) &&
+              (qwa2 === 0 || (ewa2 & qwa2) !== 0) &&
+              (qwa3 === 0 || (ewa3 & qwa3) !== 0)
             : true;
 
         if (!withAnySatisfied) continue;
@@ -344,7 +347,7 @@ export const updateQueriesForRemoveComponent = (queries: InternalQuery[], entity
             : true;
 
         const withAnySatisfied = qry.flags.hasWithAny
-            ? (ewa0 & qwa0) !== 0 || (ewa1 & qwa1) !== 0 || (ewa2 & qwa2) !== 0 || (ewa3 & qwa3) !== 0
+            ? (ewa0 & qwa0) !== 0 && (ewa1 & qwa1) !== 0 && (ewa2 & qwa2) !== 0 && (ewa3 & qwa3) !== 0
             : true;
 
         if (!withSatisfied || !withAnySatisfied) {

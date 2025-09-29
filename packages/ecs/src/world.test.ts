@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
 import { expect, it, describe, expectTypeOf, vitest } from 'vitest';
 import { World, worldBuilder } from './world';
-import { Component } from './component';
+import { Component, defineComponentTypes } from './component';
 import { defineQueries, queryBuilder, QueryDefinition } from './query';
 import { DefineEcsEvent, EcsEvent } from './event';
 
@@ -760,6 +760,203 @@ describe('world', () => {
                 expect(two).toEqual([]);
                 expect(three).toEqual([]);
             });
+
+            it('should be able to handle lots of different component types (bitset array) across multiple actions', () => {
+                const T = defineComponentTypes([
+                    'T00',
+                    'T01',
+                    'T02',
+                    'T03',
+                    'T04',
+                    'T05',
+                    'T06',
+                    'T07',
+
+                    'T08',
+                    'T09',
+                    'T10',
+                    'T11',
+                    'T12',
+                    'T13',
+                    'T14',
+                    'T15',
+
+                    'T16',
+                    'T17',
+                    'T18',
+                    'T19',
+                    'T20',
+                    'T21',
+                    'T22',
+                    'T23',
+
+                    'T24',
+                    'T25',
+                    'T26',
+                    'T27',
+                    'T28',
+                    'T29',
+                    'T30',
+                    'T31',
+
+                    // Should use index: 1 for bitset arrays
+                    'T32',
+                    'T33',
+                ]);
+
+                type T00 = Component<typeof T.T00, { a: boolean }>;
+                type T01 = Component<typeof T.T01, { b: string }>;
+                type T32 = Component<typeof T.T32, { c: number }>;
+                type T33 = Component<typeof T.T33, { d: Record<string, unknown> }>;
+
+                type WorldComp = T00 | T01 | T32 | T33;
+
+                const world = worldBuilder<WorldComp, WorldEvent, WorldResources>()
+                    .defineQueries({
+                        one: queryBuilder<WorldComp>()
+                            .includeEntity()
+                            .with(T.T00)
+                            .with(T.T01)
+                            .with(T.T32)
+                            .with(T.T33)
+                            .map(([id, t00, t01, t32, t33]) => ({
+                                id,
+                                t00: t00.data,
+                                t01: t01.data,
+                                t32: t32.data,
+                                t33: t33.data,
+                            }))
+                            .compile(),
+                    })
+                    .compile();
+
+                const one = world.getQuery('one').result;
+
+                const t00: T00 = { type: 0, data: { a: true } };
+                const t01: T01 = { type: 1, data: { b: 'foo' } };
+                const t32: T32 = { type: 32, data: { c: 42 } };
+                const t33: T33 = { type: 33, data: { d: {} } };
+
+                const e0 = world.spawn(0, [t00]);
+                const e1 = world.spawn(1, [t00]);
+                const e2 = world.spawn(2, [t00]);
+
+                const e3 = world.spawn(3, [t00, t01]);
+                const e4 = world.spawn(4, [t00, t01]);
+                const e5 = world.spawn(5, [t00, t01]);
+
+                const e6 = world.spawn(6, [t00, t01, t32]);
+                const e7 = world.spawn(7, [t00, t01, t32]);
+                const e8 = world.spawn(8, [t00, t01, t32]);
+
+                const e9 = world.spawn(9, [t00, t01, t32, t33]);
+                const e10 = world.spawn(10, [t00, t01, t32, t33]);
+                const e11 = world.spawn(11, [t00, t01, t32, t33]);
+
+                expect(one).toEqual([
+                    { id: e9, t00: t00.data, t01: t01.data, t32: t32.data, t33: t33.data },
+                    { id: e10, t00: t00.data, t01: t01.data, t32: t32.data, t33: t33.data },
+                    { id: e11, t00: t00.data, t01: t01.data, t32: t32.data, t33: t33.data },
+                ]);
+
+                world.addComponent(e6, t33);
+                world.addComponent(e7, t33);
+                world.addComponent(e8, t33);
+
+                expect(one).toEqual([
+                    { id: e9, t00: t00.data, t01: t01.data, t32: t32.data, t33: t33.data },
+                    { id: e10, t00: t00.data, t01: t01.data, t32: t32.data, t33: t33.data },
+                    { id: e11, t00: t00.data, t01: t01.data, t32: t32.data, t33: t33.data },
+
+                    { id: e6, t00: t00.data, t01: t01.data, t32: t32.data, t33: t33.data },
+                    { id: e7, t00: t00.data, t01: t01.data, t32: t32.data, t33: t33.data },
+                    { id: e8, t00: t00.data, t01: t01.data, t32: t32.data, t33: t33.data },
+                ]);
+
+                world.addComponent(e3, t32);
+                world.addComponent(e4, t32);
+                world.addComponent(e5, t32);
+
+                world.addComponent(e3, t33);
+                world.addComponent(e4, t33);
+                world.addComponent(e5, t33);
+
+                expect(one).toEqual([
+                    { id: e9, t00: t00.data, t01: t01.data, t32: t32.data, t33: t33.data },
+                    { id: e10, t00: t00.data, t01: t01.data, t32: t32.data, t33: t33.data },
+                    { id: e11, t00: t00.data, t01: t01.data, t32: t32.data, t33: t33.data },
+
+                    { id: e6, t00: t00.data, t01: t01.data, t32: t32.data, t33: t33.data },
+                    { id: e7, t00: t00.data, t01: t01.data, t32: t32.data, t33: t33.data },
+                    { id: e8, t00: t00.data, t01: t01.data, t32: t32.data, t33: t33.data },
+
+                    { id: e3, t00: t00.data, t01: t01.data, t32: t32.data, t33: t33.data },
+                    { id: e4, t00: t00.data, t01: t01.data, t32: t32.data, t33: t33.data },
+                    { id: e5, t00: t00.data, t01: t01.data, t32: t32.data, t33: t33.data },
+                ]);
+
+                world.addComponent(e0, t01);
+                world.addComponent(e1, t01);
+                world.addComponent(e2, t01);
+
+                world.addComponent(e0, t32);
+                world.addComponent(e1, t32);
+                world.addComponent(e2, t32);
+
+                world.addComponent(e0, t33);
+                world.addComponent(e1, t33);
+                world.addComponent(e2, t33);
+
+                expect(one).toEqual([
+                    { id: e9, t00: t00.data, t01: t01.data, t32: t32.data, t33: t33.data },
+                    { id: e10, t00: t00.data, t01: t01.data, t32: t32.data, t33: t33.data },
+                    { id: e11, t00: t00.data, t01: t01.data, t32: t32.data, t33: t33.data },
+
+                    { id: e6, t00: t00.data, t01: t01.data, t32: t32.data, t33: t33.data },
+                    { id: e7, t00: t00.data, t01: t01.data, t32: t32.data, t33: t33.data },
+                    { id: e8, t00: t00.data, t01: t01.data, t32: t32.data, t33: t33.data },
+
+                    { id: e3, t00: t00.data, t01: t01.data, t32: t32.data, t33: t33.data },
+                    { id: e4, t00: t00.data, t01: t01.data, t32: t32.data, t33: t33.data },
+                    { id: e5, t00: t00.data, t01: t01.data, t32: t32.data, t33: t33.data },
+
+                    { id: e0, t00: t00.data, t01: t01.data, t32: t32.data, t33: t33.data },
+                    { id: e1, t00: t00.data, t01: t01.data, t32: t32.data, t33: t33.data },
+                    { id: e2, t00: t00.data, t01: t01.data, t32: t32.data, t33: t33.data },
+                ]);
+
+                world.removeComponent(e9, T.T00);
+                world.removeComponent(e10, T.T32);
+                world.removeComponent(e11, T.T33);
+
+                expect(one).toEqual([
+                    { id: e2, t00: t00.data, t01: t01.data, t32: t32.data, t33: t33.data },
+                    { id: e1, t00: t00.data, t01: t01.data, t32: t32.data, t33: t33.data },
+                    { id: e0, t00: t00.data, t01: t01.data, t32: t32.data, t33: t33.data },
+
+                    { id: e6, t00: t00.data, t01: t01.data, t32: t32.data, t33: t33.data },
+                    { id: e7, t00: t00.data, t01: t01.data, t32: t32.data, t33: t33.data },
+                    { id: e8, t00: t00.data, t01: t01.data, t32: t32.data, t33: t33.data },
+
+                    { id: e3, t00: t00.data, t01: t01.data, t32: t32.data, t33: t33.data },
+                    { id: e4, t00: t00.data, t01: t01.data, t32: t32.data, t33: t33.data },
+                    { id: e5, t00: t00.data, t01: t01.data, t32: t32.data, t33: t33.data },
+                ]);
+
+                world.despawn(e0);
+                world.despawn(e1);
+                world.despawn(e2);
+
+                expect(one).toEqual([
+                    { id: e3, t00: t00.data, t01: t01.data, t32: t32.data, t33: t33.data },
+                    { id: e4, t00: t00.data, t01: t01.data, t32: t32.data, t33: t33.data },
+                    { id: e5, t00: t00.data, t01: t01.data, t32: t32.data, t33: t33.data },
+
+                    { id: e6, t00: t00.data, t01: t01.data, t32: t32.data, t33: t33.data },
+                    { id: e7, t00: t00.data, t01: t01.data, t32: t32.data, t33: t33.data },
+                    { id: e8, t00: t00.data, t01: t01.data, t32: t32.data, t33: t33.data },
+                ]);
+            });
         });
 
         describe('withAny queries', () => {
@@ -932,6 +1129,302 @@ describe('world', () => {
                 expect(one).toEqual([]);
                 expect(two).toEqual([]);
                 expect(three).toEqual([]);
+            });
+
+            it('should be able to handle lots of different component types (bitset array) across multiple actions', () => {
+                const T = defineComponentTypes([
+                    'T00',
+                    'T01',
+                    'T02',
+                    'T03',
+                    'T04',
+                    'T05',
+                    'T06',
+                    'T07',
+
+                    'T08',
+                    'T09',
+                    'T10',
+                    'T11',
+                    'T12',
+                    'T13',
+                    'T14',
+                    'T15',
+
+                    'T16',
+                    'T17',
+                    'T18',
+                    'T19',
+                    'T20',
+                    'T21',
+                    'T22',
+                    'T23',
+
+                    'T24',
+                    'T25',
+                    'T26',
+                    'T27',
+                    'T28',
+                    'T29',
+                    'T30',
+                    'T31',
+
+                    // Should use index: 1 for bitset arrays
+                    'T32',
+                    'T33',
+                ]);
+
+                type T00 = Component<typeof T.T00, { a: boolean }>;
+                type T01 = Component<typeof T.T01, { b: string }>;
+                type T32 = Component<typeof T.T32, { c: number }>;
+                type T33 = Component<typeof T.T33, { d: Record<string, unknown> }>;
+
+                type WorldComp = T00 | T01 | T32 | T33;
+
+                const world = worldBuilder<WorldComp, WorldEvent, WorldResources>()
+                    .defineQueries({
+                        one: queryBuilder<WorldComp>()
+                            .includeEntity()
+                            .withAny([T.T00, T.T01])
+                            .withAny([T.T32, T.T33])
+                            .map(([id, t00_01, t32_33]) => ({
+                                id,
+                                t00_01: t00_01.data,
+                                t32_33: t32_33.data,
+                            }))
+                            .compile(),
+                    })
+                    .compile();
+
+                const one = world.getQuery('one').result;
+
+                const t00: T00 = { type: 0, data: { a: true } };
+                const t01: T01 = { type: 1, data: { b: 'foo' } };
+                const t32: T32 = { type: 32, data: { c: 42 } };
+                const t33: T33 = { type: 33, data: { d: {} } };
+
+                const e0 = world.spawn(0, [t00]);
+                const e1 = world.spawn(1, [t00]);
+                const e2 = world.spawn(2, [t00]);
+
+                const e3 = world.spawn(3, [t01]);
+                const e4 = world.spawn(4, [t01]);
+                const e5 = world.spawn(5, [t01]);
+
+                const e6 = world.spawn(6, [t00, t32]);
+                const e7 = world.spawn(7, [t00, t32]);
+                const e8 = world.spawn(8, [t00, t32]);
+
+                const e9 = world.spawn(9, [t01, t33]);
+                const e10 = world.spawn(10, [t01, t33]);
+                const e11 = world.spawn(11, [t01, t33]);
+
+                expect(one).toEqual([
+                    { id: e6, t00_01: t00.data, t32_33: t32.data },
+                    { id: e7, t00_01: t00.data, t32_33: t32.data },
+                    { id: e8, t00_01: t00.data, t32_33: t32.data },
+
+                    { id: e9, t00_01: t01.data, t32_33: t33.data },
+                    { id: e10, t00_01: t01.data, t32_33: t33.data },
+                    { id: e11, t00_01: t01.data, t32_33: t33.data },
+                ]);
+
+                world.addComponent(e0, t33);
+                world.addComponent(e1, t33);
+                world.addComponent(e2, t33);
+
+                expect(one).toEqual([
+                    { id: e6, t00_01: t00.data, t32_33: t32.data },
+                    { id: e7, t00_01: t00.data, t32_33: t32.data },
+                    { id: e8, t00_01: t00.data, t32_33: t32.data },
+
+                    { id: e9, t00_01: t01.data, t32_33: t33.data },
+                    { id: e10, t00_01: t01.data, t32_33: t33.data },
+                    { id: e11, t00_01: t01.data, t32_33: t33.data },
+
+                    { id: e0, t00_01: t00.data, t32_33: t33.data },
+                    { id: e1, t00_01: t00.data, t32_33: t33.data },
+                    { id: e2, t00_01: t00.data, t32_33: t33.data },
+                ]);
+
+                world.addComponent(e3, t32);
+                world.addComponent(e4, t32);
+                world.addComponent(e5, t32);
+
+                expect(one).toEqual([
+                    { id: e6, t00_01: t00.data, t32_33: t32.data },
+                    { id: e7, t00_01: t00.data, t32_33: t32.data },
+                    { id: e8, t00_01: t00.data, t32_33: t32.data },
+
+                    { id: e9, t00_01: t01.data, t32_33: t33.data },
+                    { id: e10, t00_01: t01.data, t32_33: t33.data },
+                    { id: e11, t00_01: t01.data, t32_33: t33.data },
+
+                    { id: e0, t00_01: t00.data, t32_33: t33.data },
+                    { id: e1, t00_01: t00.data, t32_33: t33.data },
+                    { id: e2, t00_01: t00.data, t32_33: t33.data },
+
+                    { id: e3, t00_01: t01.data, t32_33: t32.data },
+                    { id: e4, t00_01: t01.data, t32_33: t32.data },
+                    { id: e5, t00_01: t01.data, t32_33: t32.data },
+                ]);
+
+                world.removeComponent(e0, T.T00);
+                world.removeComponent(e1, T.T00);
+                world.removeComponent(e2, T.T00);
+
+                expect(one).toEqual([
+                    { id: e6, t00_01: t00.data, t32_33: t32.data },
+                    { id: e7, t00_01: t00.data, t32_33: t32.data },
+                    { id: e8, t00_01: t00.data, t32_33: t32.data },
+
+                    { id: e9, t00_01: t01.data, t32_33: t33.data },
+                    { id: e10, t00_01: t01.data, t32_33: t33.data },
+                    { id: e11, t00_01: t01.data, t32_33: t33.data },
+
+                    { id: e5, t00_01: t01.data, t32_33: t32.data },
+                    { id: e4, t00_01: t01.data, t32_33: t32.data },
+                    { id: e3, t00_01: t01.data, t32_33: t32.data },
+                ]);
+
+                world.despawn(e3);
+                world.despawn(e4);
+                world.despawn(e5);
+
+                expect(one).toEqual([
+                    { id: e6, t00_01: t00.data, t32_33: t32.data },
+                    { id: e7, t00_01: t00.data, t32_33: t32.data },
+                    { id: e8, t00_01: t00.data, t32_33: t32.data },
+
+                    { id: e9, t00_01: t01.data, t32_33: t33.data },
+                    { id: e10, t00_01: t01.data, t32_33: t33.data },
+                    { id: e11, t00_01: t01.data, t32_33: t33.data },
+                ]);
+
+                world.removeComponent(e6, T.T00);
+                world.removeComponent(e9, T.T01);
+
+                world.removeComponent(e7, T.T32);
+                world.removeComponent(e10, T.T33);
+
+                expect(one).toEqual([
+                    { id: e11, t00_01: t01.data, t32_33: t33.data },
+                    { id: e8, t00_01: t00.data, t32_33: t32.data },
+                ]);
+            });
+
+            it('should handle spawning and adding of component types correctly.', () => {
+                const T = defineComponentTypes([
+                    'T00',
+                    'T01',
+                    'T02',
+                    'T03',
+                    'T04',
+                    'T05',
+                    'T06',
+                    'T07',
+
+                    'T08',
+                    'T09',
+                    'T10',
+                    'T11',
+                    'T12',
+                    'T13',
+                    'T14',
+                    'T15',
+
+                    'T16',
+                    'T17',
+                    'T18',
+                    'T19',
+                    'T20',
+                    'T21',
+                    'T22',
+                    'T23',
+
+                    'T24',
+                    'T25',
+                    'T26',
+                    'T27',
+                    'T28',
+                    'T29',
+                    'T30',
+                    'T31',
+
+                    // Should use index: 1 for bitset arrays
+                    'T32',
+                    'T33',
+                ]);
+
+                type T00 = Component<typeof T.T00, { a: string }>;
+                type T01 = Component<typeof T.T01, { b: string }>;
+                type T32 = Component<typeof T.T32, { c: string }>;
+                type T33 = Component<typeof T.T33, { d: string }>;
+
+                type WorldComp = T00 | T01 | T32 | T33;
+
+                const world = worldBuilder<WorldComp, WorldEvent, WorldResources>()
+                    .defineQueries({
+                        testQuery: queryBuilder<WorldComp>()
+                            .includeEntity()
+                            .withAny([T.T00, T.T01])
+                            .withAny([T.T32, T.T33])
+                            .map(([id, comp1, comp2]) => ({
+                                id,
+                                first: comp1.data,
+                                second: comp2.data,
+                            }))
+                            .compile(),
+                    })
+                    .compile();
+
+                const query = world.getQuery('testQuery').result;
+
+                const t00: T00 = { type: 0, data: { a: 'has-t00' } };
+                const t32: T32 = { type: 32, data: { c: 'has-t32' } };
+
+                const e0 = world.spawn(0, [t00]);
+
+                // no match yet - missing either t32 or t33
+                expect(query).toEqual([]);
+
+                world.addComponent(e0, t32);
+
+                // match for e0 - has t00 and t32
+                expect(query).toEqual([
+                    {
+                        id: e0,
+                        first: { a: 'has-t00' },
+                        second: { c: 'has-t32' },
+                    },
+                ]);
+
+                const e1 = world.spawn(1, [t32]);
+
+                // no match yet for e1 - only e0 is in the query
+                expect(query).toEqual([
+                    {
+                        id: e0,
+                        first: { a: 'has-t00' },
+                        second: { c: 'has-t32' },
+                    },
+                ]);
+
+                world.addComponent(e1, t00);
+
+                // Now query contains e0 and e1
+                expect(query).toEqual([
+                    {
+                        id: e0,
+                        first: { a: 'has-t00' },
+                        second: { c: 'has-t32' },
+                    },
+                    {
+                        id: e1,
+                        first: { a: 'has-t00' },
+                        second: { c: 'has-t32' },
+                    },
+                ]);
             });
         });
 
