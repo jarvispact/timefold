@@ -32,8 +32,20 @@ export type RemoveComponentEcsEvent<C extends Component> = {
     payload: { entity: Entity; component: C };
 };
 
-export type EcsEvent<C extends Component> =
+export type SetResourceEcsEvent<Resources extends Record<string, unknown>, K extends keyof Resources> = {
+    type: 'ecs/set-resource';
+    payload: { name: K; data: Resources[K] };
+};
+
+export type RemoveResourceEcsEvent<Resources extends Record<string, unknown>, K extends keyof Resources> = {
+    type: 'ecs/remove-resource';
+    payload: { name: K; data: Resources[K] };
+};
+
+export type EcsEvent<C extends Component, Resources extends Record<string, unknown> = NonNullable<unknown>> =
     | SpawnEntityEcsEvent<C>
     | DespawnEntityEcsEvent
     | AddComponentEcsEvent<C>
-    | RemoveComponentEcsEvent<C>;
+    | RemoveComponentEcsEvent<C>
+    | SetResourceEcsEvent<Resources, keyof Resources>
+    | RemoveResourceEcsEvent<Resources, keyof Resources>;

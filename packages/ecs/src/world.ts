@@ -6,6 +6,8 @@ import {
     EcsEvent,
     GenericEcsEvent,
     RemoveComponentEcsEvent,
+    RemoveResourceEcsEvent,
+    SetResourceEcsEvent,
     SpawnEntityEcsEvent,
 } from './event';
 import {
@@ -47,10 +49,10 @@ export type World<
         result: MapQueryDefinitionToTuple<WorldComponent, Queries[Name]>[];
     };
     emit: (event: CustomEvent) => void;
-    on: <EventType extends (CustomEvent | EcsEvent<WorldComponent>)['type']>(
+    on: <EventType extends (CustomEvent | EcsEvent<WorldComponent, Resources>)['type']>(
         type: EventType,
         cb: (
-            ...payload: Extract<CustomEvent | EcsEvent<WorldComponent>, { type: EventType }> extends {
+            ...payload: Extract<CustomEvent | EcsEvent<WorldComponent, Resources>, { type: EventType }> extends {
                 payload: infer Payload;
             }
                 ? [Payload]
@@ -61,7 +63,7 @@ export type World<
 
 function createWorld<
     WorldComponent extends Component,
-    WorldEvent extends GenericEcsEvent = EcsEvent<WorldComponent>,
+    CustomEvent extends GenericEcsEvent = never,
     Resources extends Record<string, unknown> = NonNullable<unknown>,
     Queries extends Record<string, QueryDefinitionGeneric<WorldComponent>> = NonNullable<unknown>,
 >(resources: Record<string, unknown>, queries: InternalQuery[], nameToQueryIdx: Record<string, number | undefined>) {
@@ -165,8 +167,24 @@ function createWorld<
         getResource: (name: string) => resources[name],
         setResource: (name: string, data: unknown) => {
             resources[name] = data;
+
+            const event: SetResourceEcsEvent<Resources, keyof Resources> = {
+                type: 'ecs/set-resource',
+                payload: { name, data } as never,
+            };
+
+            world.emit(event);
         },
         removeResource: (name: string) => {
+            const data = resources[name];
+
+            const event: RemoveResourceEcsEvent<Resources, keyof Resources> = {
+                type: 'ecs/remove-resource',
+                payload: { name, data } as never,
+            };
+
+            world.emit(event);
+
             resources[name] = undefined;
         },
         getQuery: (name: string) => {
@@ -176,7 +194,7 @@ function createWorld<
                 result: queries[idx].result,
             };
         },
-        emit: (event: EcsEvent<WorldComponent>) => {
+        emit: (event: CustomEvent | EcsEvent<WorldComponent, Resources>) => {
             const subscribers = subscribersByEventType[event.type];
             if (!subscribers) return;
 
@@ -194,7 +212,7 @@ function createWorld<
         },
     };
 
-    return world as unknown as World<WorldComponent, WorldEvent, Resources, Queries>;
+    return world as unknown as World<WorldComponent, CustomEvent, Resources, Queries>;
 }
 
 export type WorldBuilderApi<

@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
-import { expect, it, describe, expectTypeOf } from 'vitest';
+import { expect, it, describe, expectTypeOf, vitest } from 'vitest';
 import { World, worldBuilder } from './world';
 import { Component } from './component';
 import { defineQueries, queryBuilder, QueryDefinition } from './query';
@@ -232,6 +232,60 @@ describe('world', () => {
 
             expectTypeOf<WorldEvent>().toExtend<Emit>();
             expectTypeOf<(WorldEvent | EcsEvent<WorldComponent>)['type']>().toExtend<On>();
+        });
+
+        it('should call all event handlers', () => {
+            const world = worldBuilder<WorldComponent, WorldEvent, WorldResources>().compile();
+
+            const mockA = vitest.fn();
+            world.on('A', mockA);
+
+            const mockB = vitest.fn();
+            world.on('B', mockB);
+
+            const mockC = vitest.fn();
+            world.on('C', mockC);
+
+            const mockSpawn = vitest.fn();
+            world.on('ecs/spawn-entity', mockSpawn);
+
+            const mockAdd = vitest.fn();
+            world.on('ecs/add-component', mockAdd);
+
+            const mockRemove = vitest.fn();
+            world.on('ecs/remove-component', mockRemove);
+
+            const mockDespawn = vitest.fn();
+            world.on('ecs/despawn-entity', mockDespawn);
+
+            const mockSetResource = vitest.fn();
+            world.on('ecs/set-resource', mockSetResource);
+
+            const mockRemoveResource = vitest.fn();
+            world.on('ecs/remove-resource', mockRemoveResource);
+
+            world.emit({ type: 'A' });
+            world.emit({ type: 'B', payload: { a: 'foo' } });
+            world.emit({ type: 'C', payload: { b: 42 } });
+
+            world.spawn(0, [{ type: 0 }]);
+            world.addComponent(0, { type: 1, data: { pos: [0, 0] } });
+            world.removeComponent(0, 1);
+            world.despawn(0);
+
+            world.setResource('deltaTime', 0.16);
+            world.removeResource('deltaTime');
+
+            expect(mockA.mock.lastCall).toEqual([undefined]);
+            expect(mockB.mock.lastCall).toEqual([{ a: 'foo' }]);
+            expect(mockC.mock.lastCall).toEqual([{ b: 42 }]);
+
+            expect(mockSpawn.mock.lastCall).toEqual([{ entity: 0, components: [{ type: 0 }] }]);
+            expect(mockAdd.mock.lastCall).toEqual([{ entity: 0, component: { type: 1, data: { pos: [0, 0] } } }]);
+            expect(mockRemove.mock.lastCall).toEqual([{ entity: 0, component: { type: 1, data: { pos: [0, 0] } } }]);
+            expect(mockDespawn.mock.lastCall).toEqual([{ entity: 0 }]);
+            expect(mockSetResource.mock.lastCall).toEqual([{ name: 'deltaTime', data: 0.16 }]);
+            expect(mockRemoveResource.mock.lastCall).toEqual([{ name: 'deltaTime', data: 0.16 }]);
         });
     });
 
