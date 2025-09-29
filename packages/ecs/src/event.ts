@@ -37,5 +37,3 @@ export type EcsEvent<C extends Component> =
     | DespawnEntityEcsEvent
     | AddComponentEcsEvent<C>
     | RemoveComponentEcsEvent<C>;
-
-export type ExtendEcsEvent<C extends Component, CustomEvent extends GenericEcsEvent> = EcsEvent<C> | CustomEvent;

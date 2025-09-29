@@ -26,7 +26,7 @@ const COMPONENT_TYPE_DIVISOR = 32;
 
 export type World<
     WorldComponent extends Component,
-    WorldEvent extends GenericEcsEvent = EcsEvent<WorldComponent>,
+    CustomEvent extends GenericEcsEvent = never,
     Resources extends Record<string, unknown> = NonNullable<unknown>,
     Queries extends Record<string, QueryDefinitionGeneric<WorldComponent>> = NonNullable<unknown>,
 > = {
@@ -46,33 +46,18 @@ export type World<
     ) => {
         result: MapQueryDefinitionToTuple<WorldComponent, Queries[Name]>[];
     };
-    emit: (event: WorldEvent) => void;
-    on: <EventType extends WorldEvent['type']>(
+    emit: (event: CustomEvent) => void;
+    on: <EventType extends (CustomEvent | EcsEvent<WorldComponent>)['type']>(
         type: EventType,
         cb: (
-            ...payload: Extract<WorldEvent, { type: EventType }> extends { payload: infer Payload } ? [Payload] : []
+            ...payload: Extract<CustomEvent | EcsEvent<WorldComponent>, { type: EventType }> extends {
+                payload: infer Payload;
+            }
+                ? [Payload]
+                : []
         ) => void,
     ) => void;
 };
-
-export type WorldBuilderApi<
-    WorldComponent extends Component,
-    WorldEvent extends GenericEcsEvent = EcsEvent<WorldComponent>,
-    Resources extends Record<string, unknown> = NonNullable<unknown>,
-    Queries extends Record<string, QueryDefinitionGeneric<WorldComponent>> = NonNullable<unknown>,
-    UsedMethods extends string = never,
-> = Omit<
-    {
-        defineResources: <Resources extends Record<string, unknown>>(
-            resources: Resources,
-        ) => WorldBuilderApi<WorldComponent, WorldEvent, Resources, Queries, UsedMethods | 'defineResources'>;
-        defineQueries: <Queries extends Record<string, QueryDefinitionGeneric<WorldComponent>>>(
-            queries: Queries,
-        ) => WorldBuilderApi<WorldComponent, WorldEvent, Resources, Queries, UsedMethods | 'defineQueries'>;
-        compile: () => World<WorldComponent, WorldEvent, Resources, Queries>;
-    },
-    UsedMethods
->;
 
 function createWorld<
     WorldComponent extends Component,
@@ -212,9 +197,28 @@ function createWorld<
     return world as unknown as World<WorldComponent, WorldEvent, Resources, Queries>;
 }
 
+export type WorldBuilderApi<
+    WorldComponent extends Component,
+    CustomEvent extends GenericEcsEvent = never,
+    Resources extends Record<string, unknown> = NonNullable<unknown>,
+    Queries extends Record<string, QueryDefinitionGeneric<WorldComponent>> = NonNullable<unknown>,
+    UsedMethods extends string = never,
+> = Omit<
+    {
+        defineResources: <Resources extends Record<string, unknown>>(
+            resources: Resources,
+        ) => WorldBuilderApi<WorldComponent, CustomEvent, Resources, Queries, UsedMethods | 'defineResources'>;
+        defineQueries: <Queries extends Record<string, QueryDefinitionGeneric<WorldComponent>>>(
+            queries: Queries,
+        ) => WorldBuilderApi<WorldComponent, CustomEvent, Resources, Queries, UsedMethods | 'defineQueries'>;
+        compile: () => World<WorldComponent, CustomEvent, Resources, Queries>;
+    },
+    UsedMethods
+>;
+
 export function worldBuilder<
     WorldComponent extends Component,
-    WorldEvent extends GenericEcsEvent = EcsEvent<WorldComponent>,
+    CustomEvent extends GenericEcsEvent = never,
     Resources extends Record<string, unknown> = NonNullable<unknown>,
     Queries extends Record<string, QueryDefinitionGeneric<WorldComponent>> = NonNullable<unknown>,
     UsedMethods extends string = never,
@@ -276,8 +280,8 @@ export function worldBuilder<
 
             return api;
         },
-        compile: () => createWorld<WorldComponent, WorldEvent, Resources, Queries>(resources, queries, nameToQueryIdx),
+        compile: () => createWorld<WorldComponent, CustomEvent, Resources, Queries>(resources, queries, nameToQueryIdx),
     };
 
-    return api as unknown as WorldBuilderApi<WorldComponent, WorldEvent, Resources, Queries, UsedMethods>;
+    return api as unknown as WorldBuilderApi<WorldComponent, CustomEvent, Resources, Queries, UsedMethods>;
 }

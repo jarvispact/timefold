@@ -3,7 +3,7 @@ import { expect, it, describe, expectTypeOf } from 'vitest';
 import { World, worldBuilder } from './world';
 import { Component } from './component';
 import { defineQueries, queryBuilder, QueryDefinition } from './query';
-import { DefineEcsEvent, EcsEvent, ExtendEcsEvent } from './event';
+import { DefineEcsEvent, EcsEvent } from './event';
 
 type A = Component<0>;
 type B = Component<1, { pos: [number, number] }>;
@@ -214,26 +214,24 @@ describe('world', () => {
             type Emit = Parameters<World['emit']>[0];
             type On = Parameters<World['on']>[0];
 
-            expectTypeOf<Emit>().toExtend<EcsEvent<WorldComponent>>();
+            expectTypeOf<Emit>().toExtend<never>();
             expectTypeOf<On>().toExtend<EcsEvent<WorldComponent>['type']>();
 
-            expectTypeOf<EcsEvent<WorldComponent>>().toExtend<Emit>();
+            expectTypeOf<never>().toExtend<Emit>();
             expectTypeOf<EcsEvent<WorldComponent>['type']>().toExtend<On>();
         });
 
         it('should return the correct type when passed as generic', () => {
-            const world = worldBuilder<WorldComponent, ExtendEcsEvent<WorldComponent, WorldEvent>>().compile();
+            const world = worldBuilder<WorldComponent, WorldEvent>().compile();
             type World = typeof world;
             type Emit = Parameters<World['emit']>[0];
             type On = Parameters<World['on']>[0];
 
-            type ExpectedEvent = WorldEvent | EcsEvent<WorldComponent>;
+            expectTypeOf<Emit>().toExtend<WorldEvent>();
+            expectTypeOf<On>().toExtend<(WorldEvent | EcsEvent<WorldComponent>)['type']>();
 
-            expectTypeOf<Emit>().toExtend<ExpectedEvent>();
-            expectTypeOf<On>().toExtend<ExpectedEvent['type']>();
-
-            expectTypeOf<ExpectedEvent>().toExtend<Emit>();
-            expectTypeOf<ExpectedEvent['type']>().toExtend<On>();
+            expectTypeOf<WorldEvent>().toExtend<Emit>();
+            expectTypeOf<(WorldEvent | EcsEvent<WorldComponent>)['type']>().toExtend<On>();
         });
     });
 
