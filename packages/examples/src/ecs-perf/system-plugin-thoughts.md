@@ -1,6 +1,6 @@
 # Thoughts about systems and plugins
 
-- timefold and other libraries can create plugins and systems.
+- @timefold/engine and other libraries can create plugins and systems.
 - consumers can define plugins and systems.
 - consumers can define the final execution order in detail.
 - plugins and systems depend on queries and will be injected by the ecs world.
@@ -22,6 +22,16 @@ import { worldBuilder, defineQueries } from '@timefold/ecs';
 
 const queries = defineQueries({ ... });
 type Queries = typeof queries;
+
+function sysA(query: QueryType, resources: PartialResources) {
+    for (item of query.result) {
+        // Do something
+    }
+}
+
+const systems = defineSystems({
+    sysA: { stage: 'update', fn: sysA },
+})
 
 const ConsumerSystem = systemBuilder<Queries, Resources>()
     .withQuery('some-query')

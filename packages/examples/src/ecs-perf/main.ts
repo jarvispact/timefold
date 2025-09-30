@@ -33,8 +33,6 @@ const queries = defineQueries({
         .compile(),
 });
 
-// type Queries = typeof queries;
-
 const world = worldBuilder<WorldComponent>()
     .defineResources({
         a: { foo: 'bar' },
