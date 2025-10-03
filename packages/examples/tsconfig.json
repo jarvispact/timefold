@@ -1,21 +1,37 @@
 {
   "extends": "../../tsconfig",
   "compilerOptions": {
-      "declaration": true,
-      "declarationDir": "./dist",
-      "outDir": "./dist",
-      "noEmit": true,
-      "sourceMap": false,
-      "baseUrl": "./src",
-      "paths": {
-          "@timefold/ecs": ["../../ecs/src/ecs.ts"],
-          "@timefold/math": ["../../math/src/math.ts"],
-          "@timefold/webgpu": ["../../webgpu/src/webgpu.ts"],
-          "@timefold/obj": ["../../obj/src/obj.ts"],
-          "@timefold/gltf2": ["../../gltf2/src/gltf2.ts"],
-          "@timefold/engine": ["../../engine/src/engine.ts"]
-      }
+    "declaration": true,
+    "declarationDir": "./dist",
+    "outDir": "./dist",
+    "noEmit": true,
+    "sourceMap": false,
+    "baseUrl": "src",
+    "paths": {
+      "@timefold/ecs": [
+        "../../ecs/src/ecs.ts"
+      ],
+      "@timefold/math": [
+        "../../math/src/math.ts"
+      ],
+      "@timefold/webgpu": [
+        "../../webgpu/src/webgpu.ts"
+      ],
+      "@timefold/obj": [
+        "../../obj/src/obj.ts"
+      ],
+      "@timefold/gltf2": [
+        "../../gltf2/src/gltf2.ts"
+      ],
+      "@timefold/engine": [
+        "../../engine/src/engine.ts"
+      ]
+    }
   },
-  "include": ["./src"],
-  "exclude": ["node_modules"]
+  "include": [
+    "src"
+  ],
+  "exclude": [
+    "node_modules"
+  ]
 }

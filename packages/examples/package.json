@@ -4,66 +4,8 @@
   "version": "0.0.1",
   "type": "module",
   "scripts": {
-    "dev:hello-world": "sed 's/{example-folder}/hello-world/g' index.html.template > index.html && vite --port 9093",
-    "build:hello-world": "sed 's/{example-folder}/hello-world/g' index.html.template > index.html && vite build",
-
-    "dev:ecs-hello-world": "sed 's/{example-folder}/ecs-hello-world/g' index.html.template > index.html && vite --port 9093",
-    "build:ecs-hello-world": "sed 's/{example-folder}/ecs-hello-world/g' index.html.template > index.html && vite build",
-
-    "dev:ecs-queries": "sed 's/{example-folder}/ecs-queries/g' index.html.template > index.html && vite --port 9093",
-    "build:ecs-queries": "sed 's/{example-folder}/ecs-queries/g' index.html.template > index.html && vite build",
-
-    "dev:webgpu-hello-world": "sed 's/{example-folder}/webgpu-hello-world/g' index.html.template > index.html && vite --port 9093",
-    "build:webgpu-hello-world": "sed 's/{example-folder}/webgpu-hello-world/g' index.html.template > index.html && vite build",
-
-    "dev:obj-loader": "sed 's/{example-folder}/obj-loader/g' index.html.template > index.html && vite --port 9093",
-    "build:obj-loader": "sed 's/{example-folder}/obj-loader/g' index.html.template > index.html && vite build",
-
-    "dev:gltf2-loader": "sed 's/{example-folder}/gltf2-loader/g' index.html.template > index.html && vite --port 9093",
-    "build:gltf2-loader": "sed 's/{example-folder}/gltf2-loader/g' index.html.template > index.html && vite build",
-
-    "dev:2d-platformer": "sed 's/{example-folder}/2d-platformer/g' index.html.template > index.html && vite --port 9093",
-    "build:2d-platformer": "sed 's/{example-folder}/2d-platformer/g' index.html.template > index.html && vite build",
-
-    "dev:webgpu-triangle": "sed 's/{example-folder}/webgpu-triangle/g' index.html.template > index.html && vite --port 9093",
-    "build:webgpu-triangle": "sed 's/{example-folder}/webgpu-triangle/g' index.html.template > index.html && vite build",
-
-    "dev:webgpu-triangles": "sed 's/{example-folder}/webgpu-triangles/g' index.html.template > index.html && vite --port 9093",
-    "build:webgpu-triangles": "sed 's/{example-folder}/webgpu-triangles/g' index.html.template > index.html && vite build",
-
-    "dev:webgpu-textured-triangles": "sed 's/{example-folder}/webgpu-textured-triangles/g' index.html.template > index.html && vite --port 9093",
-    "build:webgpu-textured-triangles": "sed 's/{example-folder}/webgpu-textured-triangles/g' index.html.template > index.html && vite build",
-
     "dev:pong": "sed 's/{example-folder}/pong/g' index.html.template > index.html && vite --port 9093",
     "build:pong": "sed 's/{example-folder}/pong/g' index.html.template > index.html && vite build",
-
-    "dev:renderer": "sed 's/{example-folder}/renderer/g' index.html.template > index.html && vite --port 9093",
-    "build:renderer": "sed 's/{example-folder}/renderer/g' index.html.template > index.html && vite build",
-
-    "dev:renderer-performance": "sed 's/{example-folder}/renderer-performance/g' index.html.template > index.html && vite --port 9093",
-    "build:renderer-performance": "sed 's/{example-folder}/renderer-performance/g' index.html.template > index.html && vite build",
-
-    "dev:breakout": "sed 's/{example-folder}/breakout/g' index.html.template > index.html && vite --port 9093",
-    "build:breakout": "sed 's/{example-folder}/breakout/g' index.html.template > index.html && vite build",
-
-    "dev:3d-boilerplate": "sed 's/{example-folder}/3d-boilerplate/g' index.html.template > index.html && vite --port 9093",
-    "build:3d-boilerplate": "sed 's/{example-folder}/3d-boilerplate/g' index.html.template > index.html && vite build",
-
-    "dev:kenney-demo-scene": "sed 's/{example-folder}/kenney-demo-scene/g' index.html.template > index.html && vite --port 9093",
-    "build:kenney-demo-scene": "sed 's/{example-folder}/kenney-demo-scene/g' index.html.template > index.html && vite build",
-
-    "dev:4-quads": "sed 's/{example-folder}/4-quads/g' index.html.template > index.html && vite --port 9093",
-    "build:4-quads": "sed 's/{example-folder}/4-quads/g' index.html.template > index.html && vite build",
-
-    "dev:instancing": "sed 's/{example-folder}/instancing/g' index.html.template > index.html && vite --port 9093",
-    "build:instancing": "sed 's/{example-folder}/instancing/g' index.html.template > index.html && vite build",
-
-    "dev:perf": "sed 's/{example-folder}/perf/g' index.html.template > index.html && vite --port 9093",
-    "build:perf": "sed 's/{example-folder}/perf/g' index.html.template > index.html && vite build",
-
-    "dev:ecs-perf": "sed 's/{example-folder}/ecs-perf/g' index.html.template > index.html && vite --port 9093",
-    "build:ecs-perf": "sed 's/{example-folder}/ecs-perf/g' index.html.template > index.html && vite build",
-
     "preview": "vite preview --port 9191"
   }
 }

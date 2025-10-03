@@ -7,12 +7,24 @@
         "noEmit": false,
         "sourceMap": true,
         "paths": {
-            "@timefold/ecs": ["../../ecs/src/ecs.ts"],
-            "@timefold/math": ["../../math/src/math.ts"],
-            "@timefold/webgpu": ["../../webgpu/src/webgpu.ts"],
-            "@timefold/obj": ["../../obj/src/obj.ts"]
+            "@timefold/ecs": [
+                "../../ecs/src/ecs.ts"
+            ],
+            "@timefold/math": [
+                "../../math/src/math.ts"
+            ],
+            "@timefold/webgpu": [
+                "../../webgpu/src/webgpu.ts"
+            ],
+            "@timefold/obj": [
+                "../../obj/src/obj.ts"
+            ]
         }
     },
-    "include": ["./src"],
-    "exclude": ["node_modules"]
+    "include": [
+        "src"
+    ],
+    "exclude": [
+        "node_modules"
+    ]
 }
