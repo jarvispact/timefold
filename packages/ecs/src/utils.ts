@@ -10,7 +10,7 @@ export type Increment<N extends number> = [...BuildTuple<N>, unknown]['length'] 
     ? [...BuildTuple<N>, unknown]['length']
     : never;
 
-type Prettyfy<T extends Record<string, unknown>> = { [K in keyof T]: T[K] } & {};
+export type Prettyfy<T extends Record<string, unknown>> = { [K in keyof T]: T[K] } & {};
 
 export type ComponentTypes<
     T extends string[],
@@ -19,3 +19,7 @@ export type ComponentTypes<
 > = T extends [infer Head extends string, ...infer Tail extends string[]]
     ? ComponentTypes<Tail, Increment<Idx>, Result & Record<Head, Idx>>
     : Prettyfy<Result>;
+
+export type RequireAtLeastOne<T> = {
+    [K in keyof T]-?: Required<Pick<T, K>> & Partial<Pick<T, Exclude<keyof T, K>>>;
+}[keyof T];

@@ -4,6 +4,7 @@ import { World, worldBuilder } from './world';
 import { Component, defineComponentTypes } from './component';
 import { defineQueries, queryBuilder, QueryDefinition } from './query';
 import { DefineEcsEvent, EcsEvent } from './event';
+import { createAsyncSystem, createSystem, defineSystemGraph } from './system';
 
 type A = Component<0>;
 type B = Component<1, { pos: [number, number] }>;
@@ -1543,6 +1544,184 @@ describe('world', () => {
                         e: e.data.health,
                     },
                 ]);
+            });
+        });
+    });
+
+    describe('systems', () => {
+        it('should get and set the active state of a system by name', () => {
+            const spawnWorld = createAsyncSystem({ stage: 'startup', fn: async () => {} });
+            const spawnPlaver = createAsyncSystem({ stage: 'startup', fn: async () => {} });
+            const spawnCamera = createAsyncSystem({ stage: 'startup', fn: async () => {} });
+
+            const handleInput = createSystem({ stage: 'update', fn: () => {} });
+            const applyGravity = createSystem({ stage: 'update', fn: () => {} });
+            const handleMovement = createSystem({ stage: 'update', fn: () => {} });
+            const checkCollisions = createSystem({ stage: 'update', fn: () => {} });
+
+            const depthPreRenderPass = createAsyncSystem({ stage: 'render', fn: async () => {} });
+            const shadowRenderPass = createAsyncSystem({ stage: 'render', fn: async () => {} });
+            const mainRenderPass = createSystem({ stage: 'render', fn: () => {} });
+            const postProcessRenderPass = createSystem({ stage: 'render', fn: () => {} });
+
+            const world = worldBuilder<WorldComponent>()
+                .defineSystemGraph({
+                    systems: {
+                        spawnWorld,
+                        spawnPlaver,
+                        spawnCamera,
+                        handleInput,
+                        applyGravity,
+                        handleMovement,
+                        checkCollisions,
+                        depthPreRenderPass,
+                        shadowRenderPass,
+                        mainRenderPass,
+                        postProcessRenderPass,
+                    },
+                    dependencies: {
+                        spawnCamera: { after: ['spawnWorld', 'spawnPlaver'] },
+                        applyGravity: { after: ['handleInput'] },
+                        handleMovement: { after: ['applyGravity'] },
+                        checkCollisions: { after: ['handleMovement'] },
+                        postProcessRenderPass: { after: ['mainRenderPass'] },
+                        depthPreRenderPass: { before: ['mainRenderPass'] },
+                        shadowRenderPass: { before: ['mainRenderPass'] },
+                    },
+                })
+                .compile();
+
+            expect({
+                a: world.getSystemActiveState('spawnCamera'),
+                b: world.getSystemActiveState('spawnPlaver'),
+                c: world.getSystemActiveState('spawnWorld'),
+
+                d: world.getSystemActiveState('handleInput'),
+                e: world.getSystemActiveState('applyGravity'),
+                f: world.getSystemActiveState('handleMovement'),
+                g: world.getSystemActiveState('checkCollisions'),
+
+                h: world.getSystemActiveState('depthPreRenderPass'),
+                i: world.getSystemActiveState('shadowRenderPass'),
+                j: world.getSystemActiveState('mainRenderPass'),
+                k: world.getSystemActiveState('postProcessRenderPass'),
+            }).toEqual({
+                a: true,
+                b: true,
+                c: true,
+                d: true,
+                e: true,
+                f: true,
+                g: true,
+                h: true,
+                i: true,
+                j: true,
+                k: true,
+            });
+
+            world.setSystemActiveState('spawnCamera', false);
+            world.setSystemActiveState('spawnWorld', false);
+            world.setSystemActiveState('handleInput', false);
+            world.setSystemActiveState('shadowRenderPass', false);
+            world.setSystemActiveState('postProcessRenderPass', false);
+
+            expect({
+                a: world.getSystemActiveState('spawnCamera'),
+                b: world.getSystemActiveState('spawnPlaver'),
+                c: world.getSystemActiveState('spawnWorld'),
+
+                d: world.getSystemActiveState('handleInput'),
+                e: world.getSystemActiveState('applyGravity'),
+                f: world.getSystemActiveState('handleMovement'),
+                g: world.getSystemActiveState('checkCollisions'),
+
+                h: world.getSystemActiveState('depthPreRenderPass'),
+                i: world.getSystemActiveState('shadowRenderPass'),
+                j: world.getSystemActiveState('mainRenderPass'),
+                k: world.getSystemActiveState('postProcessRenderPass'),
+            }).toEqual({
+                a: false,
+                b: true,
+                c: false,
+                d: false,
+                e: true,
+                f: true,
+                g: true,
+                h: true,
+                i: false,
+                j: true,
+                k: false,
+            });
+        });
+
+        it('should allow to pass the result of defineSystemGraph as well', () => {
+            const spawnWorld = createAsyncSystem({ stage: 'startup', fn: async () => {} });
+            const spawnPlaver = createAsyncSystem({ stage: 'startup', fn: async () => {} });
+            const spawnCamera = createAsyncSystem({ stage: 'startup', fn: async () => {} });
+
+            const handleInput = createSystem({ stage: 'update', fn: () => {} });
+            const applyGravity = createSystem({ stage: 'update', fn: () => {} });
+            const handleMovement = createSystem({ stage: 'update', fn: () => {} });
+            const checkCollisions = createSystem({ stage: 'update', fn: () => {} });
+
+            const depthPreRenderPass = createAsyncSystem({ stage: 'render', fn: async () => {} });
+            const shadowRenderPass = createAsyncSystem({ stage: 'render', fn: async () => {} });
+            const mainRenderPass = createSystem({ stage: 'render', fn: () => {} });
+            const postProcessRenderPass = createSystem({ stage: 'render', fn: () => {} });
+
+            const systemGraph = defineSystemGraph({
+                systems: {
+                    spawnWorld,
+                    spawnPlaver,
+                    spawnCamera,
+                    handleInput,
+                    applyGravity,
+                    handleMovement,
+                    checkCollisions,
+                    depthPreRenderPass,
+                    shadowRenderPass,
+                    mainRenderPass,
+                    postProcessRenderPass,
+                },
+                dependencies: {
+                    spawnCamera: { after: ['spawnWorld', 'spawnPlaver'] },
+                    applyGravity: { after: ['handleInput'] },
+                    handleMovement: { after: ['applyGravity'] },
+                    checkCollisions: { after: ['handleMovement'] },
+                    postProcessRenderPass: { after: ['mainRenderPass'] },
+                    depthPreRenderPass: { before: ['mainRenderPass'] },
+                    shadowRenderPass: { before: ['mainRenderPass'] },
+                },
+            });
+
+            const world = worldBuilder<WorldComponent>().defineSystemGraph(systemGraph).compile();
+
+            expect({
+                a: world.getSystemActiveState('spawnCamera'),
+                b: world.getSystemActiveState('spawnPlaver'),
+                c: world.getSystemActiveState('spawnWorld'),
+
+                d: world.getSystemActiveState('handleInput'),
+                e: world.getSystemActiveState('applyGravity'),
+                f: world.getSystemActiveState('handleMovement'),
+                g: world.getSystemActiveState('checkCollisions'),
+
+                h: world.getSystemActiveState('depthPreRenderPass'),
+                i: world.getSystemActiveState('shadowRenderPass'),
+                j: world.getSystemActiveState('mainRenderPass'),
+                k: world.getSystemActiveState('postProcessRenderPass'),
+            }).toEqual({
+                a: true,
+                b: true,
+                c: true,
+                d: true,
+                e: true,
+                f: true,
+                g: true,
+                h: true,
+                i: true,
+                j: true,
+                k: true,
             });
         });
     });
