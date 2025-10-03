@@ -1,4 +1,4 @@
-import { RequireAtLeastOne } from './utils';
+import { RequireAtLeastOne } from './type-helpers';
 
 export type SystemStage = 'startup' | 'update' | 'render' | 'cleanup';
 

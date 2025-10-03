@@ -7,16 +7,19 @@ type QueryDefinitionItemWith<WorldComponent extends Component> = {
     with: WorldComponent['type'];
 };
 
-export const isWithItem = <C extends Component>(item: QueryDefinitionItemGeneric): item is QueryDefinitionItemWith<C> =>
-    'with' in item;
+export function isWithItem<C extends Component>(item: QueryDefinitionItemGeneric): item is QueryDefinitionItemWith<C> {
+    return 'with' in item;
+}
 
 type QueryDefinitionItemWithAny<WorldComponent extends Component> = {
     withAny: WorldComponent['type'][];
 };
 
-export const isWithAnyItem = <C extends Component>(
+export function isWithAnyItem<C extends Component>(
     item: QueryDefinitionItemGeneric,
-): item is QueryDefinitionItemWithAny<C> => 'withAny' in item;
+): item is QueryDefinitionItemWithAny<C> {
+    return 'withAny' in item;
+}
 
 type QueryDefinitionItemGeneric<WorldComponent extends Component = Component> =
     | QueryDefinitionItemWith<WorldComponent>
@@ -141,7 +144,7 @@ export type QueryBuilderApi<
     UsedMethods
 >;
 
-const hasItemAlready = (query: QueryDefinitionGeneric, item: QueryDefinitionItemGeneric) => {
+function hasItemAlready(query: QueryDefinitionGeneric, item: QueryDefinitionItemGeneric) {
     for (let i = 0; i < query.tuple.length; i++) {
         const tupleItem = query.tuple[i];
         if (isWithItem(tupleItem) && isWithItem(item)) {
@@ -156,16 +159,18 @@ const hasItemAlready = (query: QueryDefinitionGeneric, item: QueryDefinitionItem
     }
 
     return false;
-};
+}
 
-// eslint-disable-next-line @typescript-eslint/no-unsafe-return
-const identity = (tuple: any) => tuple;
+function identity(tuple: any) {
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-return
+    return tuple;
+}
 
-export const queryBuilder = <
+export function queryBuilder<
     WorldComponent extends Component,
     Tuple extends QueryDefinitionItemGeneric<WorldComponent>[] = [],
     UsedMethods extends string = never,
->() => {
+>() {
     const query: QueryDefinitionGeneric<WorldComponent> = { includeEntity: false, tuple: [], map: identity };
 
     const api = {
@@ -199,9 +204,11 @@ export const queryBuilder = <
     };
 
     return api as unknown as QueryBuilderApi<WorldComponent, false, Tuple, UsedMethods>;
-};
+}
 
-export const defineQueries = <Queries extends Record<string, QueryDefinitionGeneric>>(queries: Queries) => queries;
+export function defineQueries<Queries extends Record<string, QueryDefinitionGeneric>>(queries: Queries) {
+    return queries;
+}
 
 export type Bitmasks = {
     with: [number, number, number, number];
@@ -221,12 +228,12 @@ export type InternalQuery = {
     result: unknown[];
 };
 
-export const updateQueriesForSpawnAndAddComponent = (
+export function updateQueriesForSpawnAndAddComponent(
     queries: InternalQuery[],
     entityBitmasks: Bitmasks,
     entity: Entity,
     componentsByType: Map<number, Component>,
-) => {
+) {
     const ew0 = entityBitmasks.with[0];
     const ew1 = entityBitmasks.with[1];
     const ew2 = entityBitmasks.with[2];
@@ -296,9 +303,9 @@ export const updateQueriesForSpawnAndAddComponent = (
         qry.result.push(item);
         qry.entityToResultIdx.set(entity, qry.result.length - 1);
     }
-};
+}
 
-export const updateQueriesForDespawn = (queries: InternalQuery[], entity: Entity) => {
+export function updateQueriesForDespawn(queries: InternalQuery[], entity: Entity) {
     for (let i = 0; i < queries.length; i++) {
         const qry = queries[i];
 
@@ -316,9 +323,9 @@ export const updateQueriesForDespawn = (queries: InternalQuery[], entity: Entity
             qry.entityToResultIdx.set(swappedEntity, idx);
         }
     }
-};
+}
 
-export const updateQueriesForRemoveComponent = (queries: InternalQuery[], entity: Entity, entityBitmasks: Bitmasks) => {
+export function updateQueriesForRemoveComponent(queries: InternalQuery[], entity: Entity, entityBitmasks: Bitmasks) {
     const ew0 = entityBitmasks.with[0];
     const ew1 = entityBitmasks.with[1];
     const ew2 = entityBitmasks.with[2];
@@ -366,4 +373,4 @@ export const updateQueriesForRemoveComponent = (queries: InternalQuery[], entity
             }
         }
     }
-};
+}

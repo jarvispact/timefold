@@ -2,10 +2,10 @@
 
 import { AsyncSystem, System, SystemGraph, SystemNamesForStage, SystemStage } from './system';
 
-export const arraySwapDelete = <Item>(arr: Item[], idx: number) => {
+export function arraySwapDelete<Item>(arr: Item[], idx: number) {
     arr[idx] = arr[arr.length - 1];
     return arr.pop();
-};
+}
 
 function resolveSyncSystemNamesForStage<
     Graph extends SystemGraph<
