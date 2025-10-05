@@ -60,6 +60,7 @@ export type SystemGraphArgs<
         [S in SystemStage]: SystemOrder;
     }>,
 > = {
+    type: 'system-graph-args';
     systems: Systems;
     orderByStage?: OrderByStage;
 };
@@ -72,6 +73,7 @@ export type SystemGraph<
         [S in SystemStage]: SystemOrder;
     },
 > = {
+    type: 'system-graph';
     systems: Systems;
     orderByStage: OrderByStage;
 };
@@ -93,11 +95,14 @@ export type SystemOrder<
 > = (SystemName | AsyncSystemName | AsyncSystemName[])[];
 
 export function defineSystemGraph<Systems extends Record<string, System | AsyncSystem>>(
-    graph: SystemGraphArgs<
-        Systems,
-        Partial<{
-            [S in SystemStage]: SystemOrder<SystemNamesForStage<Systems, S>, AsyncSystemNamesForStage<Systems, S>>;
-        }>
+    graph: Omit<
+        SystemGraphArgs<
+            Systems,
+            Partial<{
+                [S in SystemStage]: SystemOrder<SystemNamesForStage<Systems, S>, AsyncSystemNamesForStage<Systems, S>>;
+            }>
+        >,
+        'type'
     >,
 ): SystemGraph<
     Systems,
@@ -127,6 +132,7 @@ export function defineSystemGraph<Systems extends Record<string, System | AsyncS
     warnAboutSingleAsyncSystem('cleanup', cleanup);
 
     return {
+        type: 'system-graph',
         systems: graph.systems,
         orderByStage: {
             startup,
@@ -162,6 +168,7 @@ export const mergeSystemGraphs = <A extends SystemGraph, B extends SystemGraph>(
     const mergeRules = rules ?? {};
 
     return {
+        type: 'system-graph',
         systems,
         orderByStage: {
             startup: mergeSystemOrder(startupOrderA, startupOrderB, mergeRules, systems),

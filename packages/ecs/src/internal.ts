@@ -3,7 +3,6 @@ import {
     AsyncSystemNamesForStage,
     System,
     SystemGraph,
-    SystemGraphArgs,
     SystemNamesForStage,
     SystemOrder,
     SystemStage,
@@ -88,7 +87,7 @@ export function validateSystemOrder<Systems extends Record<string, System | Asyn
 type MergeRuleBefore<T> = { before: T };
 type MergeRuleAfter<T> = { after: T };
 
-export type MergeRules<A extends SystemGraphArgs, B extends SystemGraphArgs> = Partial<{
+export type MergeRules<A extends SystemGraph, B extends SystemGraph> = Partial<{
     [K in keyof B['systems']]:
         | MergeRuleBefore<
               | SystemNamesForStage<A['systems'], B['systems'][K]['stage']>
@@ -132,7 +131,7 @@ function flattenWithGroups(order: SystemOrder) {
 export function mergeSystemOrder(
     a: SystemOrder,
     b: SystemOrder,
-    rules: MergeRules<SystemGraphArgs, SystemGraphArgs>,
+    rules: MergeRules<SystemGraph, SystemGraph>,
     systems: Record<string, System | AsyncSystem>,
 ): SystemOrder {
     // Flatten to get all system names with their group info

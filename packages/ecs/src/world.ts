@@ -311,7 +311,7 @@ export type WorldBuilderApi<
             queries: Queries,
         ) => WorldBuilderApi<WorldComponent, CustomEvent, Resources, Queries, Graph, UsedMethods | 'defineQueries'>;
         defineSystemGraph: <Systems extends Record<string, System | AsyncSystem>>(
-            graph:
+            graph: Omit<
                 | SystemGraphArgs<
                       Systems,
                       Partial<{
@@ -330,6 +330,8 @@ export type WorldBuilderApi<
                           >;
                       }
                   >,
+                'type'
+            >,
         ) => WorldBuilderApi<
             WorldComponent,
             CustomEvent,
@@ -365,6 +367,7 @@ export function worldBuilder<
     const nameToQueryIdx: Record<string, number | undefined> = {};
 
     let systemGraph: SystemGraph = {
+        type: 'system-graph',
         systems: {},
         orderByStage: { startup: [], update: [], render: [], cleanup: [] },
     };
@@ -422,8 +425,8 @@ export function worldBuilder<
 
             return api;
         },
-        defineSystemGraph: (graphArgs: SystemGraphArgs) => {
-            systemGraph = defineSystemGraph(graphArgs as never);
+        defineSystemGraph: (graphArgs: SystemGraphArgs | SystemGraph) => {
+            systemGraph = graphArgs.type === 'system-graph' ? graphArgs : defineSystemGraph(graphArgs as never);
             return api;
         },
         compile: () =>
