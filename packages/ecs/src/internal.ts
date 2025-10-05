@@ -7,6 +7,10 @@ export function arraySwapDelete<Item>(arr: Item[], idx: number) {
     return arr.pop();
 }
 
+export function objectKeys<Obj extends Record<string, unknown>>(obj: Obj) {
+    return Object.keys(obj) as (keyof Obj)[];
+}
+
 function resolveSyncSystemNamesForStage<
     Graph extends SystemGraph<
         Record<string, System | AsyncSystem>,

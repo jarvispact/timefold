@@ -1,6 +1,7 @@
 import { expect, it, describe } from 'vitest';
 import { defineSystemGraph, createSystem, createAsyncSystem } from './system';
 import { resolveSystemNamesForStage } from './internal';
+import './system2';
 
 const spawnWorld = createSystem({ stage: 'startup', fn: () => {} });
 const spawnPlaver = createSystem({ stage: 'startup', fn: () => {} });
