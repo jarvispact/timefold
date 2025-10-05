@@ -94,172 +94,202 @@ function createWorld<
 
     const { systemsByStage, nameToStageAndIndex } = getSortedSystemsByStage(systemGraph as never);
 
-    const world = {
-        spawn: (entity: number, components: WorldComponent[]) => {
-            const componentsByType = new Map<number, WorldComponent>();
+    function spawn(entity: number, components: WorldComponent[]): Entity {
+        const componentsByType = new Map<number, WorldComponent>();
 
-            const bitmasks: Bitmasks = {
-                with: [0, 0, 0, 0],
-                withAny: [0, 0, 0, 0],
-            };
+        const bitmasks: Bitmasks = {
+            with: [0, 0, 0, 0],
+            withAny: [0, 0, 0, 0],
+        };
 
-            for (let i = 0; i < components.length; i++) {
-                const component = components[i];
-                componentsByType.set(component.type, component);
-                const bitmaskIdx = Math.floor(component.type / COMPONENT_TYPE_DIVISOR);
-                bitmasks.with[bitmaskIdx] |= 1 << component.type % COMPONENT_TYPE_DIVISOR;
-                bitmasks.withAny[bitmaskIdx] |= 1 << component.type % COMPONENT_TYPE_DIVISOR;
-            }
-
-            entities.set(entity, { componentsByType, bitmasks });
-
-            const event: SpawnEntityEcsEvent<WorldComponent> = {
-                type: 'ecs/spawn-entity',
-                payload: { entity, components },
-            };
-
-            world.emit(event);
-
-            updateQueriesForSpawnAndAddComponent(queries, bitmasks, entity, componentsByType);
-
-            return entity;
-        },
-        despawn: (entity: Entity): boolean => {
-            const entry = entities.get(entity);
-            if (entry === undefined) return false;
-
-            const event: DespawnEntityEcsEvent = {
-                type: 'ecs/despawn-entity',
-                payload: { entity },
-            };
-
-            world.emit(event);
-
-            updateQueriesForDespawn(queries, entity);
-
-            entities.delete(entity);
-            return true;
-        },
-        getComponent: (entity: Entity, componentType: WorldComponent['type']) => {
-            const entry = entities.get(entity);
-            if (entry === undefined) return undefined;
-            return entry.componentsByType.get(componentType);
-        },
-        addComponent: (entity: Entity, component: WorldComponent): boolean => {
-            const entry = entities.get(entity);
-            if (entry === undefined) return false;
-            if (entry.componentsByType.get(component.type) !== undefined) return false;
-            entry.componentsByType.set(component.type, component);
-
+        for (let i = 0; i < components.length; i++) {
+            const component = components[i];
+            componentsByType.set(component.type, component);
             const bitmaskIdx = Math.floor(component.type / COMPONENT_TYPE_DIVISOR);
-            entry.bitmasks.with[bitmaskIdx] |= 1 << component.type % COMPONENT_TYPE_DIVISOR;
-            entry.bitmasks.withAny[bitmaskIdx] |= 1 << component.type % COMPONENT_TYPE_DIVISOR;
+            bitmasks.with[bitmaskIdx] |= 1 << component.type % COMPONENT_TYPE_DIVISOR;
+            bitmasks.withAny[bitmaskIdx] |= 1 << component.type % COMPONENT_TYPE_DIVISOR;
+        }
 
-            const event: AddComponentEcsEvent<WorldComponent> = {
-                type: 'ecs/add-component',
-                payload: { entity, component },
-            };
+        entities.set(entity, { componentsByType, bitmasks });
 
-            world.emit(event);
+        const event: SpawnEntityEcsEvent<WorldComponent> = {
+            type: 'ecs/spawn-entity',
+            payload: { entity, components },
+        };
 
-            updateQueriesForSpawnAndAddComponent(queries, entry.bitmasks, entity, entry.componentsByType);
+        world.emit(event);
 
-            return true;
-        },
-        removeComponent: (entity: Entity, componentType: WorldComponent['type']): boolean => {
-            const entry = entities.get(entity);
-            if (entry === undefined) return false;
-            const component = entry.componentsByType.get(componentType);
-            if (component === undefined) return false;
-            entry.componentsByType.delete(componentType);
+        updateQueriesForSpawnAndAddComponent(queries, bitmasks, entity, componentsByType);
 
-            const bitmaskIdx = Math.floor(componentType / COMPONENT_TYPE_DIVISOR);
-            entry.bitmasks.with[bitmaskIdx] &= ~(1 << componentType % COMPONENT_TYPE_DIVISOR);
-            entry.bitmasks.withAny[bitmaskIdx] &= ~(1 << componentType % COMPONENT_TYPE_DIVISOR);
+        return entity;
+    }
 
-            const event: RemoveComponentEcsEvent<WorldComponent> = {
-                type: 'ecs/remove-component',
-                payload: { entity, component },
-            };
+    function despawn(entity: Entity): boolean {
+        const entry = entities.get(entity);
+        if (entry === undefined) return false;
 
-            world.emit(event);
+        const event: DespawnEntityEcsEvent = {
+            type: 'ecs/despawn-entity',
+            payload: { entity },
+        };
 
-            updateQueriesForRemoveComponent(queries, entity, entry.bitmasks);
+        world.emit(event);
 
-            return true;
-        },
-        getResource: (name: string) => resources[name],
-        setResource: (name: string, data: unknown) => {
-            resources[name] = data;
+        updateQueriesForDespawn(queries, entity);
 
-            const event: SetResourceEcsEvent<Resources, keyof Resources> = {
-                type: 'ecs/set-resource',
-                payload: { name, data } as never,
-            };
+        entities.delete(entity);
+        return true;
+    }
 
-            world.emit(event);
-        },
-        removeResource: (name: string) => {
-            const data = resources[name];
+    function getComponent(entity: Entity, componentType: WorldComponent['type']) {
+        const entry = entities.get(entity);
+        if (entry === undefined) return undefined;
+        return entry.componentsByType.get(componentType);
+    }
 
-            const event: RemoveResourceEcsEvent<Resources, keyof Resources> = {
-                type: 'ecs/remove-resource',
-                payload: { name, data } as never,
-            };
+    function addComponent(entity: Entity, component: WorldComponent): boolean {
+        const entry = entities.get(entity);
+        if (entry === undefined) return false;
+        if (entry.componentsByType.get(component.type) !== undefined) return false;
+        entry.componentsByType.set(component.type, component);
 
-            world.emit(event);
+        const bitmaskIdx = Math.floor(component.type / COMPONENT_TYPE_DIVISOR);
+        entry.bitmasks.with[bitmaskIdx] |= 1 << component.type % COMPONENT_TYPE_DIVISOR;
+        entry.bitmasks.withAny[bitmaskIdx] |= 1 << component.type % COMPONENT_TYPE_DIVISOR;
 
-            resources[name] = undefined;
-        },
-        getQuery: (name: string) => {
-            const idx = nameToQueryIdx[name];
-            if (idx === undefined) return undefined;
-            return {
-                result: queries[idx].result,
-            };
-        },
-        emit: (event: CustomEvent | EcsEvent<WorldComponent, Resources>) => {
-            const subscribers = subscribersByEventType[event.type];
-            if (!subscribers) return;
+        const event: AddComponentEcsEvent<WorldComponent> = {
+            type: 'ecs/add-component',
+            payload: { entity, component },
+        };
 
-            for (let i = 0; i < subscribers.length; i++) {
-                const subscriber = subscribers[i];
-                subscriber((event as unknown as { payload: unknown }).payload);
-            }
-        },
-        on: (eventType: string, cb: EventSubscriber) => {
-            if (!subscribersByEventType[eventType]) {
-                subscribersByEventType[eventType] = [];
-            }
+        world.emit(event);
 
-            subscribersByEventType[eventType].push(cb);
-        },
-        getSystem: (name: string) => {
-            const result = nameToStageAndIndex[name];
+        updateQueriesForSpawnAndAddComponent(queries, entry.bitmasks, entity, entry.componentsByType);
 
-            // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
-            if (!result) return;
+        return true;
+    }
 
-            const systemList = systemsByStage[result.stage];
+    function removeComponent(entity: Entity, componentType: WorldComponent['type']): boolean {
+        const entry = entities.get(entity);
+        if (entry === undefined) return false;
+        const component = entry.componentsByType.get(componentType);
+        if (component === undefined) return false;
+        entry.componentsByType.delete(componentType);
 
-            return (
-                result.index.length === 2
-                    ? (systemList[result.index[0]] as unknown[])[result.index[1]]
-                    : systemList[result.index[0]]
-            ) as System | AsyncSystem;
-        },
-        getSystemActiveState: (name: string) => {
-            const system = world.getSystem(name);
-            if (!system) return false;
+        const bitmaskIdx = Math.floor(componentType / COMPONENT_TYPE_DIVISOR);
+        entry.bitmasks.with[bitmaskIdx] &= ~(1 << componentType % COMPONENT_TYPE_DIVISOR);
+        entry.bitmasks.withAny[bitmaskIdx] &= ~(1 << componentType % COMPONENT_TYPE_DIVISOR);
 
-            return system.active;
-        },
-        setSystemActiveState: (name: string, active: boolean) => {
-            const system = world.getSystem(name);
-            if (!system) return;
+        const event: RemoveComponentEcsEvent<WorldComponent> = {
+            type: 'ecs/remove-component',
+            payload: { entity, component },
+        };
 
-            system.active = active;
-        },
+        world.emit(event);
+
+        updateQueriesForRemoveComponent(queries, entity, entry.bitmasks);
+
+        return true;
+    }
+
+    function getResource(name: string) {
+        return resources[name];
+    }
+
+    function setResource(name: string, data: unknown) {
+        resources[name] = data;
+
+        const event: SetResourceEcsEvent<Resources, keyof Resources> = {
+            type: 'ecs/set-resource',
+            payload: { name, data } as never,
+        };
+
+        world.emit(event);
+    }
+
+    function removeResource(name: string) {
+        const data = resources[name];
+
+        const event: RemoveResourceEcsEvent<Resources, keyof Resources> = {
+            type: 'ecs/remove-resource',
+            payload: { name, data } as never,
+        };
+
+        world.emit(event);
+
+        resources[name] = undefined;
+    }
+
+    function getQuery(name: string) {
+        const idx = nameToQueryIdx[name];
+        if (idx === undefined) return undefined;
+        return {
+            result: queries[idx].result,
+        };
+    }
+
+    function emit(event: CustomEvent | EcsEvent<WorldComponent, Resources>) {
+        const subscribers = subscribersByEventType[event.type];
+        if (!subscribers) return;
+
+        for (let i = 0; i < subscribers.length; i++) {
+            const subscriber = subscribers[i];
+            subscriber((event as unknown as { payload: unknown }).payload);
+        }
+    }
+
+    function on(eventType: string, cb: EventSubscriber) {
+        if (!subscribersByEventType[eventType]) {
+            subscribersByEventType[eventType] = [];
+        }
+
+        subscribersByEventType[eventType].push(cb);
+    }
+
+    function getSystem(name: string) {
+        const result = nameToStageAndIndex[name];
+
+        // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
+        if (!result) return;
+
+        const systemList = systemsByStage[result.stage];
+
+        return (
+            result.index.length === 2
+                ? (systemList[result.index[0]] as unknown[])[result.index[1]]
+                : systemList[result.index[0]]
+        ) as System | AsyncSystem;
+    }
+
+    function getSystemActiveState(name: string) {
+        const system = getSystem(name);
+        if (!system) return false;
+
+        return system.active;
+    }
+
+    function setSystemActiveState(name: string, active: boolean) {
+        const system = getSystem(name);
+        if (!system) return;
+
+        system.active = active;
+    }
+
+    const world = {
+        spawn,
+        despawn,
+        getComponent,
+        addComponent,
+        removeComponent,
+        getResource,
+        setResource,
+        removeResource,
+        getQuery,
+        emit,
+        on,
+        getSystem,
+        getSystemActiveState,
+        setSystemActiveState,
     };
 
     return world as unknown as World<WorldComponent, CustomEvent, Resources, Queries, Graph>;
