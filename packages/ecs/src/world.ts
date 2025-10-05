@@ -10,18 +10,17 @@ import {
     SetResourceEcsEvent,
     SpawnEntityEcsEvent,
 } from './event';
-import { getSortedSystemsByStage } from './internal';
 import {
+    getSortedSystemsByStage,
     Bitmasks,
     InternalQuery,
     isWithAnyItem,
     isWithItem,
-    MapQueryDefinitionToTuple,
-    QueryDefinitionGeneric,
     updateQueriesForDespawn,
     updateQueriesForRemoveComponent,
     updateQueriesForSpawnAndAddComponent,
-} from './query';
+} from './internal';
+import { MapQueryDefinitionToTuple, QueryDefinitionGeneric } from './query';
 import {
     AsyncSystem,
     AsyncSystemNamesForStage,

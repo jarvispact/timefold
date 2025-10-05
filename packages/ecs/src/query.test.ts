@@ -12,7 +12,15 @@ type WorldComponent = A | B | C | D;
 describe('query', () => {
     it('should build a query definition with entity id and a tuple with 1 "with" entry', () => {
         const query = queryBuilder<WorldComponent>().includeEntity().with(0).compile();
-        expect(query).toEqual({ includeEntity: true, tuple: [{ with: 0 }], map: expect.any(Function) });
+
+        expect(query).toEqual({
+            includeEntity: true,
+            tuple: [{ with: 0 }],
+            map: expect.any(Function),
+            onAdd: expect.any(Function),
+            onRemove: expect.any(Function),
+        });
+
         expectTypeOf(query).toMatchObjectType<QueryDefinition<WorldComponent, true, [{ with: 0 }]>>();
 
         type Mapped = MapQueryDefinitionToTuple<WorldComponent, typeof query>;
@@ -31,7 +39,15 @@ describe('query', () => {
 
     it('should build a query definition with a tuple with 1 "with" entry', () => {
         const query = queryBuilder<WorldComponent>().with(0).compile();
-        expect(query).toEqual({ includeEntity: false, tuple: [{ with: 0 }], map: expect.any(Function) });
+
+        expect(query).toEqual({
+            includeEntity: false,
+            tuple: [{ with: 0 }],
+            map: expect.any(Function),
+            onAdd: expect.any(Function),
+            onRemove: expect.any(Function),
+        });
+
         expectTypeOf(query).toMatchObjectType<QueryDefinition<WorldComponent, false, [{ with: 0 }]>>();
 
         type Mapped = MapQueryDefinitionToTuple<WorldComponent, typeof query>;
@@ -49,7 +65,15 @@ describe('query', () => {
 
     it('should build a query definition with entity id and a tuple with 2 "with" entry', () => {
         const query = queryBuilder<WorldComponent>().includeEntity().with(0).with(1).compile();
-        expect(query).toEqual({ includeEntity: true, tuple: [{ with: 0 }, { with: 1 }], map: expect.any(Function) });
+
+        expect(query).toEqual({
+            includeEntity: true,
+            tuple: [{ with: 0 }, { with: 1 }],
+            map: expect.any(Function),
+            onAdd: expect.any(Function),
+            onRemove: expect.any(Function),
+        });
+
         expectTypeOf(query).toMatchObjectType<QueryDefinition<WorldComponent, true, [{ with: 0 }, { with: 1 }]>>();
 
         type Mapped = MapQueryDefinitionToTuple<WorldComponent, typeof query>;
@@ -74,7 +98,15 @@ describe('query', () => {
 
     it('should build a query definition with entity id and a tuple with 1 "withAny" entry', () => {
         const query = queryBuilder<WorldComponent>().includeEntity().withAny([0, 1]).compile();
-        expect(query).toEqual({ includeEntity: true, tuple: [{ withAny: [0, 1] }], map: expect.any(Function) });
+
+        expect(query).toEqual({
+            includeEntity: true,
+            tuple: [{ withAny: [0, 1] }],
+            map: expect.any(Function),
+            onAdd: expect.any(Function),
+            onRemove: expect.any(Function),
+        });
+
         expectTypeOf(query).toMatchObjectType<QueryDefinition<WorldComponent, true, [{ withAny: [0, 1] }]>>();
 
         type Mapped = MapQueryDefinitionToTuple<WorldComponent, typeof query>;
@@ -106,6 +138,8 @@ describe('query', () => {
             includeEntity: true,
             tuple: [{ with: 0 }, { withAny: [2, 3] }, { with: 1 }],
             map: expect.any(Function),
+            onAdd: expect.any(Function),
+            onRemove: expect.any(Function),
         });
 
         expectTypeOf(query).toMatchObjectType<
@@ -151,7 +185,13 @@ describe('query', () => {
         // @ts-expect-error - 0 cannot be specified twice
         const query = queryBuilder<WorldComponent>().includeEntity().with(0).with(0).compile();
         expect(consoleSpy).toBeCalledWith('A query can only specify a component type once.');
-        expect(query).toEqual({ includeEntity: true, tuple: [{ with: 0 }], map: expect.any(Function) });
+        expect(query).toEqual({
+            includeEntity: true,
+            tuple: [{ with: 0 }],
+            map: expect.any(Function),
+            onAdd: expect.any(Function),
+            onRemove: expect.any(Function),
+        });
     });
 
     it('should should not allow the specify components more than once in a "without"', () => {
@@ -159,7 +199,13 @@ describe('query', () => {
         // @ts-expect-error - 0 cannot be specified twice
         const query = queryBuilder<WorldComponent>().includeEntity().withAny([0, 1]).withAny([1, 2]).compile();
         expect(consoleSpy).toBeCalledWith('A query can only specify a component type once.');
-        expect(query).toEqual({ includeEntity: true, tuple: [{ withAny: [0, 1] }], map: expect.any(Function) });
+        expect(query).toEqual({
+            includeEntity: true,
+            tuple: [{ withAny: [0, 1] }],
+            map: expect.any(Function),
+            onAdd: expect.any(Function),
+            onRemove: expect.any(Function),
+        });
     });
 
     it('should define a query set', () => {
@@ -169,8 +215,20 @@ describe('query', () => {
         });
 
         expect(queries).toEqual({
-            one: { includeEntity: true, tuple: [{ with: 0 }], map: expect.any(Function) },
-            two: { includeEntity: true, tuple: [{ withAny: [0, 1] }], map: expect.any(Function) },
+            one: {
+                includeEntity: true,
+                tuple: [{ with: 0 }],
+                map: expect.any(Function),
+                onAdd: expect.any(Function),
+                onRemove: expect.any(Function),
+            },
+            two: {
+                includeEntity: true,
+                tuple: [{ withAny: [0, 1] }],
+                map: expect.any(Function),
+                onAdd: expect.any(Function),
+                onRemove: expect.any(Function),
+            },
         });
 
         expectTypeOf<typeof queries>().toMatchObjectType<{
@@ -191,7 +249,14 @@ describe('query', () => {
             })
             .compile();
 
-        expect(query).toEqual({ includeEntity: true, tuple: [{ with: 0 }], map: expect.any(Function) });
+        expect(query).toEqual({
+            includeEntity: true,
+            tuple: [{ with: 0 }],
+            map: expect.any(Function),
+            onAdd: expect.any(Function),
+            onRemove: expect.any(Function),
+        });
+
         expectTypeOf(query).toMatchObjectType<
             QueryDefinition<
                 WorldComponent,

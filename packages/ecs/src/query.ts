@@ -1,29 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import type { Component } from './component';
 import { Entity } from './entity';
-import { arraySwapDelete } from './internal';
-
-type QueryDefinitionItemWith<WorldComponent extends Component> = {
-    with: WorldComponent['type'];
-};
-
-export function isWithItem<C extends Component>(item: QueryDefinitionItemGeneric): item is QueryDefinitionItemWith<C> {
-    return 'with' in item;
-}
-
-type QueryDefinitionItemWithAny<WorldComponent extends Component> = {
-    withAny: WorldComponent['type'][];
-};
-
-export function isWithAnyItem<C extends Component>(
-    item: QueryDefinitionItemGeneric,
-): item is QueryDefinitionItemWithAny<C> {
-    return 'withAny' in item;
-}
-
-type QueryDefinitionItemGeneric<WorldComponent extends Component = Component> =
-    | QueryDefinitionItemWith<WorldComponent>
-    | QueryDefinitionItemWithAny<WorldComponent>;
+import { isWithAnyItem, isWithItem, QueryDefinitionItemGeneric } from './internal';
 
 export type QueryDefinition<
     WorldComponent extends Component,
@@ -34,6 +12,8 @@ export type QueryDefinition<
     includeEntity?: IncludeEntity;
     tuple: Tuple;
     map: MapFn;
+    onAdd: (entity: number, tuple: any) => void;
+    onRemove: (entity: number) => void;
 };
 
 export type QueryDefinitionGeneric<WorldComponent extends Component = Component> = QueryDefinition<
@@ -54,7 +34,13 @@ export type MapQueryDefinitionToTuple<
     ? Head extends { with: WorldComponent['type'] }
         ? MapQueryDefinitionToTuple<
               WorldComponent,
-              { includeEntity: Q['includeEntity']; tuple: Tail; map: Q['map'] },
+              {
+                  includeEntity: Q['includeEntity'];
+                  tuple: Tail;
+                  map: Q['map'];
+                  onAdd: Q['onAdd'];
+                  onRemove: Q['onRemove'];
+              },
               [
                   ...Tuple,
                   number extends WorldComponent['type'] ? Component : Extract<WorldComponent, { type: Head['with'] }>,
@@ -63,7 +49,13 @@ export type MapQueryDefinitionToTuple<
         : Head extends { withAny: WorldComponent['type'][] }
           ? MapQueryDefinitionToTuple<
                 WorldComponent,
-                { includeEntity: Q['includeEntity']; tuple: Tail; map: Q['map'] },
+                {
+                    includeEntity: Q['includeEntity'];
+                    tuple: Tail;
+                    map: Q['map'];
+                    onAdd: Q['onAdd'];
+                    onRemove: Q['onRemove'];
+                },
                 [
                     ...Tuple,
                     number extends WorldComponent['type']
@@ -73,7 +65,13 @@ export type MapQueryDefinitionToTuple<
             >
           : MapQueryDefinitionToTuple<
                 WorldComponent,
-                { includeEntity: Q['includeEntity']; tuple: Tail; map: Q['map'] },
+                {
+                    includeEntity: Q['includeEntity'];
+                    tuple: Tail;
+                    map: Q['map'];
+                    onAdd: Q['onAdd'];
+                    onRemove: Q['onRemove'];
+                },
                 Tuple
             >
     : true extends Q['includeEntity']
@@ -139,6 +137,32 @@ export type QueryBuilderApi<
             UsedMethods | 'includeEntity' | 'with' | 'withAny' | 'map',
             Fn
         >;
+        onAdd: (
+            cb: (
+                entity: Entity,
+                item: MapFn extends (tuple: unknown[]) => infer Result
+                    ? Result
+                    : MapQueryDefinitionToTuple<
+                          WorldComponent,
+                          QueryDefinition<WorldComponent, IncludeEntity, Tuple, MapFn>
+                      >,
+            ) => void,
+        ) => QueryBuilderApi<
+            WorldComponent,
+            true,
+            Tuple,
+            UsedMethods | 'includeEntity' | 'with' | 'withAny' | 'map' | 'onAdd',
+            MapFn
+        >;
+        onRemove: (
+            cb: (entity: Entity) => void,
+        ) => QueryBuilderApi<
+            WorldComponent,
+            true,
+            Tuple,
+            UsedMethods | 'includeEntity' | 'with' | 'withAny' | 'map' | 'onRemove',
+            MapFn
+        >;
         compile: () => QueryDefinition<WorldComponent, IncludeEntity, Tuple, MapFn>;
     },
     UsedMethods
@@ -171,7 +195,13 @@ export function queryBuilder<
     Tuple extends QueryDefinitionItemGeneric<WorldComponent>[] = [],
     UsedMethods extends string = never,
 >() {
-    const query: QueryDefinitionGeneric<WorldComponent> = { includeEntity: false, tuple: [], map: identity };
+    const query: QueryDefinitionGeneric<WorldComponent> = {
+        includeEntity: false,
+        tuple: [],
+        map: identity,
+        onAdd: identity,
+        onRemove: identity,
+    };
 
     const api = {
         includeEntity: () => {
@@ -200,6 +230,14 @@ export function queryBuilder<
             query.map = fn;
             return api;
         },
+        onAdd: (fn: (entity: number, tuple: any) => any) => {
+            query.onAdd = fn;
+            return api;
+        },
+        onRemove: (fn: (entity: number) => any) => {
+            query.onRemove = fn;
+            return api;
+        },
         compile: () => query,
     };
 
@@ -208,169 +246,4 @@ export function queryBuilder<
 
 export function defineQueries<Queries extends Record<string, QueryDefinitionGeneric>>(queries: Queries) {
     return queries;
-}
-
-export type Bitmasks = {
-    with: [number, number, number, number];
-    withAny: [number, number, number, number];
-};
-
-export type InternalQuery = {
-    name: string;
-    defintion: QueryDefinitionGeneric;
-    bitmasks: Bitmasks;
-    flags: {
-        hasWith: boolean;
-        hasWithAny: boolean;
-    };
-    entityToResultIdx: Map<Entity, number>;
-    entities: Entity[];
-    result: unknown[];
-};
-
-export function updateQueriesForSpawnAndAddComponent(
-    queries: InternalQuery[],
-    entityBitmasks: Bitmasks,
-    entity: Entity,
-    componentsByType: Map<number, Component>,
-) {
-    const ew0 = entityBitmasks.with[0];
-    const ew1 = entityBitmasks.with[1];
-    const ew2 = entityBitmasks.with[2];
-    const ew3 = entityBitmasks.with[3];
-
-    const ewa0 = entityBitmasks.withAny[0];
-    const ewa1 = entityBitmasks.withAny[1];
-    const ewa2 = entityBitmasks.withAny[2];
-    const ewa3 = entityBitmasks.withAny[3];
-
-    for (let i = 0; i < queries.length; i++) {
-        const qry = queries[i];
-        if (qry.entityToResultIdx.has(entity)) continue;
-
-        const map = qry.defintion.map as (tuple: unknown[]) => unknown;
-
-        const qw0 = qry.bitmasks.with[0];
-        const qw1 = qry.bitmasks.with[1];
-        const qw2 = qry.bitmasks.with[2];
-        const qw3 = qry.bitmasks.with[3];
-
-        const qwa0 = qry.bitmasks.withAny[0];
-        const qwa1 = qry.bitmasks.withAny[1];
-        const qwa2 = qry.bitmasks.withAny[2];
-        const qwa3 = qry.bitmasks.withAny[3];
-
-        const withSatisfied = qry.flags.hasWith
-            ? (ew0 & qw0) === qw0 && (ew1 & qw1) === qw1 && (ew2 & qw2) === qw2 && (ew3 & qw3) === qw3
-            : true;
-
-        if (!withSatisfied) continue;
-
-        const withAnySatisfied = qry.flags.hasWithAny
-            ? (qwa0 === 0 || (ewa0 & qwa0) !== 0) &&
-              (qwa1 === 0 || (ewa1 & qwa1) !== 0) &&
-              (qwa2 === 0 || (ewa2 & qwa2) !== 0) &&
-              (qwa3 === 0 || (ewa3 & qwa3) !== 0)
-            : true;
-
-        if (!withAnySatisfied) continue;
-
-        const tuple: unknown[] = [];
-
-        if (qry.defintion.includeEntity) {
-            tuple.push(entity);
-        }
-
-        for (let j = 0; j < qry.defintion.tuple.length; j++) {
-            const item = qry.defintion.tuple[j];
-            if (isWithItem(item)) {
-                const c = componentsByType.get(item.with);
-                if (c) tuple.push(c);
-            } else if (isWithAnyItem(item)) {
-                for (let k = 0; k < item.withAny.length; k++) {
-                    const element = item.withAny[k];
-                    const c = componentsByType.get(element);
-                    if (c) {
-                        tuple.push(c);
-                        break;
-                    }
-                }
-            }
-        }
-
-        qry.entities.push(entity);
-        const item = map(tuple);
-        qry.result.push(item);
-        qry.entityToResultIdx.set(entity, qry.result.length - 1);
-    }
-}
-
-export function updateQueriesForDespawn(queries: InternalQuery[], entity: Entity) {
-    for (let i = 0; i < queries.length; i++) {
-        const qry = queries[i];
-
-        const idx = qry.entityToResultIdx.get(entity);
-        if (idx === undefined) continue;
-
-        const lastIdx = qry.result.length - 1;
-        const swappedEntity = qry.entities[lastIdx];
-
-        arraySwapDelete(qry.result, idx);
-        arraySwapDelete(qry.entities, idx);
-        qry.entityToResultIdx.delete(entity);
-
-        if (idx !== lastIdx) {
-            qry.entityToResultIdx.set(swappedEntity, idx);
-        }
-    }
-}
-
-export function updateQueriesForRemoveComponent(queries: InternalQuery[], entity: Entity, entityBitmasks: Bitmasks) {
-    const ew0 = entityBitmasks.with[0];
-    const ew1 = entityBitmasks.with[1];
-    const ew2 = entityBitmasks.with[2];
-    const ew3 = entityBitmasks.with[3];
-
-    const ewa0 = entityBitmasks.withAny[0];
-    const ewa1 = entityBitmasks.withAny[1];
-    const ewa2 = entityBitmasks.withAny[2];
-    const ewa3 = entityBitmasks.withAny[3];
-
-    for (let i = 0; i < queries.length; i++) {
-        const qry = queries[i];
-
-        const qw0 = qry.bitmasks.with[0];
-        const qw1 = qry.bitmasks.with[1];
-        const qw2 = qry.bitmasks.with[2];
-        const qw3 = qry.bitmasks.with[3];
-
-        const qwa0 = qry.bitmasks.withAny[0];
-        const qwa1 = qry.bitmasks.withAny[1];
-        const qwa2 = qry.bitmasks.withAny[2];
-        const qwa3 = qry.bitmasks.withAny[3];
-
-        const withSatisfied = qry.flags.hasWith
-            ? (ew0 & qw0) === qw0 && (ew1 & qw1) === qw1 && (ew2 & qw2) === qw2 && (ew3 & qw3) === qw3
-            : true;
-
-        const withAnySatisfied = qry.flags.hasWithAny
-            ? (ewa0 & qwa0) !== 0 && (ewa1 & qwa1) !== 0 && (ewa2 & qwa2) !== 0 && (ewa3 & qwa3) !== 0
-            : true;
-
-        if (!withSatisfied || !withAnySatisfied) {
-            const idx = qry.entityToResultIdx.get(entity);
-            if (idx === undefined) continue;
-
-            const lastIdx = qry.result.length - 1;
-            const swappedEntity = qry.entities[lastIdx];
-
-            arraySwapDelete(qry.result, idx);
-            arraySwapDelete(qry.entities, idx);
-            qry.entityToResultIdx.delete(entity);
-
-            if (idx !== lastIdx) {
-                qry.entityToResultIdx.set(swappedEntity, idx);
-            }
-        }
-    }
 }
