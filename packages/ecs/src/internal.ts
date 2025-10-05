@@ -1,6 +1,13 @@
-/* eslint-disable @typescript-eslint/no-non-null-assertion */
-
-import { AsyncSystem, System, SystemGraph, SystemNamesForStage, SystemStage } from './system';
+import {
+    AsyncSystem,
+    AsyncSystemNamesForStage,
+    System,
+    SystemGraph,
+    SystemGraphArgs,
+    SystemNamesForStage,
+    SystemOrder,
+    SystemStage,
+} from './system';
 
 export function arraySwapDelete<Item>(arr: Item[], idx: number) {
     arr[idx] = arr[arr.length - 1];
@@ -11,146 +18,197 @@ export function objectKeys<Obj extends Record<string, unknown>>(obj: Obj) {
     return Object.keys(obj) as (keyof Obj)[];
 }
 
-function resolveSyncSystemNamesForStage<
-    Graph extends SystemGraph<
-        Record<string, System | AsyncSystem>,
-        Record<string, { before?: string[]; after?: string[] }>
-    >,
-    Stage extends SystemStage,
->(graph: Graph, stage: Stage): SystemNamesForStage<Graph['systems'], Stage>[] {
-    // Filter systems belonging to this stage
-    const stageSystems = Object.keys(graph.systems).filter((name) => graph.systems[name].stage === stage);
+export function warnAboutSingleAsyncSystem<Systems extends Record<string, System | AsyncSystem>>(
+    order: (keyof Systems | (keyof Systems)[])[],
+    stage: SystemStage,
+) {
+    const asyncOnly = order.filter((element) => Array.isArray(element) && element.length < 2);
+    if (asyncOnly.length > 0) {
+        console.warn(
+            `Only a single async system in order definition of stage: "${stage}". Consider making the system sync or add another async system.`,
+        );
+    }
+}
 
-    if (stageSystems.length === 0) return [];
+export function defaultSystemOrder<Systems extends Record<string, System | AsyncSystem>>(
+    systems: Systems,
+    stage: SystemStage,
+): (keyof Systems | (keyof Systems)[])[] {
+    const systemNamesForStage = objectKeys(systems).filter((key) => systems[key].stage === stage);
+    const syncSystemNames = systemNamesForStage.filter((key) => !systems[key].async);
+    const asyncSystemNames = systemNamesForStage.filter((key) => systems[key].async);
 
-    // Build adjacency list and in-degree count
-    const edges = new Map<string, Set<string>>();
-    const inDegree = new Map<string, number>();
-
-    for (const name of stageSystems) {
-        edges.set(name, new Set());
-        inDegree.set(name, 0);
+    if (syncSystemNames.length === 0 && asyncSystemNames.length === 0) {
+        return [];
     }
 
-    if (!graph.dependencies) {
-        return stageSystems as SystemNamesForStage<Graph['systems'], Stage>[];
+    if (syncSystemNames.length === 0) {
+        return [asyncSystemNames];
     }
 
-    // Process dependencies (only within this stage)
-    for (const [system, deps] of Object.entries(graph.dependencies)) {
-        if (!stageSystems.includes(system)) continue;
+    if (asyncSystemNames.length === 0) {
+        return syncSystemNames;
+    }
 
-        if (deps.after) {
-            for (const before of deps.after) {
-                if (stageSystems.includes(before)) {
-                    edges.get(before)!.add(system);
-                    inDegree.set(system, inDegree.get(system)! + 1);
-                }
+    const order: (keyof Systems | (keyof Systems)[])[] = [];
+    const firstAsyncSystem = asyncSystemNames[0];
+    const idxOfFirstAsyncSystem = systemNamesForStage.findIndex((key) => key === firstAsyncSystem);
+
+    for (let i = 0; i < systemNamesForStage.length; i++) {
+        const systemNameForStage = systemNamesForStage[i];
+
+        if (i === idxOfFirstAsyncSystem) {
+            order.push(asyncSystemNames);
+        } else if (!systems[systemNameForStage].async) {
+            order.push(systemNameForStage);
+        }
+    }
+
+    return order;
+}
+
+export function validateSystemOrder<Systems extends Record<string, System | AsyncSystem>>(
+    systems: Systems,
+    stage: SystemStage,
+    order: (keyof Systems | (keyof Systems)[])[],
+) {
+    const systemNamesForStage = objectKeys(systems).filter((key) => systems[key].stage === stage);
+    const flatOrderLength = order.flat().length;
+    if (flatOrderLength !== systemNamesForStage.length) {
+        throw new Error(
+            `The order within the same stage must contain all system names exactly once. System count for stage "${stage}": ${systemNamesForStage.length}. Count of flattened order: ${flatOrderLength}`,
+        );
+    }
+
+    return order;
+}
+
+type MergeRuleBefore<T> = { before: T };
+type MergeRuleAfter<T> = { after: T };
+
+export type MergeRules<A extends SystemGraphArgs, B extends SystemGraphArgs> = Partial<{
+    [K in keyof B['systems']]:
+        | MergeRuleBefore<
+              | SystemNamesForStage<A['systems'], B['systems'][K]['stage']>
+              | AsyncSystemNamesForStage<A['systems'], B['systems'][K]['stage']>
+              | SystemNamesForStage<B['systems'], B['systems'][K]['stage']>
+              | AsyncSystemNamesForStage<B['systems'], B['systems'][K]['stage']>
+          >
+        | MergeRuleAfter<
+              | SystemNamesForStage<A['systems'], B['systems'][K]['stage']>
+              | AsyncSystemNamesForStage<A['systems'], B['systems'][K]['stage']>
+              | SystemNamesForStage<B['systems'], B['systems'][K]['stage']>
+              | AsyncSystemNamesForStage<B['systems'], B['systems'][K]['stage']>
+          >;
+}>;
+
+const isMergeRuleBefore = (rule: unknown): rule is MergeRuleBefore<string> =>
+    rule !== null && typeof rule === 'object' && 'before' in rule && typeof rule.before === 'string';
+
+const isMergeRuleAfter = (rule: unknown): rule is MergeRuleAfter<string> =>
+    rule !== null && typeof rule === 'object' && 'after' in rule && typeof rule.after === 'string';
+
+const flattenWithGroups = (order: SystemOrder) => {
+    const result: Array<{ name: string; groupIdx: number; posInGroup: number }> = [];
+
+    order.forEach((item, groupIdx) => {
+        if (Array.isArray(item)) {
+            item.forEach((name, posInGroup) => {
+                result.push({ name: name.toString(), groupIdx, posInGroup });
+            });
+        } else {
+            result.push({ name: item.toString(), groupIdx, posInGroup: 0 });
+        }
+    });
+
+    return result;
+};
+
+// Generated by Claude - Sonnet 4.5
+export function mergeSystemOrder(
+    a: SystemOrder,
+    b: SystemOrder,
+    rules: MergeRules<SystemGraphArgs, SystemGraphArgs>,
+    systems: Record<string, System | AsyncSystem>,
+): SystemOrder {
+    // Flatten to get all system names with their group info
+    const flatA = flattenWithGroups(a);
+    const flatB = flattenWithGroups(b);
+
+    const isAsync = (name: string) => systems[name].async;
+
+    // Build a merged list respecting rules
+    const merged: (string | number | symbol)[] = [];
+    const processedB = new Set<string | number | symbol>();
+
+    for (const itemA of flatA) {
+        // Find all B items that should go before this A item
+        for (const itemB of flatB) {
+            if (processedB.has(itemB.name)) continue;
+
+            const rule = rules[itemB.name.toString()];
+            if (isMergeRuleBefore(rule) && rule.before === itemA.name) {
+                merged.push(itemB.name);
+                processedB.add(itemB.name);
             }
         }
 
-        if (deps.before) {
-            for (const after of deps.before) {
-                if (stageSystems.includes(after)) {
-                    edges.get(system)!.add(after);
-                    inDegree.set(after, inDegree.get(after)! + 1);
-                }
+        // Add the A item
+        merged.push(itemA.name);
+
+        // Find all B items that should go after this A item
+        for (const itemB of flatB) {
+            if (processedB.has(itemB.name)) continue;
+
+            const rule = rules[itemB.name.toString()];
+            if (isMergeRuleAfter(rule) && rule.after === itemA.name) {
+                merged.push(itemB.name);
+                processedB.add(itemB.name);
             }
         }
     }
 
-    // Kahn's algorithm for topological sort
-    const queue: string[] = [];
-    const result: SystemNamesForStage<Graph['systems'], Stage>[] = [];
-
-    for (const [name, degree] of inDegree) {
-        if (degree === 0) queue.push(name);
-    }
-
-    while (queue.length > 0) {
-        const current = queue.shift()!;
-        result.push(current as SystemNamesForStage<Graph['systems'], Stage>);
-
-        for (const neighbor of edges.get(current)!) {
-            const newDegree = inDegree.get(neighbor)! - 1;
-            inDegree.set(neighbor, newDegree);
-            if (newDegree === 0) queue.push(neighbor);
+    // Add remaining B items that have no rules
+    for (const itemB of flatB) {
+        if (!processedB.has(itemB.name)) {
+            merged.push(itemB.name);
+            processedB.add(itemB.name);
         }
     }
 
-    // Check for cycles
-    if (result.length !== stageSystems.length) {
-        throw new Error(`Circular dependency detected in ${stage} stage`);
+    const result: SystemOrder = [];
+    let currentGroup: (string | number | symbol)[] | null = null;
+
+    for (const name of merged) {
+        const isAsyncA = isAsync(name.toString());
+        const isAsyncB = isAsync(name.toString());
+        const shouldBeInGroup = isAsyncA || isAsyncB;
+
+        if (shouldBeInGroup) {
+            if (currentGroup === null) {
+                currentGroup = [name];
+                result.push(currentGroup);
+            } else {
+                currentGroup.push(name);
+            }
+        } else {
+            currentGroup = null;
+            result.push(name);
+        }
     }
 
     return result;
 }
 
-export function resolveSystemNamesForStage<
-    Graph extends SystemGraph<
-        Record<string, System | AsyncSystem>,
-        Record<string, { before?: string[]; after?: string[] }>
-    >,
-    Stage extends SystemStage,
->(
-    graph: Graph,
-    stage: Stage,
-): (SystemNamesForStage<Graph['systems'], Stage> | SystemNamesForStage<Graph['systems'], Stage>[])[] {
-    const sortedSystems = resolveSyncSystemNamesForStage(graph, stage) as string[];
-
-    const result: (string | string[])[] = [];
-    let batch: string[] = [];
-
-    for (const sysName of sortedSystems) {
-        const sys = graph.systems[sysName];
-
-        // Flush current batch if this is a sync system
-        if (!('async' in sys && sys.async)) {
-            if (batch.length) {
-                result.push(batch.length === 1 ? batch[0] : [...batch]);
-                batch = [];
-            }
-            result.push(sysName);
-            continue;
-        }
-
-        // Async system: check if it can be grouped with the current batch
-        const canAdd = batch.every((member) => !directDependencyBetween(member, sysName, graph.dependencies));
-
-        if (canAdd) {
-            batch.push(sysName);
-        } else {
-            // Flush current batch and start a new one
-            if (batch.length) result.push(batch.length === 1 ? batch[0] : [...batch]);
-            batch = [sysName];
-        }
-    }
-
-    // Flush remaining batch
-    if (batch.length) result.push(batch.length === 1 ? batch[0] : [...batch]);
-
-    return result as (SystemNamesForStage<Graph['systems'], Stage> | SystemNamesForStage<Graph['systems'], Stage>[])[];
-}
-
-function directDependencyBetween(
-    a: string,
-    b: string,
-    deps: Record<string, { before?: string[]; after?: string[] } | undefined> = {},
-): boolean {
-    const dA = deps[a] ?? {};
-    const dB = deps[b] ?? {};
-
-    // a → b or b → a
-    if (dA.before?.includes(b) || dA.after?.includes(b)) return true;
-    if (dB.before?.includes(a) || dB.after?.includes(a)) return true;
-
-    return false;
-}
-
 type GenericSystemForStage<S extends SystemStage> = System<S> | AsyncSystem<S>;
 
-export function getSortedSystemsByStage(
-    graph: SystemGraph<Record<string, System | AsyncSystem>, Record<string, { before?: string[]; after?: string[] }>>,
+export function getSortedSystemsByStage<Systems extends Record<string, System | AsyncSystem>>(
+    graph: SystemGraph<
+        Systems,
+        {
+            [S in SystemStage]: (keyof Systems | (keyof Systems)[])[];
+        }
+    >,
 ): {
     systemsByStage: { [S in SystemStage]: (GenericSystemForStage<S> | GenericSystemForStage<S>[])[] };
     nameToStageAndIndex: Record<string, { stage: SystemStage; index: [number] | [number, number] }>;
@@ -158,27 +216,27 @@ export function getSortedSystemsByStage(
     const nameToStageAndIndex: Record<string, { stage: SystemStage; index: [number] | [number, number] }> = {};
 
     function map<SS extends SystemStage>(
-        systemName: string | string[],
+        systemName: (string | number | symbol) | (string | number | symbol)[],
         idx: number,
     ): (GenericSystemForStage<SS> | GenericSystemForStage<SS>[])[] {
         if (Array.isArray(systemName))
             return systemName.map((n, idx2) => {
-                const system = graph.systems[n];
-                nameToStageAndIndex[n] = { stage: system.stage, index: [idx, idx2] };
+                const system = graph.systems[n.toString()];
+                nameToStageAndIndex[n.toString()] = { stage: system.stage, index: [idx, idx2] };
                 return system;
             }) as never;
 
-        const system = graph.systems[systemName];
-        nameToStageAndIndex[systemName] = { stage: system.stage, index: [idx] };
+        const system = graph.systems[systemName.toString()];
+        nameToStageAndIndex[systemName.toString()] = { stage: system.stage, index: [idx] };
         return system as never;
     }
 
     const systemsByStage = {
-        startup: resolveSystemNamesForStage(graph, 'startup').map(map) as never,
-        update: resolveSystemNamesForStage(graph, 'update').map(map) as never,
-        render: resolveSystemNamesForStage(graph, 'render').map(map) as never,
-        cleanup: resolveSystemNamesForStage(graph, 'cleanup').map(map) as never,
-    };
+        startup: graph.orderByStage.startup.map(map),
+        update: graph.orderByStage.update.map(map),
+        render: graph.orderByStage.render.map(map),
+        cleanup: graph.orderByStage.cleanup.map(map),
+    } as never;
 
     return {
         systemsByStage,

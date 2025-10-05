@@ -1579,14 +1579,10 @@ describe('world', () => {
                         mainRenderPass,
                         postProcessRenderPass,
                     },
-                    dependencies: {
-                        spawnCamera: { after: ['spawnWorld', 'spawnPlaver'] },
-                        applyGravity: { after: ['handleInput'] },
-                        handleMovement: { after: ['applyGravity'] },
-                        checkCollisions: { after: ['handleMovement'] },
-                        postProcessRenderPass: { after: ['mainRenderPass'] },
-                        depthPreRenderPass: { before: ['mainRenderPass'] },
-                        shadowRenderPass: { before: ['mainRenderPass'] },
+                    orderByStage: {
+                        startup: [['spawnPlaver', 'spawnWorld'], 'spawnCamera'],
+                        update: ['handleInput', 'applyGravity', 'handleMovement', 'checkCollisions'],
+                        render: [['depthPreRenderPass', 'shadowRenderPass'], 'mainRenderPass', 'postProcessRenderPass'],
                     },
                 })
                 .compile();
@@ -1683,17 +1679,14 @@ describe('world', () => {
                     mainRenderPass,
                     postProcessRenderPass,
                 },
-                dependencies: {
-                    spawnCamera: { after: ['spawnWorld', 'spawnPlaver'] },
-                    applyGravity: { after: ['handleInput'] },
-                    handleMovement: { after: ['applyGravity'] },
-                    checkCollisions: { after: ['handleMovement'] },
-                    postProcessRenderPass: { after: ['mainRenderPass'] },
-                    depthPreRenderPass: { before: ['mainRenderPass'] },
-                    shadowRenderPass: { before: ['mainRenderPass'] },
+                orderByStage: {
+                    startup: [['spawnPlaver', 'spawnWorld'], 'spawnCamera'],
+                    update: ['handleInput', 'applyGravity', 'handleMovement', 'checkCollisions'],
+                    render: [['depthPreRenderPass', 'shadowRenderPass'], 'mainRenderPass', 'postProcessRenderPass'],
                 },
             });
 
+            // TODO: Fixme
             const world = worldBuilder<WorldComponent>().defineSystemGraph(systemGraph).compile();
 
             expect({

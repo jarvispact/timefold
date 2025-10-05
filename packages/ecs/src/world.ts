@@ -22,7 +22,17 @@ import {
     updateQueriesForRemoveComponent,
     updateQueriesForSpawnAndAddComponent,
 } from './query';
-import { AsyncSystem, System, SystemGraph } from './system';
+import {
+    AsyncSystem,
+    AsyncSystemNamesForStage,
+    defineSystemGraph,
+    System,
+    SystemGraph,
+    SystemGraphArgs,
+    SystemNamesForStage,
+    SystemOrder,
+    SystemStage,
+} from './system';
 
 type EventSubscriber = (payload: unknown) => void;
 
@@ -33,10 +43,7 @@ export type World<
     CustomEvent extends GenericEcsEvent = never,
     Resources extends Record<string, unknown> = NonNullable<unknown>,
     Queries extends Record<string, QueryDefinitionGeneric<WorldComponent>> = NonNullable<unknown>,
-    Graph extends SystemGraph<
-        Record<string, System | AsyncSystem>,
-        Record<string, { before?: string[]; after?: string[] }>
-    > = SystemGraph<NonNullable<unknown>, Record<string, { before?: string[]; after?: string[] }>>,
+    Graph extends SystemGraph = SystemGraph,
 > = {
     spawn: (entity: Entity, components: WorldComponent[]) => Entity;
     despawn: (id: Entity) => boolean;
@@ -75,10 +82,7 @@ function createWorld<
     CustomEvent extends GenericEcsEvent = never,
     Resources extends Record<string, unknown> = NonNullable<unknown>,
     Queries extends Record<string, QueryDefinitionGeneric<WorldComponent>> = NonNullable<unknown>,
-    Graph extends SystemGraph<
-        Record<string, System | AsyncSystem>,
-        Record<string, { before?: string[]; after?: string[] }>
-    > = SystemGraph<NonNullable<unknown>, Record<string, { before?: string[]; after?: string[] }>>,
+    Graph extends SystemGraph = SystemGraph,
 >(
     resources: Record<string, unknown>,
     queries: InternalQuery[],
@@ -88,7 +92,7 @@ function createWorld<
     const entities = new Map<number, { componentsByType: Map<number, WorldComponent>; bitmasks: Bitmasks }>();
     const subscribersByEventType: Record<string, EventSubscriber[] | undefined> = {};
 
-    const { systemsByStage, nameToStageAndIndex } = getSortedSystemsByStage(systemGraph);
+    const { systemsByStage, nameToStageAndIndex } = getSortedSystemsByStage(systemGraph as never);
 
     const world = {
         spawn: (entity: number, components: WorldComponent[]) => {
@@ -266,10 +270,7 @@ export type WorldBuilderApi<
     CustomEvent extends GenericEcsEvent = never,
     Resources extends Record<string, unknown> = NonNullable<unknown>,
     Queries extends Record<string, QueryDefinitionGeneric<WorldComponent>> = NonNullable<unknown>,
-    Graph extends SystemGraph<
-        Record<string, System | AsyncSystem>,
-        Record<string, { before?: string[]; after?: string[] }>
-    > = SystemGraph<NonNullable<unknown>, Record<string, { before?: string[]; after?: string[] }>>,
+    Graph extends SystemGraph = SystemGraph,
     UsedMethods extends string = never,
 > = Omit<
     {
@@ -279,14 +280,32 @@ export type WorldBuilderApi<
         defineQueries: <Queries extends Record<string, QueryDefinitionGeneric<WorldComponent>>>(
             queries: Queries,
         ) => WorldBuilderApi<WorldComponent, CustomEvent, Resources, Queries, Graph, UsedMethods | 'defineQueries'>;
-        defineSystemGraph: <
-            Graph extends SystemGraph<
-                Record<string, System | AsyncSystem>,
-                Record<string, { before?: string[]; after?: string[] }>
-            > = SystemGraph<NonNullable<unknown>, Record<string, { before?: string[]; after?: string[] }>>,
-        >(
-            graph: Graph,
-        ) => WorldBuilderApi<WorldComponent, CustomEvent, Resources, Queries, Graph, UsedMethods | 'defineSystemGraph'>;
+        defineSystemGraph: <Systems extends Record<string, System | AsyncSystem>>(
+            graph: SystemGraphArgs<
+                Systems,
+                Partial<{
+                    [S in SystemStage]: SystemOrder<
+                        SystemNamesForStage<Systems, S>,
+                        AsyncSystemNamesForStage<Systems, S>
+                    >;
+                }>
+            >,
+        ) => WorldBuilderApi<
+            WorldComponent,
+            CustomEvent,
+            Resources,
+            Queries,
+            SystemGraph<
+                Systems,
+                {
+                    [S in SystemStage]: SystemOrder<
+                        SystemNamesForStage<Systems, S>,
+                        AsyncSystemNamesForStage<Systems, S>
+                    >;
+                }
+            >,
+            UsedMethods | 'defineSystemGraph'
+        >;
         compile: () => World<WorldComponent, CustomEvent, Resources, Queries, Graph>;
     },
     UsedMethods
@@ -297,10 +316,7 @@ export function worldBuilder<
     CustomEvent extends GenericEcsEvent = never,
     Resources extends Record<string, unknown> = NonNullable<unknown>,
     Queries extends Record<string, QueryDefinitionGeneric<WorldComponent>> = NonNullable<unknown>,
-    Graph extends SystemGraph<
-        Record<string, System | AsyncSystem>,
-        Record<string, { before?: string[]; after?: string[] }>
-    > = SystemGraph<NonNullable<unknown>, Record<string, { before?: string[]; after?: string[] }>>,
+    Graph extends SystemGraph = SystemGraph,
     UsedMethods extends string = never,
 >() {
     let resources: Record<string, unknown> = {};
@@ -308,7 +324,10 @@ export function worldBuilder<
     const queries: InternalQuery[] = [];
     const nameToQueryIdx: Record<string, number | undefined> = {};
 
-    let systemGraph: { systems: Record<string, System | AsyncSystem> } = { systems: {} };
+    let systemGraph = {
+        systems: {},
+        orderByStage: { startup: [], update: [], render: [], cleanup: [] },
+    } as unknown as Graph;
 
     const api = {
         defineResources: (recordOfResources: Record<string, unknown>) => {
@@ -363,12 +382,12 @@ export function worldBuilder<
 
             return api;
         },
-        defineSystemGraph: (graph: Graph) => {
-            systemGraph = graph;
+        defineSystemGraph: (graphArgs: SystemGraphArgs) => {
+            systemGraph = defineSystemGraph(graphArgs as never) as Graph;
             return api;
         },
         compile: () =>
-            createWorld<WorldComponent, CustomEvent, Resources, Queries>(
+            createWorld<WorldComponent, CustomEvent, Resources, Queries, Graph>(
                 resources,
                 queries,
                 nameToQueryIdx,

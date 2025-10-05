@@ -1,568 +1,695 @@
+/* eslint-disable @typescript-eslint/no-unsafe-assignment */
 import { expect, it, describe } from 'vitest';
-import { defineSystemGraph, createSystem, createAsyncSystem } from './system';
-import { resolveSystemNamesForStage } from './internal';
-import './system2';
-
-const spawnWorld = createSystem({ stage: 'startup', fn: () => {} });
-const spawnPlaver = createSystem({ stage: 'startup', fn: () => {} });
-const spawnCamera = createSystem({ stage: 'startup', fn: () => {} });
-
-const spawnWorldAsync = createAsyncSystem({ stage: 'startup', fn: async () => {} });
-const spawnPlaverAsync = createAsyncSystem({ stage: 'startup', fn: async () => {} });
-const spawnCameraAsync = createAsyncSystem({ stage: 'startup', fn: async () => {} });
-
-const handleInput = createSystem({ stage: 'update', fn: () => {} });
-const applyGravity = createSystem({ stage: 'update', fn: () => {} });
-const handleMovement = createSystem({ stage: 'update', fn: () => {} });
-const checkCollisions = createSystem({ stage: 'update', fn: () => {} });
-
-const handleInputAsync = createAsyncSystem({ stage: 'update', fn: async () => {} });
-const applyGravityAsync = createAsyncSystem({ stage: 'update', fn: async () => {} });
-const handleMovementAsync = createAsyncSystem({ stage: 'update', fn: async () => {} });
-const checkCollisionsAsync = createAsyncSystem({ stage: 'update', fn: async () => {} });
-
-const depthPreRenderPass = createSystem({ stage: 'render', fn: () => {} });
-const shadowRenderPass = createSystem({ stage: 'render', fn: () => {} });
-const mainRenderPass = createSystem({ stage: 'render', fn: () => {} });
-const postProcessRenderPass = createSystem({ stage: 'render', fn: () => {} });
-
-const depthPreRenderPassAsync = createAsyncSystem({ stage: 'render', fn: async () => {} });
-const shadowRenderPassAsync = createAsyncSystem({ stage: 'render', fn: async () => {} });
-const mainRenderPassAsync = createAsyncSystem({ stage: 'render', fn: async () => {} });
-const postProcessRenderPassAsync = createAsyncSystem({ stage: 'render', fn: async () => {} });
+import { defineSystemGraph, createSystem, mergeSystemGraphs, createAsyncSystem } from './system';
 
 describe('system', () => {
-    describe('resolveSystemNamesForStage with sync systems', () => {
-        it('should return the systems sorted based on object order, when no dependencies are defined', () => {
-            const graph = defineSystemGraph({
-                systems: {
-                    spawnWorld,
-                    spawnPlaver,
-                    spawnCamera,
-                    handleInput,
-                    applyGravity,
-                    handleMovement,
-                    checkCollisions,
-                    depthPreRenderPass,
-                    shadowRenderPass,
-                    mainRenderPass,
-                    postProcessRenderPass,
-                },
+    describe('defineSystemGraph', () => {
+        describe('sync systems only', () => {
+            it('should generate the system order only for the update stage when not specified by the user', () => {
+                const result = defineSystemGraph({
+                    systems: {
+                        update1: createSystem({ stage: 'update', fn: () => {} }),
+                        update2: createSystem({ stage: 'update', fn: () => {} }),
+                        update3: createSystem({ stage: 'update', fn: () => {} }),
+                    },
+                });
+
+                expect(result.orderByStage).toEqual({
+                    startup: [],
+                    update: ['update1', 'update2', 'update3'],
+                    render: [],
+                    cleanup: [],
+                });
             });
 
-            const systemNamesStartup = resolveSystemNamesForStage(graph, 'startup');
-            expect(systemNamesStartup).toEqual(['spawnWorld', 'spawnPlaver', 'spawnCamera']);
+            it('should generate the system order for all stages when not specified by the user', () => {
+                const result = defineSystemGraph({
+                    systems: {
+                        startup1: createSystem({ stage: 'startup', fn: () => {} }),
+                        startup2: createSystem({ stage: 'startup', fn: () => {} }),
+                        startup3: createSystem({ stage: 'startup', fn: () => {} }),
 
-            const systemNamesUpdate = resolveSystemNamesForStage(graph, 'update');
-            expect(systemNamesUpdate).toEqual(['handleInput', 'applyGravity', 'handleMovement', 'checkCollisions']);
+                        update1: createSystem({ stage: 'update', fn: () => {} }),
+                        update2: createSystem({ stage: 'update', fn: () => {} }),
+                        update3: createSystem({ stage: 'update', fn: () => {} }),
 
-            const systemNamesRender = resolveSystemNamesForStage(graph, 'render');
-            expect(systemNamesRender).toEqual([
-                'depthPreRenderPass',
-                'shadowRenderPass',
-                'mainRenderPass',
-                'postProcessRenderPass',
-            ]);
+                        render1: createSystem({ stage: 'render', fn: () => {} }),
+                        render2: createSystem({ stage: 'render', fn: () => {} }),
+                        render3: createSystem({ stage: 'render', fn: () => {} }),
 
-            const systemNamesCleanup = resolveSystemNamesForStage(graph, 'cleanup');
-            expect(systemNamesCleanup).toEqual([]);
+                        cleanup1: createSystem({ stage: 'cleanup', fn: () => {} }),
+                        cleanup2: createSystem({ stage: 'cleanup', fn: () => {} }),
+                        cleanup3: createSystem({ stage: 'cleanup', fn: () => {} }),
+                    },
+                });
+
+                expect(result.orderByStage).toEqual({
+                    startup: ['startup1', 'startup2', 'startup3'],
+                    update: ['update1', 'update2', 'update3'],
+                    render: ['render1', 'render2', 'render3'],
+                    cleanup: ['cleanup1', 'cleanup2', 'cleanup3'],
+                });
+            });
+
+            it('should respect the order from the user when defined only for one stage', () => {
+                const result = defineSystemGraph({
+                    systems: {
+                        startup1: createSystem({ stage: 'startup', fn: () => {} }),
+                        startup2: createSystem({ stage: 'startup', fn: () => {} }),
+                        startup3: createSystem({ stage: 'startup', fn: () => {} }),
+
+                        update1: createSystem({ stage: 'update', fn: () => {} }),
+                        update2: createSystem({ stage: 'update', fn: () => {} }),
+                        update3: createSystem({ stage: 'update', fn: () => {} }),
+                    },
+                    orderByStage: {
+                        update: ['update3', 'update2', 'update1'],
+                    },
+                });
+
+                expect(result.orderByStage).toEqual({
+                    startup: ['startup1', 'startup2', 'startup3'],
+                    update: ['update3', 'update2', 'update1'],
+                    render: [],
+                    cleanup: [],
+                });
+            });
+
+            it('should respect the order from the user when defined for all stages', () => {
+                const result = defineSystemGraph({
+                    systems: {
+                        startup1: createSystem({ stage: 'startup', fn: () => {} }),
+                        startup2: createSystem({ stage: 'startup', fn: () => {} }),
+                        startup3: createSystem({ stage: 'startup', fn: () => {} }),
+
+                        update1: createSystem({ stage: 'update', fn: () => {} }),
+                        update2: createSystem({ stage: 'update', fn: () => {} }),
+                        update3: createSystem({ stage: 'update', fn: () => {} }),
+                    },
+                    orderByStage: {
+                        startup: ['startup2', 'startup1', 'startup3'],
+                        update: ['update3', 'update2', 'update1'],
+                    },
+                });
+
+                expect(result.orderByStage).toEqual({
+                    startup: ['startup2', 'startup1', 'startup3'],
+                    update: ['update3', 'update2', 'update1'],
+                    render: [],
+                    cleanup: [],
+                });
+            });
+
+            it('should throw an error when the order contains just a subset within one stage', () => {
+                const buildGraph = () =>
+                    defineSystemGraph({
+                        systems: {
+                            startup1: createSystem({ stage: 'startup', fn: () => {} }),
+                            startup2: createSystem({ stage: 'startup', fn: () => {} }),
+                            startup3: createSystem({ stage: 'startup', fn: () => {} }),
+                        },
+                        orderByStage: {
+                            startup: ['startup2', 'startup1'],
+                        },
+                    });
+
+                expect(buildGraph).toThrowError(
+                    'The order within the same stage must contain all system names exactly once. System count for stage "startup": 3. Count of flattened order: 2',
+                );
+            });
+
+            it('should throw an error when the order contains additional elements within one stage', () => {
+                const buildGraph = () =>
+                    defineSystemGraph({
+                        systems: {
+                            startup1: createSystem({ stage: 'startup', fn: () => {} }),
+                            startup2: createSystem({ stage: 'startup', fn: () => {} }),
+                            startup3: createSystem({ stage: 'startup', fn: () => {} }),
+                        },
+                        orderByStage: {
+                            startup: ['startup2', 'startup1', 'startup3', 'startup2'],
+                        },
+                    });
+
+                expect(buildGraph).toThrowError(
+                    'The order within the same stage must contain all system names exactly once. System count for stage "startup": 3. Count of flattened order: 4',
+                );
+            });
         });
 
-        it('should return the systems sorted based the dependencies', () => {
-            const graph = defineSystemGraph({
-                systems: {
-                    spawnWorld,
-                    spawnPlaver,
-                    spawnCamera,
-                    handleInput,
-                    applyGravity,
-                    handleMovement,
-                    checkCollisions,
-                    depthPreRenderPass,
-                    shadowRenderPass,
-                    mainRenderPass,
-                    postProcessRenderPass,
-                },
-                dependencies: {
-                    spawnCamera: { before: ['spawnWorld', 'spawnPlaver'] },
-                    applyGravity: { after: ['handleMovement'] },
-                    checkCollisions: { before: ['handleMovement'] },
-                    depthPreRenderPass: { after: ['postProcessRenderPass'], before: ['mainRenderPass'] },
-                },
+        describe('async systems only', () => {
+            it('should generate the system order only for the update stage when not specified by the user', () => {
+                const result = defineSystemGraph({
+                    systems: {
+                        update1: createAsyncSystem({ stage: 'update', fn: async () => {} }),
+                        update2: createAsyncSystem({ stage: 'update', fn: async () => {} }),
+                        update3: createAsyncSystem({ stage: 'update', fn: async () => {} }),
+                    },
+                });
+
+                expect(result.orderByStage).toEqual({
+                    startup: [],
+                    update: [['update1', 'update2', 'update3']],
+                    render: [],
+                    cleanup: [],
+                });
             });
 
-            const systemNamesStartup = resolveSystemNamesForStage(graph, 'startup');
-            expect(systemNamesStartup).toEqual(['spawnCamera', 'spawnWorld', 'spawnPlaver']);
+            it('should generate the system order for all stages when not specified by the user', () => {
+                const result = defineSystemGraph({
+                    systems: {
+                        startup1: createAsyncSystem({ stage: 'startup', fn: async () => {} }),
+                        startup2: createAsyncSystem({ stage: 'startup', fn: async () => {} }),
+                        startup3: createAsyncSystem({ stage: 'startup', fn: async () => {} }),
 
-            const systemNamesUpdate = resolveSystemNamesForStage(graph, 'update');
-            expect(systemNamesUpdate).toEqual(['handleInput', 'checkCollisions', 'handleMovement', 'applyGravity']);
+                        update1: createAsyncSystem({ stage: 'update', fn: async () => {} }),
+                        update2: createAsyncSystem({ stage: 'update', fn: async () => {} }),
+                        update3: createAsyncSystem({ stage: 'update', fn: async () => {} }),
 
-            const systemNamesRender = resolveSystemNamesForStage(graph, 'render');
-            expect(systemNamesRender).toEqual([
-                'shadowRenderPass',
-                'postProcessRenderPass',
-                'depthPreRenderPass',
-                'mainRenderPass',
-            ]);
+                        render1: createAsyncSystem({ stage: 'render', fn: async () => {} }),
+                        render2: createAsyncSystem({ stage: 'render', fn: async () => {} }),
+                        render3: createAsyncSystem({ stage: 'render', fn: async () => {} }),
 
-            const systemNamesCleanup = resolveSystemNamesForStage(graph, 'cleanup');
-            expect(systemNamesCleanup).toEqual([]);
+                        cleanup1: createAsyncSystem({ stage: 'cleanup', fn: async () => {} }),
+                        cleanup2: createAsyncSystem({ stage: 'cleanup', fn: async () => {} }),
+                        cleanup3: createAsyncSystem({ stage: 'cleanup', fn: async () => {} }),
+                    },
+                });
+
+                expect(result.orderByStage).toEqual({
+                    startup: [['startup1', 'startup2', 'startup3']],
+                    update: [['update1', 'update2', 'update3']],
+                    render: [['render1', 'render2', 'render3']],
+                    cleanup: [['cleanup1', 'cleanup2', 'cleanup3']],
+                });
+            });
+
+            it('should respect the order from the user when defined only for one stage', () => {
+                const result = defineSystemGraph({
+                    systems: {
+                        startup1: createAsyncSystem({ stage: 'startup', fn: async () => {} }),
+                        startup2: createAsyncSystem({ stage: 'startup', fn: async () => {} }),
+                        startup3: createAsyncSystem({ stage: 'startup', fn: async () => {} }),
+
+                        update1: createAsyncSystem({ stage: 'update', fn: async () => {} }),
+                        update2: createAsyncSystem({ stage: 'update', fn: async () => {} }),
+                        update3: createAsyncSystem({ stage: 'update', fn: async () => {} }),
+                    },
+                    orderByStage: {
+                        update: [['update3', 'update2'], 'update1'],
+                    },
+                });
+
+                expect(result.orderByStage).toEqual({
+                    startup: [['startup1', 'startup2', 'startup3']],
+                    update: [['update3', 'update2'], 'update1'],
+                    render: [],
+                    cleanup: [],
+                });
+            });
+
+            it('should respect the order from the user when defined for all stages', () => {
+                const result = defineSystemGraph({
+                    systems: {
+                        startup1: createAsyncSystem({ stage: 'startup', fn: async () => {} }),
+                        startup2: createAsyncSystem({ stage: 'startup', fn: async () => {} }),
+                        startup3: createAsyncSystem({ stage: 'startup', fn: async () => {} }),
+
+                        update1: createAsyncSystem({ stage: 'update', fn: async () => {} }),
+                        update2: createAsyncSystem({ stage: 'update', fn: async () => {} }),
+                        update3: createAsyncSystem({ stage: 'update', fn: async () => {} }),
+                    },
+                    orderByStage: {
+                        startup: [['startup2', 'startup1'], 'startup3'],
+                        update: [['update3'], 'update2', 'update1'],
+                    },
+                });
+
+                expect(result.orderByStage).toEqual({
+                    startup: [['startup2', 'startup1'], 'startup3'],
+                    update: [['update3'], 'update2', 'update1'],
+                    render: [],
+                    cleanup: [],
+                });
+            });
+
+            it('should throw an error when the order contains just a subset within one stage', () => {
+                const buildGraph = () =>
+                    defineSystemGraph({
+                        systems: {
+                            startup1: createAsyncSystem({ stage: 'startup', fn: async () => {} }),
+                            startup2: createAsyncSystem({ stage: 'startup', fn: async () => {} }),
+                            startup3: createAsyncSystem({ stage: 'startup', fn: async () => {} }),
+                        },
+                        orderByStage: {
+                            startup: [['startup2', 'startup1']],
+                        },
+                    });
+
+                expect(buildGraph).toThrowError(
+                    'The order within the same stage must contain all system names exactly once. System count for stage "startup": 3. Count of flattened order: 2',
+                );
+            });
+
+            it('should throw an error when the order contains additional elements within one stage', () => {
+                const buildGraph = () =>
+                    defineSystemGraph({
+                        systems: {
+                            startup1: createAsyncSystem({ stage: 'startup', fn: async () => {} }),
+                            startup2: createAsyncSystem({ stage: 'startup', fn: async () => {} }),
+                            startup3: createAsyncSystem({ stage: 'startup', fn: async () => {} }),
+                        },
+                        orderByStage: {
+                            startup: ['startup2', ['startup1', 'startup3'], 'startup2'],
+                        },
+                    });
+
+                expect(buildGraph).toThrowError(
+                    'The order within the same stage must contain all system names exactly once. System count for stage "startup": 3. Count of flattened order: 4',
+                );
+            });
         });
 
-        it('should throw on circular dependency - simple cycle', () => {
-            const graph = defineSystemGraph({
-                systems: {
-                    updateA: handleInput,
-                    updateB: applyGravity,
-                },
-                dependencies: {
-                    updateA: { before: ['updateB'] },
-                    updateB: { before: ['updateA'] },
-                },
+        describe('mixed sync and async systems', () => {
+            it('should generate the system order only for the update stage when not specified by the user', () => {
+                const result = defineSystemGraph({
+                    systems: {
+                        update1: createSystem({ stage: 'update', fn: () => {} }),
+                        update2: createSystem({ stage: 'update', fn: () => {} }),
+                        update3: createAsyncSystem({ stage: 'update', fn: async () => {} }),
+                    },
+                });
+
+                expect(result.orderByStage).toEqual({
+                    startup: [],
+                    update: ['update1', 'update2', ['update3']],
+                    render: [],
+                    cleanup: [],
+                });
             });
 
-            expect(() => resolveSystemNamesForStage(graph, 'update')).toThrow(
-                'Circular dependency detected in update stage',
-            );
-        });
+            it('should generate the system order for all stages when not specified by the user', () => {
+                const result = defineSystemGraph({
+                    systems: {
+                        startup1: createAsyncSystem({ stage: 'startup', fn: async () => {} }),
+                        startup2: createAsyncSystem({ stage: 'startup', fn: async () => {} }),
+                        startup3: createSystem({ stage: 'startup', fn: () => {} }),
 
-        it('should throw on circular dependency - complex cycle', () => {
-            const graph = defineSystemGraph({
-                systems: {
-                    updateA: handleInput,
-                    updateB: handleInput,
-                    updateC: handleInput,
-                    updateD: handleInput,
-                },
-                dependencies: {
-                    updateA: { before: ['updateB'] },
-                    updateB: { before: ['updateC'] },
-                    updateC: { before: ['updateD'] },
-                    updateD: { before: ['updateA'] }, // cycle back to A
-                },
+                        update1: createSystem({ stage: 'update', fn: () => {} }),
+                        update2: createSystem({ stage: 'update', fn: () => {} }),
+                        update3: createAsyncSystem({ stage: 'update', fn: async () => {} }),
+
+                        render1: createSystem({ stage: 'render', fn: () => {} }),
+                        render2: createAsyncSystem({ stage: 'render', fn: async () => {} }),
+                        render3: createSystem({ stage: 'render', fn: () => {} }),
+
+                        cleanup1: createAsyncSystem({ stage: 'cleanup', fn: async () => {} }),
+                        cleanup2: createSystem({ stage: 'cleanup', fn: () => {} }),
+                        cleanup3: createAsyncSystem({ stage: 'cleanup', fn: async () => {} }),
+                    },
+                });
+
+                expect(result.orderByStage).toEqual({
+                    startup: [['startup1', 'startup2'], 'startup3'],
+                    update: ['update1', 'update2', ['update3']],
+                    render: ['render1', ['render2'], 'render3'],
+                    cleanup: [['cleanup1', 'cleanup3'], 'cleanup2'],
+                });
             });
 
-            expect(() => resolveSystemNamesForStage(graph, 'update')).toThrow(
-                'Circular dependency detected in update stage',
-            );
-        });
+            it('should respect the order from the user when defined only for one stage', () => {
+                const result = defineSystemGraph({
+                    systems: {
+                        startup1: createAsyncSystem({ stage: 'startup', fn: async () => {} }),
+                        startup2: createAsyncSystem({ stage: 'startup', fn: async () => {} }),
+                        startup3: createSystem({ stage: 'startup', fn: () => {} }),
 
-        it('should throw on self-dependency with after', () => {
-            const graph = defineSystemGraph({
-                systems: {
-                    updateA: handleInput,
-                    updateB: handleInput,
-                },
-                dependencies: {
-                    updateA: { after: ['updateA' as never] },
-                },
+                        update1: createSystem({ stage: 'update', fn: () => {} }),
+                        update2: createSystem({ stage: 'update', fn: () => {} }),
+                        update3: createAsyncSystem({ stage: 'update', fn: async () => {} }),
+
+                        render1: createSystem({ stage: 'render', fn: () => {} }),
+                        render2: createAsyncSystem({ stage: 'render', fn: async () => {} }),
+                        render3: createSystem({ stage: 'render', fn: () => {} }),
+
+                        cleanup1: createAsyncSystem({ stage: 'cleanup', fn: async () => {} }),
+                        cleanup2: createSystem({ stage: 'cleanup', fn: () => {} }),
+                        cleanup3: createAsyncSystem({ stage: 'cleanup', fn: async () => {} }),
+                    },
+                    orderByStage: {
+                        update: ['update2', 'update1', ['update3']],
+                    },
+                });
+
+                expect(result.orderByStage).toEqual({
+                    startup: [['startup1', 'startup2'], 'startup3'],
+                    update: ['update2', 'update1', ['update3']],
+                    render: ['render1', ['render2'], 'render3'],
+                    cleanup: [['cleanup1', 'cleanup3'], 'cleanup2'],
+                });
             });
 
-            expect(() => resolveSystemNamesForStage(graph, 'update')).toThrow(
-                'Circular dependency detected in update stage',
-            );
-        });
+            it('should respect the order from the user when defined for all stages', () => {
+                const result = defineSystemGraph({
+                    systems: {
+                        startup1: createAsyncSystem({ stage: 'startup', fn: async () => {} }),
+                        startup2: createAsyncSystem({ stage: 'startup', fn: async () => {} }),
+                        startup3: createSystem({ stage: 'startup', fn: () => {} }),
 
-        it('should throw on self-dependency with before', () => {
-            const graph = defineSystemGraph({
-                systems: {
-                    renderA: mainRenderPass,
-                    renderB: mainRenderPass,
-                },
-                dependencies: {
-                    renderA: { before: ['renderA' as never] },
-                },
+                        update1: createSystem({ stage: 'update', fn: () => {} }),
+                        update2: createSystem({ stage: 'update', fn: () => {} }),
+                        update3: createAsyncSystem({ stage: 'update', fn: async () => {} }),
+
+                        render1: createSystem({ stage: 'render', fn: () => {} }),
+                        render2: createAsyncSystem({ stage: 'render', fn: async () => {} }),
+                        render3: createSystem({ stage: 'render', fn: () => {} }),
+
+                        cleanup1: createAsyncSystem({ stage: 'cleanup', fn: async () => {} }),
+                        cleanup2: createSystem({ stage: 'cleanup', fn: () => {} }),
+                        cleanup3: createAsyncSystem({ stage: 'cleanup', fn: async () => {} }),
+                    },
+                    orderByStage: {
+                        startup: [['startup1'], 'startup2', 'startup3'],
+                        update: ['update2', 'update1', 'update3'],
+                        render: [['render2'], 'render3', 'render1'],
+                        cleanup: ['cleanup2', ['cleanup3', 'cleanup1']],
+                    },
+                });
+
+                expect(result.orderByStage).toEqual({
+                    startup: [['startup1'], 'startup2', 'startup3'],
+                    update: ['update2', 'update1', 'update3'],
+                    render: [['render2'], 'render3', 'render1'],
+                    cleanup: ['cleanup2', ['cleanup3', 'cleanup1']],
+                });
             });
 
-            expect(() => resolveSystemNamesForStage(graph, 'render')).toThrow(
-                'Circular dependency detected in render stage',
-            );
-        });
+            it('should throw an error when the order contains just a subset within one stage', () => {
+                const buildGraph = () =>
+                    defineSystemGraph({
+                        systems: {
+                            startup1: createAsyncSystem({ stage: 'startup', fn: async () => {} }),
+                            startup2: createAsyncSystem({ stage: 'startup', fn: async () => {} }),
+                            startup3: createSystem({ stage: 'startup', fn: () => {} }),
+                        },
+                        orderByStage: {
+                            startup: ['startup2', 'startup1'],
+                        },
+                    });
 
-        it('should throw with the same dependency in before and after', () => {
-            const graph = defineSystemGraph({
-                systems: {
-                    renderA: mainRenderPass,
-                    renderB: mainRenderPass,
-                },
-                dependencies: {
-                    renderA: { after: ['renderB'], before: ['renderB'] },
-                },
+                expect(buildGraph).toThrowError(
+                    'The order within the same stage must contain all system names exactly once. System count for stage "startup": 3. Count of flattened order: 2',
+                );
             });
 
-            expect(() => resolveSystemNamesForStage(graph, 'render')).toThrow(
-                'Circular dependency detected in render stage',
-            );
-        });
+            it('should throw an error when the order contains additional elements within one stage', () => {
+                const buildGraph = () =>
+                    defineSystemGraph({
+                        systems: {
+                            startup1: createAsyncSystem({ stage: 'startup', fn: async () => {} }),
+                            startup2: createAsyncSystem({ stage: 'startup', fn: async () => {} }),
+                            startup3: createSystem({ stage: 'startup', fn: () => {} }),
+                        },
+                        orderByStage: {
+                            startup: ['startup2', 'startup1', 'startup3', 'startup2'],
+                        },
+                    });
 
-        it('should handle long dependency chain', () => {
-            const graph = defineSystemGraph({
-                systems: {
-                    startupA: spawnCamera,
-                    startupB: spawnCamera,
-                    startupC: spawnCamera,
-                    startupD: spawnCamera,
-                    startupE: spawnCamera,
-                },
-                dependencies: {
-                    startupB: { after: ['startupA'] },
-                    startupC: { after: ['startupB'] },
-                    startupD: { after: ['startupC'] },
-                    startupE: { after: ['startupD'] },
-                },
+                expect(buildGraph).toThrowError(
+                    'The order within the same stage must contain all system names exactly once. System count for stage "startup": 3. Count of flattened order: 4',
+                );
             });
-
-            const systemNames = resolveSystemNamesForStage(graph, 'startup');
-            expect(systemNames).toEqual(['startupA', 'startupB', 'startupC', 'startupD', 'startupE']);
-        });
-
-        it('should handle diamond dependency pattern', () => {
-            const graph = defineSystemGraph({
-                systems: {
-                    renderA: mainRenderPass,
-                    renderB: mainRenderPass,
-                    renderC: mainRenderPass,
-                    renderD: mainRenderPass,
-                },
-                dependencies: {
-                    renderB: { after: ['renderA'] },
-                    renderC: { after: ['renderA'] },
-                    renderD: { after: ['renderB', 'renderC'] },
-                },
-            });
-
-            const systemNames = resolveSystemNamesForStage(graph, 'render');
-            expect(systemNames).toEqual(['renderA', 'renderB', 'renderC', 'renderD']);
-        });
-
-        it('should ignore dependencies referencing non-existent systems', () => {
-            const graph = defineSystemGraph({
-                systems: {
-                    updateA: handleInput,
-                    updateB: handleInput,
-                },
-                dependencies: {
-                    updateA: { after: ['updateNonExistent' as never] },
-                    updateB: { before: ['updateAlsoNonExistent' as never] },
-                },
-            });
-
-            const systemNames = resolveSystemNamesForStage(graph, 'update');
-            expect(systemNames).toHaveLength(2);
-        });
-
-        it('should ignore cross-stage dependencies', () => {
-            const graph = defineSystemGraph({
-                systems: {
-                    startupA: spawnCamera,
-                    updateB: handleInput,
-                    renderC: mainRenderPass,
-                },
-                dependencies: {
-                    updateB: { after: ['startupA' as never] }, // different stage
-                    renderC: { before: ['updateB' as never] }, // different stage
-                },
-            });
-
-            const startupNames = resolveSystemNamesForStage(graph, 'startup');
-            expect(startupNames).toEqual(['startupA']);
-
-            const updateNames = resolveSystemNamesForStage(graph, 'update');
-            expect(updateNames).toEqual(['updateB']);
-
-            const renderNames = resolveSystemNamesForStage(graph, 'render');
-            expect(renderNames).toEqual(['renderC']);
-        });
-
-        it('should handle complex mixed before and after dependencies', () => {
-            const graph = defineSystemGraph({
-                systems: {
-                    updateC: handleInput,
-                    updateD: handleInput,
-                    updateE: handleInput,
-                    updateA: handleInput,
-                    updateB: handleInput,
-                },
-                dependencies: {
-                    updateC: { after: ['updateA', 'updateB'], before: ['updateD'] },
-                    updateE: { after: ['updateD'] },
-                    updateB: { after: ['updateA'] },
-                },
-            });
-
-            const systemNames = resolveSystemNamesForStage(graph, 'update');
-            expect(systemNames).toEqual(['updateA', 'updateB', 'updateC', 'updateD', 'updateE']);
         });
     });
 
-    describe('resolveSystemNamesForStage with async and sync systems', () => {
-        it('should put all systems into a single nested array', () => {
-            const graph = defineSystemGraph({
+    describe('mergeSystemGraphs', () => {
+        it('should combine all systems into one object', () => {
+            const a = defineSystemGraph({
                 systems: {
-                    spawnWorldAsync,
-                    spawnPlaverAsync,
-                    spawnCameraAsync,
+                    updateA1: createSystem({ stage: 'update', fn: () => {} }),
+                    updateA2: createSystem({ stage: 'update', fn: () => {} }),
+                    updateA3: createSystem({ stage: 'update', fn: () => {} }),
                 },
             });
 
-            const systemNamesStartup = resolveSystemNamesForStage(graph, 'startup');
-            expect(systemNamesStartup).toEqual([['spawnWorldAsync', 'spawnPlaverAsync', 'spawnCameraAsync']]);
+            const b = defineSystemGraph({
+                systems: {
+                    updateB1: createSystem({ stage: 'update', fn: () => {} }),
+                    updateB2: createSystem({ stage: 'update', fn: () => {} }),
+                    updateB3: createSystem({ stage: 'update', fn: () => {} }),
+                },
+            });
+
+            const result = mergeSystemGraphs(a, b);
+
+            expect(result.systems).toEqual({
+                updateA1: expect.objectContaining({ stage: 'update', async: false }),
+                updateA2: expect.objectContaining({ stage: 'update', async: false }),
+                updateA3: expect.objectContaining({ stage: 'update', async: false }),
+                updateB1: expect.objectContaining({ stage: 'update', async: false }),
+                updateB2: expect.objectContaining({ stage: 'update', async: false }),
+                updateB3: expect.objectContaining({ stage: 'update', async: false }),
+            });
         });
 
-        it('should have a nested array for spawnWorldAsync and spawnPlaverAsync, but spawnCameraAsync depends on the first 2', () => {
-            const graph = defineSystemGraph({
-                systems: {
-                    spawnCameraAsync,
-                    spawnWorldAsync,
-                    spawnPlaverAsync,
-                },
-                dependencies: {
-                    spawnCameraAsync: { after: ['spawnWorldAsync', 'spawnPlaverAsync'] },
-                },
+        describe('sync systems only', () => {
+            it('should append both order definitions without rules', () => {
+                const a = defineSystemGraph({
+                    systems: {
+                        updateA1: createSystem({ stage: 'update', fn: () => {} }),
+                        updateA2: createSystem({ stage: 'update', fn: () => {} }),
+                        updateA3: createSystem({ stage: 'update', fn: () => {} }),
+                    },
+                });
+
+                const b = defineSystemGraph({
+                    systems: {
+                        updateB1: createSystem({ stage: 'update', fn: () => {} }),
+                        updateB2: createSystem({ stage: 'update', fn: () => {} }),
+                        updateB3: createSystem({ stage: 'update', fn: () => {} }),
+                    },
+                });
+
+                const result = mergeSystemGraphs(a, b);
+
+                expect(result.orderByStage).toEqual({
+                    startup: [],
+                    update: ['updateA1', 'updateA2', 'updateA3', 'updateB1', 'updateB2', 'updateB3'],
+                    render: [],
+                    cleanup: [],
+                });
             });
 
-            const systemNamesStartup = resolveSystemNamesForStage(graph, 'startup');
-            expect(systemNamesStartup).toEqual([['spawnWorldAsync', 'spawnPlaverAsync'], 'spawnCameraAsync']);
+            it('should resolve the merge rules correctly', () => {
+                const a = defineSystemGraph({
+                    systems: {
+                        updateA1: createSystem({ stage: 'update', fn: () => {} }),
+                        updateA2: createSystem({ stage: 'update', fn: () => {} }),
+                        updateA3: createSystem({ stage: 'update', fn: () => {} }),
+                    },
+                });
+
+                const b = defineSystemGraph({
+                    systems: {
+                        updateB1: createSystem({ stage: 'update', fn: () => {} }),
+                        updateB2: createSystem({ stage: 'update', fn: () => {} }),
+                        updateB3: createSystem({ stage: 'update', fn: () => {} }),
+                    },
+                });
+
+                const result = mergeSystemGraphs(a, b, {
+                    updateB1: { before: 'updateA1' },
+                    updateB2: { before: 'updateA2' },
+                    updateB3: { before: 'updateA3' },
+                });
+
+                expect(result.orderByStage).toEqual({
+                    startup: [],
+                    update: ['updateB1', 'updateA1', 'updateB2', 'updateA2', 'updateB3', 'updateA3'],
+                    render: [],
+                    cleanup: [],
+                });
+            });
         });
 
-        it('should have a nested array for spawnWorldAsync and spawnPlaverAsync, spawnWorldAsync and spawnPlaverAsync should be grouped also when defining single dependency: spawnWorldAsync', () => {
-            const graph = defineSystemGraph({
-                systems: {
-                    spawnCameraAsync,
-                    spawnWorldAsync,
-                    spawnPlaverAsync,
-                },
-                dependencies: {
-                    spawnCameraAsync: { after: ['spawnWorldAsync'] },
-                },
+        describe('async systems only', () => {
+            it('should append both order definitions without rules', () => {
+                const a = defineSystemGraph({
+                    systems: {
+                        updateA1: createAsyncSystem({ stage: 'update', fn: async () => {} }),
+                        updateA2: createAsyncSystem({ stage: 'update', fn: async () => {} }),
+                        updateA3: createAsyncSystem({ stage: 'update', fn: async () => {} }),
+                    },
+                });
+
+                const b = defineSystemGraph({
+                    systems: {
+                        updateB1: createAsyncSystem({ stage: 'update', fn: async () => {} }),
+                        updateB2: createAsyncSystem({ stage: 'update', fn: async () => {} }),
+                        updateB3: createAsyncSystem({ stage: 'update', fn: async () => {} }),
+                    },
+                });
+
+                const result = mergeSystemGraphs(a, b);
+
+                expect(result.orderByStage).toEqual({
+                    startup: [],
+                    update: [['updateA1', 'updateA2', 'updateA3', 'updateB1', 'updateB2', 'updateB3']],
+                    render: [],
+                    cleanup: [],
+                });
             });
 
-            const systemNamesStartup = resolveSystemNamesForStage(graph, 'startup');
-            expect(systemNamesStartup).toEqual([['spawnWorldAsync', 'spawnPlaverAsync'], 'spawnCameraAsync']);
+            it('should resolve the merge rules correctly', () => {
+                const a = defineSystemGraph({
+                    systems: {
+                        updateA1: createAsyncSystem({ stage: 'update', fn: async () => {} }),
+                        updateA2: createAsyncSystem({ stage: 'update', fn: async () => {} }),
+                        updateA3: createAsyncSystem({ stage: 'update', fn: async () => {} }),
+                    },
+                });
+
+                const b = defineSystemGraph({
+                    systems: {
+                        updateB1: createAsyncSystem({ stage: 'update', fn: async () => {} }),
+                        updateB2: createAsyncSystem({ stage: 'update', fn: async () => {} }),
+                        updateB3: createAsyncSystem({ stage: 'update', fn: async () => {} }),
+                    },
+                });
+
+                const result = mergeSystemGraphs(a, b, {
+                    updateB1: { before: 'updateA1' },
+                    updateB2: { before: 'updateA2' },
+                    updateB3: { before: 'updateA3' },
+                });
+
+                expect(result.orderByStage).toEqual({
+                    startup: [],
+                    update: [['updateB1', 'updateA1', 'updateB2', 'updateA2', 'updateB3', 'updateA3']],
+                    render: [],
+                    cleanup: [],
+                });
+            });
         });
 
-        it('should generate no nested array with after dependencies', () => {
-            const graph = defineSystemGraph({
-                systems: {
-                    spawnCameraAsync,
-                    spawnWorldAsync,
-                    spawnPlaverAsync,
-                },
-                dependencies: {
-                    spawnCameraAsync: { after: ['spawnWorldAsync'] },
-                    spawnWorldAsync: { after: ['spawnPlaverAsync'] },
-                },
+        describe('mixed sync and async systems', () => {
+            it('should append both order definitions without rules', () => {
+                const a = defineSystemGraph({
+                    systems: {
+                        startupA1: createAsyncSystem({ stage: 'startup', fn: async () => {} }),
+                        startupA2: createAsyncSystem({ stage: 'startup', fn: async () => {} }),
+                        startupA3: createSystem({ stage: 'startup', fn: () => {} }),
+
+                        updateA1: createSystem({ stage: 'update', fn: () => {} }),
+                        updateA2: createSystem({ stage: 'update', fn: () => {} }),
+                        updateA3: createAsyncSystem({ stage: 'update', fn: async () => {} }),
+
+                        renderA1: createSystem({ stage: 'render', fn: () => {} }),
+                        renderA2: createAsyncSystem({ stage: 'render', fn: async () => {} }),
+                        renderA3: createSystem({ stage: 'render', fn: () => {} }),
+
+                        cleanupA1: createAsyncSystem({ stage: 'cleanup', fn: async () => {} }),
+                        cleanupA2: createSystem({ stage: 'cleanup', fn: () => {} }),
+                        cleanupA3: createAsyncSystem({ stage: 'cleanup', fn: async () => {} }),
+                    },
+                });
+
+                const b = defineSystemGraph({
+                    systems: {
+                        startupB1: createAsyncSystem({ stage: 'startup', fn: async () => {} }),
+                        startupB2: createAsyncSystem({ stage: 'startup', fn: async () => {} }),
+                        startupB3: createSystem({ stage: 'startup', fn: () => {} }),
+
+                        updateB1: createSystem({ stage: 'update', fn: () => {} }),
+                        updateB2: createSystem({ stage: 'update', fn: () => {} }),
+                        updateB3: createAsyncSystem({ stage: 'update', fn: async () => {} }),
+
+                        renderB1: createSystem({ stage: 'render', fn: () => {} }),
+                        renderB2: createAsyncSystem({ stage: 'render', fn: async () => {} }),
+                        renderB3: createSystem({ stage: 'render', fn: () => {} }),
+
+                        cleanupB1: createAsyncSystem({ stage: 'cleanup', fn: async () => {} }),
+                        cleanupB2: createSystem({ stage: 'cleanup', fn: () => {} }),
+                        cleanupB3: createAsyncSystem({ stage: 'cleanup', fn: async () => {} }),
+                    },
+                });
+
+                const result = mergeSystemGraphs(a, b);
+
+                expect(result.orderByStage).toEqual({
+                    startup: [['startupA1', 'startupA2'], 'startupA3', ['startupB1', 'startupB2'], 'startupB3'],
+                    update: ['updateA1', 'updateA2', ['updateA3'], 'updateB1', 'updateB2', ['updateB3']],
+                    render: ['renderA1', ['renderA2'], 'renderA3', 'renderB1', ['renderB2'], 'renderB3'],
+                    cleanup: [['cleanupA1', 'cleanupA3'], 'cleanupA2', ['cleanupB1', 'cleanupB3'], 'cleanupB2'],
+                });
             });
 
-            const systemNamesStartup = resolveSystemNamesForStage(graph, 'startup');
-            expect(systemNamesStartup).toEqual(['spawnPlaverAsync', 'spawnWorldAsync', 'spawnCameraAsync']);
-        });
+            it('should resolve the merge rules correctly', () => {
+                const a = defineSystemGraph({
+                    systems: {
+                        startupA1: createAsyncSystem({ stage: 'startup', fn: async () => {} }),
+                        startupA2: createAsyncSystem({ stage: 'startup', fn: async () => {} }),
+                        startupA3: createSystem({ stage: 'startup', fn: () => {} }),
 
-        it('should generate no nested array with before dependencies', () => {
-            const graph = defineSystemGraph({
-                systems: {
-                    spawnCameraAsync,
-                    spawnWorldAsync,
-                    spawnPlaverAsync,
-                },
-                dependencies: {
-                    spawnPlaverAsync: { before: ['spawnCameraAsync'] },
-                    spawnWorldAsync: { before: ['spawnPlaverAsync'] },
-                },
+                        updateA1: createSystem({ stage: 'update', fn: () => {} }),
+                        updateA2: createSystem({ stage: 'update', fn: () => {} }),
+                        updateA3: createAsyncSystem({ stage: 'update', fn: async () => {} }),
+
+                        renderA1: createSystem({ stage: 'render', fn: () => {} }),
+                        renderA2: createAsyncSystem({ stage: 'render', fn: async () => {} }),
+                        renderA3: createSystem({ stage: 'render', fn: () => {} }),
+
+                        cleanupA1: createAsyncSystem({ stage: 'cleanup', fn: async () => {} }),
+                        cleanupA2: createSystem({ stage: 'cleanup', fn: () => {} }),
+                        cleanupA3: createAsyncSystem({ stage: 'cleanup', fn: async () => {} }),
+                    },
+                });
+
+                const b = defineSystemGraph({
+                    systems: {
+                        startupB1: createAsyncSystem({ stage: 'startup', fn: async () => {} }),
+                        startupB2: createAsyncSystem({ stage: 'startup', fn: async () => {} }),
+                        startupB3: createSystem({ stage: 'startup', fn: () => {} }),
+
+                        updateB1: createSystem({ stage: 'update', fn: () => {} }),
+                        updateB2: createSystem({ stage: 'update', fn: () => {} }),
+                        updateB3: createAsyncSystem({ stage: 'update', fn: async () => {} }),
+
+                        renderB1: createSystem({ stage: 'render', fn: () => {} }),
+                        renderB2: createAsyncSystem({ stage: 'render', fn: async () => {} }),
+                        renderB3: createSystem({ stage: 'render', fn: () => {} }),
+
+                        cleanupB1: createAsyncSystem({ stage: 'cleanup', fn: async () => {} }),
+                        cleanupB2: createSystem({ stage: 'cleanup', fn: () => {} }),
+                        cleanupB3: createAsyncSystem({ stage: 'cleanup', fn: async () => {} }),
+                    },
+                });
+
+                const result = mergeSystemGraphs(a, b, {
+                    startupB1: { after: 'startupA1' },
+                    startupB2: { after: 'startupA2' },
+                    startupB3: { after: 'startupA3' },
+
+                    updateB1: { before: 'updateA1' },
+                    updateB2: { before: 'updateA2' },
+                    updateB3: { before: 'updateA3' },
+
+                    renderB1: { after: 'renderA1' },
+                    renderB2: { after: 'renderA2' },
+                    renderB3: { after: 'renderA3' },
+
+                    cleanupB1: { before: 'cleanupA1' },
+                    cleanupB2: { before: 'cleanupA2' },
+                    cleanupB3: { before: 'cleanupA3' },
+                });
+
+                expect(result.orderByStage).toEqual({
+                    startup: [['startupA1', 'startupB1', 'startupA2', 'startupB2'], 'startupA3', 'startupB3'],
+                    update: ['updateB1', 'updateA1', 'updateB2', 'updateA2', ['updateB3', 'updateA3']],
+                    render: ['renderA1', 'renderB1', ['renderA2', 'renderB2'], 'renderA3', 'renderB3'],
+                    cleanup: [['cleanupB1', 'cleanupA1', 'cleanupB3', 'cleanupA3'], 'cleanupB2', 'cleanupA2'],
+                });
             });
-
-            const systemNamesStartup = resolveSystemNamesForStage(graph, 'startup');
-            expect(systemNamesStartup).toEqual(['spawnWorldAsync', 'spawnPlaverAsync', 'spawnCameraAsync']);
-        });
-
-        it('should return the systems sorted based the dependencies and group async systems correctly', () => {
-            const graph = defineSystemGraph({
-                systems: {
-                    spawnWorld: spawnWorldAsync,
-                    spawnPlaver: spawnPlaverAsync,
-                    spawnCamera: spawnCameraAsync,
-                    handleInput: handleInputAsync,
-                    applyGravity: applyGravityAsync,
-                    handleMovement: handleMovementAsync,
-                    checkCollisions: checkCollisionsAsync,
-                    depthPreRenderPass: depthPreRenderPassAsync,
-                    shadowRenderPass: shadowRenderPassAsync,
-                    mainRenderPass: mainRenderPassAsync,
-                    postProcessRenderPass: postProcessRenderPassAsync,
-                },
-                dependencies: {
-                    spawnCamera: { before: ['spawnWorld', 'spawnPlaver'] },
-                    applyGravity: { after: ['handleMovement'] },
-                    checkCollisions: { after: ['applyGravity'] },
-                    postProcessRenderPass: { after: ['mainRenderPass'] },
-                    shadowRenderPass: { before: ['mainRenderPass'] },
-                    depthPreRenderPass: { before: ['mainRenderPass'] },
-                },
-            });
-
-            const systemNamesStartup = resolveSystemNamesForStage(graph, 'startup');
-            expect(systemNamesStartup).toEqual(['spawnCamera', ['spawnWorld', 'spawnPlaver']]);
-
-            const systemNamesUpdate = resolveSystemNamesForStage(graph, 'update');
-            expect(systemNamesUpdate).toEqual([['handleInput', 'handleMovement'], 'applyGravity', 'checkCollisions']);
-
-            const systemNamesRender = resolveSystemNamesForStage(graph, 'render');
-            expect(systemNamesRender).toEqual([
-                ['depthPreRenderPass', 'shadowRenderPass'],
-                'mainRenderPass',
-                'postProcessRenderPass',
-            ]);
-
-            const systemNamesCleanup = resolveSystemNamesForStage(graph, 'cleanup');
-            expect(systemNamesCleanup).toEqual([]);
-        });
-
-        it('should handle a complex dependency defintition with before', () => {
-            const graph = defineSystemGraph({
-                systems: {
-                    update1_0: handleInputAsync,
-                    update1_1: handleInputAsync,
-                    update1_2: handleInputAsync,
-                    update2_0: handleInputAsync,
-                    update2_1: handleInputAsync,
-                    update2_2: handleInputAsync,
-                    update3_0: handleInputAsync,
-                    update3_1: handleInputAsync,
-                    update4_0: handleInputAsync,
-                    update4_1: handleInputAsync,
-                    update4_2: handleInputAsync,
-                    update4_3: handleInputAsync,
-                    update5_0: handleInputAsync,
-                    update5_1: handleInputAsync,
-                    update5_2: handleInputAsync,
-                },
-                dependencies: {
-                    update1_0: { before: ['update2_0', 'update2_1', 'update2_2'] },
-                    update1_1: { before: ['update2_0', 'update2_1', 'update2_2'] },
-                    update1_2: { before: ['update2_0', 'update2_1', 'update2_2'] },
-
-                    update2_0: { before: ['update3_0', 'update3_1'] },
-                    update2_1: { before: ['update3_0', 'update3_1'] },
-                    update2_2: { before: ['update3_0', 'update3_1'] },
-
-                    update3_0: { before: ['update4_0', 'update4_1', 'update4_2', 'update4_3'] },
-                    update3_1: { before: ['update4_0', 'update4_1', 'update4_2', 'update4_3'] },
-
-                    update4_0: { before: ['update5_0', 'update5_1', 'update5_2'] },
-                    update4_1: { before: ['update5_0', 'update5_1', 'update5_2'] },
-                    update4_2: { before: ['update5_0', 'update5_1', 'update5_2'] },
-                    update4_3: { before: ['update5_0', 'update5_1', 'update5_2'] },
-                },
-            });
-
-            const systemNames = resolveSystemNamesForStage(graph, 'update');
-            expect(systemNames).toEqual([
-                ['update1_0', 'update1_1', 'update1_2'],
-                ['update2_0', 'update2_1', 'update2_2'],
-                ['update3_0', 'update3_1'],
-                ['update4_0', 'update4_1', 'update4_2', 'update4_3'],
-                ['update5_0', 'update5_1', 'update5_2'],
-            ]);
-        });
-
-        it('should handle a complex dependency defintition with after', () => {
-            const graph = defineSystemGraph({
-                systems: {
-                    update1_0: handleInputAsync,
-                    update1_1: handleInputAsync,
-                    update1_2: handleInputAsync,
-                    update2_0: handleInputAsync,
-                    update2_1: handleInputAsync,
-                    update2_2: handleInputAsync,
-                    update3_0: handleInputAsync,
-                    update3_1: handleInputAsync,
-                    update4_0: handleInputAsync,
-                    update4_1: handleInputAsync,
-                    update4_2: handleInputAsync,
-                    update4_3: handleInputAsync,
-                    update5_0: handleInputAsync,
-                    update5_1: handleInputAsync,
-                    update5_2: handleInputAsync,
-                },
-                dependencies: {
-                    update1_0: { after: ['update2_0'] },
-                    update1_1: { after: ['update2_0'] },
-                    update1_2: { after: ['update2_0'] },
-
-                    update2_0: { after: ['update3_0'] },
-                    update2_1: { after: ['update3_0'] },
-                    update2_2: { after: ['update3_0'] },
-
-                    update3_0: { after: ['update4_0'] },
-                    update3_1: { after: ['update4_0'] },
-
-                    update4_0: { after: ['update5_0'] },
-                    update4_1: { after: ['update5_0'] },
-                    update4_2: { after: ['update5_0'] },
-                    update4_3: { after: ['update5_0'] },
-                },
-            });
-
-            const systemNames = resolveSystemNamesForStage(graph, 'update');
-            expect(systemNames).toEqual([
-                ['update5_0', 'update5_1', 'update5_2'],
-                ['update4_0', 'update4_1', 'update4_2', 'update4_3'],
-                ['update3_0', 'update3_1'],
-                ['update2_0', 'update2_1', 'update2_2'],
-                ['update1_0', 'update1_1', 'update1_2'],
-            ]);
-        });
-
-        it('should handle a complex dependency defintition with before and after', () => {
-            const graph = defineSystemGraph({
-                systems: {
-                    update1_0: handleInputAsync,
-                    update1_1: handleInputAsync,
-                    update1_2: handleInputAsync,
-                    update2_0: handleInputAsync,
-                    update2_1: handleInputAsync,
-                    update2_2: handleInputAsync,
-                    update3_0: handleInputAsync,
-                    update3_1: handleInputAsync,
-                    update4_0: handleInputAsync,
-                    update4_1: handleInputAsync,
-                    update4_2: handleInputAsync,
-                    update4_3: handleInputAsync,
-                    update5_0: handleInputAsync,
-                    update5_1: handleInputAsync,
-                    update5_2: handleInputAsync,
-                },
-                dependencies: {
-                    update1_0: { after: ['update2_0'] },
-                    update1_1: { after: ['update2_0'] },
-                    update1_2: { after: ['update2_0'] },
-
-                    update2_0: { after: ['update3_0'] },
-                    update2_1: { after: ['update3_0'] },
-                    update2_2: { after: ['update3_0'] },
-
-                    update3_0: { after: ['update4_0'] },
-                    update3_1: { after: ['update4_0'] },
-
-                    update4_0: { after: ['update5_0'] },
-                    update4_1: { after: ['update5_0'] },
-                    update4_2: { after: ['update5_0'] },
-                    update4_3: { after: ['update5_0'] },
-
-                    update5_0: { before: ['update5_1', 'update5_2'] },
-                    update5_1: { before: ['update4_0', 'update4_1', 'update4_2', 'update4_3'] },
-                },
-            });
-
-            const systemNames = resolveSystemNamesForStage(graph, 'update');
-            expect(systemNames).toEqual([
-                'update5_0',
-                ['update5_1', 'update5_2'],
-                ['update4_0', 'update4_1', 'update4_2', 'update4_3'],
-                ['update3_0', 'update3_1'],
-                ['update2_0', 'update2_1', 'update2_2'],
-                ['update1_0', 'update1_1', 'update1_2'],
-            ]);
         });
     });
 });
