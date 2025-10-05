@@ -1,37 +1,61 @@
-import { worldBuilder, defineComponentTypes, createComponent, queryBuilder } from '@timefold/ecs';
-import { Vec2, Vec2Type } from '@timefold/math';
+import { worldBuilder, queryBuilder, createSystem } from '@timefold/ecs';
+import { Vec2 } from '@timefold/math';
+import { createRenderer } from './renderer';
+import {
+    createBallTag,
+    createColor,
+    createPlayerTag,
+    createPosition,
+    createShape,
+    createVelocity,
+    Shape,
+    T,
+    WorldComponent,
+} from './components';
 
-const T = defineComponentTypes(['Position', 'Velocity', 'Shape', 'Player', 'Ball']);
+const canvas = document.getElementById('canvas') as HTMLCanvasElement;
+canvas.width = canvas.clientWidth;
+canvas.height = canvas.clientHeight;
 
-const createPosition = (pos: Vec2Type) => createComponent(T.Position, pos);
-type PositionComponent = ReturnType<typeof createPosition>;
+const renderer = createRenderer(canvas);
 
-const createVelocity = (pos: Vec2Type) => createComponent(T.Velocity, pos);
-type VelocityComponent = ReturnType<typeof createVelocity>;
-
-const Shape = { Box: 0, Circle: 1 } as const;
-type Shape = (typeof Shape)[keyof typeof Shape];
-
-const createShape = (shape: Shape) => createComponent(T.Shape, shape);
-type ShapeComponent = ReturnType<typeof createShape>;
-
-const createPlayerTag = () => createComponent(T.Player);
-type PlayerTag = ReturnType<typeof createPlayerTag>;
-
-const createBallTag = () => createComponent(T.Ball);
-type BallTag = ReturnType<typeof createBallTag>;
-
-type WorldComponent = PositionComponent | VelocityComponent | ShapeComponent | PlayerTag | BallTag;
+// TODO: system functions cannot be statically defined. They need access to the compiled world for queries and resources.
+// Remove fn and spawn them instead?
 
 const world = worldBuilder<WorldComponent>()
     .defineQueries({
-        player: queryBuilder<WorldComponent>().with(T.Player).with(T.Position).compile(),
-        ball: queryBuilder<WorldComponent>().with(T.Ball).with(T.Position).compile(),
+        renderable: queryBuilder<WorldComponent>()
+            .includeEntity()
+            .with(T.Position)
+            .with(T.Color)
+            .with(T.Shape)
+            .map(([id, position, color, shape]) => ({
+                id,
+                position: position.data,
+                color: color.data,
+                shape: shape.data,
+            }))
+            .onAdd((_id, renderEntity) => {
+                renderer.addEntity(renderEntity);
+            })
+            .onRemove((entity) => {
+                renderer.removeEntity(entity);
+            })
+            .compile(),
+    })
+    .defineSystemGraph({
+        systems: {
+            render: createSystem({
+                stage: 'render',
+                fn: () => {
+                    renderer.render();
+                },
+            }),
+        },
     })
     .compile();
 
-const playerQuery = world.getQuery('player').result;
-const ballQuery = world.getQuery('ball').result;
+const query = world.getQuery('renderable');
 
 let entity = 0;
 const nextEntityId = () => entity++;
@@ -42,21 +66,30 @@ const ball = nextEntityId();
 
 world.spawn(player1, [
     createPlayerTag(),
-    createPosition(Vec2.create(0, 0)),
+    createPosition(Vec2.create(10, 10)),
     createVelocity(Vec2.create(1, 1)),
-    createShape(Shape.Box),
+    createShape({ type: Shape.Box, halfExtends: Vec2.create(100, 200) }),
+    createColor('red'),
 ]);
 world.spawn(player2, [
     createPlayerTag(),
-    createPosition(Vec2.create(0, 0)),
+    createPosition(Vec2.create(300, 300)),
     createVelocity(Vec2.create(1, 1)),
-    createShape(Shape.Box),
+    createShape({ type: Shape.Box, halfExtends: Vec2.create(200, 100) }),
+    createColor('green'),
 ]);
 world.spawn(ball, [
     createBallTag(),
-    createPosition(Vec2.create(0, 0)),
+    createPosition(Vec2.create(600, 600)),
     createVelocity(Vec2.create(1, 1)),
-    createShape(Shape.Circle),
+    createShape({ type: Shape.Circle, radius: 50 }),
+    createColor('blue'),
 ]);
 
-console.log({ player1, player2, ball, playerQuery, ballQuery });
+renderer.render();
+
+setTimeout(() => {
+    world.despawn(player1);
+    renderer.render();
+}, 2000);
+console.log({ query });
