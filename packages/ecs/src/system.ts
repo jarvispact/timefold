@@ -102,7 +102,7 @@ export function defineSystemGraph<Systems extends Record<string, System | AsyncS
 ): SystemGraph<
     Systems,
     {
-        [S in SystemStage]: (keyof Systems | (keyof Systems)[])[];
+        [S in SystemStage]: SystemOrder<SystemNamesForStage<Systems, S>, AsyncSystemNamesForStage<Systems, S>>;
     }
 > {
     const startup = graph.orderByStage?.startup
@@ -121,10 +121,10 @@ export function defineSystemGraph<Systems extends Record<string, System | AsyncS
         ? validateSystemOrder(graph.systems, 'cleanup', graph.orderByStage.cleanup)
         : defaultSystemOrder(graph.systems, 'cleanup');
 
-    warnAboutSingleAsyncSystem(startup, 'startup');
-    warnAboutSingleAsyncSystem(update, 'update');
-    warnAboutSingleAsyncSystem(render, 'render');
-    warnAboutSingleAsyncSystem(cleanup, 'cleanup');
+    warnAboutSingleAsyncSystem('startup', startup);
+    warnAboutSingleAsyncSystem('update', update);
+    warnAboutSingleAsyncSystem('render', render);
+    warnAboutSingleAsyncSystem('cleanup', cleanup);
 
     return {
         systems: graph.systems,

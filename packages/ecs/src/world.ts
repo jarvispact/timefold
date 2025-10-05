@@ -281,15 +281,25 @@ export type WorldBuilderApi<
             queries: Queries,
         ) => WorldBuilderApi<WorldComponent, CustomEvent, Resources, Queries, Graph, UsedMethods | 'defineQueries'>;
         defineSystemGraph: <Systems extends Record<string, System | AsyncSystem>>(
-            graph: SystemGraphArgs<
-                Systems,
-                Partial<{
-                    [S in SystemStage]: SystemOrder<
-                        SystemNamesForStage<Systems, S>,
-                        AsyncSystemNamesForStage<Systems, S>
-                    >;
-                }>
-            >,
+            graph:
+                | SystemGraphArgs<
+                      Systems,
+                      Partial<{
+                          [S in SystemStage]: SystemOrder<
+                              SystemNamesForStage<Systems, S>,
+                              AsyncSystemNamesForStage<Systems, S>
+                          >;
+                      }>
+                  >
+                | SystemGraph<
+                      Systems,
+                      {
+                          [S in SystemStage]: SystemOrder<
+                              SystemNamesForStage<Systems, S>,
+                              AsyncSystemNamesForStage<Systems, S>
+                          >;
+                      }
+                  >,
         ) => WorldBuilderApi<
             WorldComponent,
             CustomEvent,
@@ -324,10 +334,10 @@ export function worldBuilder<
     const queries: InternalQuery[] = [];
     const nameToQueryIdx: Record<string, number | undefined> = {};
 
-    let systemGraph = {
+    let systemGraph: SystemGraph = {
         systems: {},
         orderByStage: { startup: [], update: [], render: [], cleanup: [] },
-    } as unknown as Graph;
+    };
 
     const api = {
         defineResources: (recordOfResources: Record<string, unknown>) => {
@@ -383,7 +393,7 @@ export function worldBuilder<
             return api;
         },
         defineSystemGraph: (graphArgs: SystemGraphArgs) => {
-            systemGraph = defineSystemGraph(graphArgs as never) as Graph;
+            systemGraph = defineSystemGraph(graphArgs as never);
             return api;
         },
         compile: () =>
@@ -391,7 +401,7 @@ export function worldBuilder<
                 resources,
                 queries,
                 nameToQueryIdx,
-                systemGraph,
+                systemGraph as Graph,
             ),
     };
 

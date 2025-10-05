@@ -19,7 +19,3 @@ export type ComponentTypes<
 > = T extends [infer Head extends string, ...infer Tail extends string[]]
     ? ComponentTypes<Tail, Increment<Idx>, Result & Record<Head, Idx>>
     : Prettyfy<Result>;
-
-export type RequireAtLeastOne<T> = {
-    [K in keyof T]-?: Required<Pick<T, K>> & Partial<Pick<T, Exclude<keyof T, K>>>;
-}[keyof T];

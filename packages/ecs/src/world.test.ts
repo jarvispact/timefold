@@ -1686,7 +1686,6 @@ describe('world', () => {
                 },
             });
 
-            // TODO: Fixme
             const world = worldBuilder<WorldComponent>().defineSystemGraph(systemGraph).compile();
 
             expect({
