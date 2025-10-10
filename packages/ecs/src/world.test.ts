@@ -1,10 +1,10 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
 import { expect, it, describe, expectTypeOf, vitest } from 'vitest';
-import { World, worldBuilder } from './world';
+import { createWorld, World } from './world';
 import { Component, defineComponentTypes } from './component';
 import { defineQueries, queryBuilder, QueryDefinition } from './query';
 import { DefineEcsEvent, EcsEvent } from './event';
-import { createAsyncSystem, createSystem, defineSystemGraph } from './system';
+import { defineAsyncSystem, defineSystem, defineSystemGraph } from './system';
 
 type A = Component<0>;
 type B = Component<1, { pos: [number, number] }>;
@@ -33,7 +33,7 @@ type WorldResources = {
 describe('world', () => {
     describe('entities and components', () => {
         it('should return the correct component type', () => {
-            const world = worldBuilder<WorldComponent>().compile();
+            const world = createWorld<WorldComponent>();
             const a: A = { type: 0 };
             const id = 0;
             world.spawn(id, [a]);
@@ -42,7 +42,7 @@ describe('world', () => {
         });
 
         it('should spawn a collection of components and return the id of the entity', () => {
-            const world = worldBuilder<WorldComponent>().compile();
+            const world = createWorld<WorldComponent>();
             const a: A = { type: 0 };
             const b: B = { type: 1, data: { pos: [0, 0] } };
 
@@ -59,7 +59,7 @@ describe('world', () => {
         });
 
         it('should despawn a entity and return a boolean value', () => {
-            const world = worldBuilder<WorldComponent>().compile();
+            const world = createWorld<WorldComponent>();
             const a: A = { type: 0 };
             const b: B = { type: 1, data: { pos: [0, 0] } };
 
@@ -74,14 +74,14 @@ describe('world', () => {
         });
 
         it('should not despawn a entity and return a boolean value', () => {
-            const world = worldBuilder<WorldComponent>().compile();
+            const world = createWorld<WorldComponent>();
 
             const result = world.despawn(0);
             expect(result).toEqual(false);
         });
 
         it('should get components by entity id and component type', () => {
-            const world = worldBuilder<WorldComponent>().compile();
+            const world = createWorld<WorldComponent>();
             const a: A = { type: 0 };
             const b: B = { type: 1, data: { pos: [0, 0] } };
 
@@ -93,7 +93,7 @@ describe('world', () => {
         });
 
         it('should add a component to an entity', () => {
-            const world = worldBuilder<WorldComponent>().compile();
+            const world = createWorld<WorldComponent>();
             const a: A = { type: 0 };
             const b: B = { type: 1, data: { pos: [0, 0] } };
             const c: C = { type: 2, data: { pos: [0, 0, 0] } };
@@ -110,7 +110,7 @@ describe('world', () => {
         });
 
         it('should not add a component to an entity if it already has a component of the same type', () => {
-            const world = worldBuilder<WorldComponent>().compile();
+            const world = createWorld<WorldComponent>();
             const a: A = { type: 0 };
             const newA: A = { type: 0 };
             const id = 0;
@@ -122,7 +122,7 @@ describe('world', () => {
         });
 
         it('should remove a component from an entity', () => {
-            const world = worldBuilder<WorldComponent>().compile();
+            const world = createWorld<WorldComponent>();
             const a: A = { type: 0 };
             const id = 0;
             world.spawn(id, [a]);
@@ -134,7 +134,7 @@ describe('world', () => {
         });
 
         it('should not remove a component from an entity if it does not have this component', () => {
-            const world = worldBuilder<WorldComponent>().compile();
+            const world = createWorld<WorldComponent>();
             const b: B = { type: 1, data: { pos: [0, 0] } };
             const id = 0;
             world.spawn(id, [b]);
@@ -147,7 +147,7 @@ describe('world', () => {
 
     describe('resources', () => {
         it('should return the correct type when passed as generic', () => {
-            const world = worldBuilder<
+            const world = createWorld<
                 WorldComponent,
                 EcsEvent<WorldComponent>,
                 {
@@ -156,7 +156,7 @@ describe('world', () => {
                     res3: { foo: string };
                     res4?: { bar: number };
                 }
-            >().compile();
+            >();
 
             const res1 = world.getResource('res1');
             expectTypeOf<typeof res1>().toBeString();
@@ -172,14 +172,12 @@ describe('world', () => {
         });
 
         it('should define resources in the builder api and infer the correct type', () => {
-            const world = worldBuilder<WorldComponent>()
-                .defineResources({
-                    res1: 'foo',
-                    res2: 42,
-                    res3: { foo: 'foo' },
-                    res4: { bar: 42 },
-                })
-                .compile();
+            const world = createWorld<WorldComponent>().withResources({
+                res1: 'foo',
+                res2: 42,
+                res3: { foo: 'foo' },
+                res4: { bar: 42 },
+            });
 
             const res1 = world.getResource('res1');
             expect(res1).toEqual('foo');
@@ -199,7 +197,7 @@ describe('world', () => {
         });
 
         it('should set, get and remove a resource', () => {
-            const world = worldBuilder<WorldComponent, EcsEvent<WorldComponent>, { res1: string }>().compile();
+            const world = createWorld<WorldComponent, EcsEvent<WorldComponent>, { res1: string }>();
             expect(world.getResource('res1')).toEqual(undefined);
             world.setResource('res1', 'data');
             expect(world.getResource('res1')).toEqual('data');
@@ -210,7 +208,7 @@ describe('world', () => {
 
     describe('events', () => {
         it('should return the correct type when no event type was passed', () => {
-            const world = worldBuilder<WorldComponent>().compile();
+            const world = createWorld<WorldComponent>();
             type World = typeof world;
             type Emit = Parameters<World['emit']>[0];
             type On = Parameters<World['on']>[0];
@@ -223,7 +221,7 @@ describe('world', () => {
         });
 
         it('should return the correct type when passed as generic', () => {
-            const world = worldBuilder<WorldComponent, WorldEvent>().compile();
+            const world = createWorld<WorldComponent, WorldEvent>();
             type World = typeof world;
             type Emit = Parameters<World['emit']>[0];
             type On = Parameters<World['on']>[0];
@@ -236,7 +234,7 @@ describe('world', () => {
         });
 
         it('should call all event handlers', () => {
-            const world = worldBuilder<WorldComponent, WorldEvent, WorldResources>().compile();
+            const world = createWorld<WorldComponent, WorldEvent, WorldResources>();
 
             const mockA = vitest.fn();
             world.on('A', mockA);
@@ -297,7 +295,7 @@ describe('world', () => {
                 two: queryBuilder<WorldComponent>().includeEntity().withAny([0, 1]).compile(),
             });
 
-            const world = worldBuilder<WorldComponent, WorldEvent, WorldResources, typeof queries>().compile();
+            const world = createWorld<WorldComponent, WorldEvent, WorldResources, typeof queries>();
 
             expectTypeOf<typeof world>().toExtend<
                 World<
@@ -329,12 +327,10 @@ describe('world', () => {
         });
 
         it('should define queries in the builder api and infer the correct type', () => {
-            const world = worldBuilder<WorldComponent, WorldEvent, WorldResources>()
-                .defineQueries({
-                    one: queryBuilder<WorldComponent>().includeEntity().with(0).compile(),
-                    two: queryBuilder<WorldComponent>().includeEntity().withAny([0, 1]).compile(),
-                })
-                .compile();
+            const world = createWorld<WorldComponent, WorldEvent, WorldResources>().withQueries({
+                one: queryBuilder<WorldComponent>().includeEntity().with(0).compile(),
+                two: queryBuilder<WorldComponent>().includeEntity().withAny([0, 1]).compile(),
+            });
 
             expectTypeOf<typeof world>().toExtend<
                 World<
@@ -366,53 +362,47 @@ describe('world', () => {
         });
 
         it('should define queries in the builder api and infer the correct type', () => {
-            const world = worldBuilder<WorldComponent, WorldEvent, WorldResources>()
-                .defineQueries({
-                    one: queryBuilder<WorldComponent>().includeEntity().with(0).compile(),
-                    two: queryBuilder<WorldComponent>().includeEntity().withAny([0, 1]).compile(),
-                    three: queryBuilder<WorldComponent>().includeEntity().with(1).with(2).compile(),
-                })
-                .compile();
+            const world = createWorld<WorldComponent, WorldEvent, WorldResources>().withQueries({
+                one: queryBuilder<WorldComponent>().includeEntity().with(0).compile(),
+                two: queryBuilder<WorldComponent>().includeEntity().withAny([0, 1]).compile(),
+                three: queryBuilder<WorldComponent>().includeEntity().with(1).with(2).compile(),
+            });
 
             const one = world.getQuery('one');
-            expectTypeOf<typeof one>().toExtend<{
-                result: [number, { type: 0 }][];
-            }>();
+            expectTypeOf<typeof one>().toExtend<[number, { type: 0 }][]>();
 
             const two = world.getQuery('two');
-            expectTypeOf<typeof two>().toExtend<{
-                result: [number, { type: 0 } | { type: 1; data: { pos: [number, number] } }][];
-            }>();
+            expectTypeOf<typeof two>().toExtend<
+                [number, { type: 0 } | { type: 1; data: { pos: [number, number] } }][]
+            >();
 
             const three = world.getQuery('three');
-            expectTypeOf<typeof three>().toExtend<{
-                result: [
+            expectTypeOf<typeof three>().toExtend<
+                [
                     number,
                     { type: 1; data: { pos: [number, number] } },
                     { type: 2; data: { pos: [number, number, number] } },
-                ][];
-            }>();
+                ][]
+            >();
         });
 
         describe('with queries', () => {
             it('should return the correct query result with single "with" queries when spawning', () => {
-                const world = worldBuilder<WorldComponent, WorldEvent, WorldResources>()
-                    .defineQueries({
-                        one: queryBuilder<WorldComponent>().includeEntity().compile(),
-                        two: queryBuilder<WorldComponent>().includeEntity().with(0).compile(),
-                        three: queryBuilder<WorldComponent>().includeEntity().with(1).compile(),
-                        four: queryBuilder<WorldComponent>().includeEntity().with(2).compile(),
-                        five: queryBuilder<WorldComponent>().with(0).compile(),
-                        six: queryBuilder<WorldComponent>().with(3).compile(),
-                    })
-                    .compile();
+                const world = createWorld<WorldComponent, WorldEvent, WorldResources>().withQueries({
+                    one: queryBuilder<WorldComponent>().includeEntity().compile(),
+                    two: queryBuilder<WorldComponent>().includeEntity().with(0).compile(),
+                    three: queryBuilder<WorldComponent>().includeEntity().with(1).compile(),
+                    four: queryBuilder<WorldComponent>().includeEntity().with(2).compile(),
+                    five: queryBuilder<WorldComponent>().with(0).compile(),
+                    six: queryBuilder<WorldComponent>().with(3).compile(),
+                });
 
-                const one = world.getQuery('one').result;
-                const two = world.getQuery('two').result;
-                const three = world.getQuery('three').result;
-                const four = world.getQuery('four').result;
-                const five = world.getQuery('five').result;
-                const six = world.getQuery('six').result;
+                const one = world.getQuery('one');
+                const two = world.getQuery('two');
+                const three = world.getQuery('three');
+                const four = world.getQuery('four');
+                const five = world.getQuery('five');
+                const six = world.getQuery('six');
 
                 const a: A = { type: 0 };
                 const b: B = { type: 1, data: { pos: [0, 0] } };
@@ -452,23 +442,21 @@ describe('world', () => {
             });
 
             it('should return the correct query result with multiple "with" queries when spawning', () => {
-                const world = worldBuilder<WorldComponent, WorldEvent, WorldResources>()
-                    .defineQueries({
-                        one: queryBuilder<WorldComponent>().includeEntity().with(0).with(1).compile(),
-                        two: queryBuilder<WorldComponent>().includeEntity().with(0).with(2).compile(),
-                        three: queryBuilder<WorldComponent>().includeEntity().with(1).with(0).compile(),
-                        four: queryBuilder<WorldComponent>().with(0).with(2).with(1).compile(),
-                        five: queryBuilder<WorldComponent>().with(0).with(2).with(3).compile(),
-                        six: queryBuilder<WorldComponent>().with(0).with(2).with(3).with(1).with(4).compile(),
-                    })
-                    .compile();
+                const world = createWorld<WorldComponent, WorldEvent, WorldResources>().withQueries({
+                    one: queryBuilder<WorldComponent>().includeEntity().with(0).with(1).compile(),
+                    two: queryBuilder<WorldComponent>().includeEntity().with(0).with(2).compile(),
+                    three: queryBuilder<WorldComponent>().includeEntity().with(1).with(0).compile(),
+                    four: queryBuilder<WorldComponent>().with(0).with(2).with(1).compile(),
+                    five: queryBuilder<WorldComponent>().with(0).with(2).with(3).compile(),
+                    six: queryBuilder<WorldComponent>().with(0).with(2).with(3).with(1).with(4).compile(),
+                });
 
-                const one = world.getQuery('one').result;
-                const two = world.getQuery('two').result;
-                const three = world.getQuery('three').result;
-                const four = world.getQuery('four').result;
-                const five = world.getQuery('five').result;
-                const six = world.getQuery('six').result;
+                const one = world.getQuery('one');
+                const two = world.getQuery('two');
+                const three = world.getQuery('three');
+                const four = world.getQuery('four');
+                const five = world.getQuery('five');
+                const six = world.getQuery('six');
 
                 const a: A = { type: 0 };
                 const b: B = { type: 1, data: { pos: [0, 0] } };
@@ -520,15 +508,13 @@ describe('world', () => {
             });
 
             it('should return the correct query result with single "with" queries when adding a component', () => {
-                const world = worldBuilder<WorldComponent, WorldEvent, WorldResources>()
-                    .defineQueries({
-                        one: queryBuilder<WorldComponent>().includeEntity().with(0).with(1).compile(),
-                        two: queryBuilder<WorldComponent>().with(0).with(1).compile(),
-                    })
-                    .compile();
+                const world = createWorld<WorldComponent, WorldEvent, WorldResources>().withQueries({
+                    one: queryBuilder<WorldComponent>().includeEntity().with(0).with(1).compile(),
+                    two: queryBuilder<WorldComponent>().with(0).with(1).compile(),
+                });
 
-                const one = world.getQuery('one').result;
-                const two = world.getQuery('two').result;
+                const one = world.getQuery('one');
+                const two = world.getQuery('two');
 
                 const a: A = { type: 0 };
                 const b: B = { type: 1, data: { pos: [0, 0] } };
@@ -569,17 +555,15 @@ describe('world', () => {
             });
 
             it('should return the correct query result with single "with" queries when removing a component', () => {
-                const world = worldBuilder<WorldComponent, WorldEvent, WorldResources>()
-                    .defineQueries({
-                        one: queryBuilder<WorldComponent>().includeEntity().with(0).with(1).compile(),
-                        two: queryBuilder<WorldComponent>().with(0).with(1).compile(),
-                        three: queryBuilder<WorldComponent>().with(2).with(3).compile(),
-                    })
-                    .compile();
+                const world = createWorld<WorldComponent, WorldEvent, WorldResources>().withQueries({
+                    one: queryBuilder<WorldComponent>().includeEntity().with(0).with(1).compile(),
+                    two: queryBuilder<WorldComponent>().with(0).with(1).compile(),
+                    three: queryBuilder<WorldComponent>().with(2).with(3).compile(),
+                });
 
-                const one = world.getQuery('one').result;
-                const two = world.getQuery('two').result;
-                const three = world.getQuery('three').result;
+                const one = world.getQuery('one');
+                const two = world.getQuery('two');
+                const three = world.getQuery('three');
 
                 const a: A = { type: 0 };
                 const b: B = { type: 1, data: { pos: [0, 0] } };
@@ -626,17 +610,15 @@ describe('world', () => {
             });
 
             it('should return the correct query result with single "with" queries when despwaning entities', () => {
-                const world = worldBuilder<WorldComponent, WorldEvent, WorldResources>()
-                    .defineQueries({
-                        one: queryBuilder<WorldComponent>().includeEntity().with(0).with(1).compile(),
-                        two: queryBuilder<WorldComponent>().with(0).with(1).compile(),
-                        three: queryBuilder<WorldComponent>().with(2).with(3).compile(),
-                    })
-                    .compile();
+                const world = createWorld<WorldComponent, WorldEvent, WorldResources>().withQueries({
+                    one: queryBuilder<WorldComponent>().includeEntity().with(0).with(1).compile(),
+                    two: queryBuilder<WorldComponent>().with(0).with(1).compile(),
+                    three: queryBuilder<WorldComponent>().with(2).with(3).compile(),
+                });
 
-                const one = world.getQuery('one').result;
-                const two = world.getQuery('two').result;
-                const three = world.getQuery('three').result;
+                const one = world.getQuery('one');
+                const two = world.getQuery('two');
+                const three = world.getQuery('three');
 
                 const a: A = { type: 0 };
                 const b: B = { type: 1, data: { pos: [0, 0] } };
@@ -683,17 +665,15 @@ describe('world', () => {
             });
 
             it('should return the correct final result with single "with" queries when performing various updates', () => {
-                const world = worldBuilder<WorldComponent, WorldEvent, WorldResources>()
-                    .defineQueries({
-                        one: queryBuilder<WorldComponent>().includeEntity().with(0).with(1).compile(),
-                        two: queryBuilder<WorldComponent>().includeEntity().with(0).with(2).compile(),
-                        three: queryBuilder<WorldComponent>().includeEntity().with(1).with(2).compile(),
-                    })
-                    .compile();
+                const world = createWorld<WorldComponent, WorldEvent, WorldResources>().withQueries({
+                    one: queryBuilder<WorldComponent>().includeEntity().with(0).with(1).compile(),
+                    two: queryBuilder<WorldComponent>().includeEntity().with(0).with(2).compile(),
+                    three: queryBuilder<WorldComponent>().includeEntity().with(1).with(2).compile(),
+                });
 
-                const one = world.getQuery('one').result;
-                const two = world.getQuery('two').result;
-                const three = world.getQuery('three').result;
+                const one = world.getQuery('one');
+                const two = world.getQuery('two');
+                const three = world.getQuery('three');
 
                 const a: A = { type: 0 };
                 const b: B = { type: 1, data: { pos: [0, 0] } };
@@ -812,26 +792,24 @@ describe('world', () => {
 
                 type WorldComp = T00 | T01 | T32 | T33;
 
-                const world = worldBuilder<WorldComp, WorldEvent, WorldResources>()
-                    .defineQueries({
-                        one: queryBuilder<WorldComp>()
-                            .includeEntity()
-                            .with(T.T00)
-                            .with(T.T01)
-                            .with(T.T32)
-                            .with(T.T33)
-                            .map(([id, t00, t01, t32, t33]) => ({
-                                id,
-                                t00: t00.data,
-                                t01: t01.data,
-                                t32: t32.data,
-                                t33: t33.data,
-                            }))
-                            .compile(),
-                    })
-                    .compile();
+                const world = createWorld<WorldComp, WorldEvent, WorldResources>().withQueries({
+                    one: queryBuilder<WorldComp>()
+                        .includeEntity()
+                        .with(T.T00)
+                        .with(T.T01)
+                        .with(T.T32)
+                        .with(T.T33)
+                        .map(([id, t00, t01, t32, t33]) => ({
+                            id,
+                            t00: t00.data,
+                            t01: t01.data,
+                            t32: t32.data,
+                            t33: t33.data,
+                        }))
+                        .compile(),
+                });
 
-                const one = world.getQuery('one').result;
+                const one = world.getQuery('one');
 
                 const t00: T00 = { type: 0, data: { a: true } };
                 const t01: T01 = { type: 1, data: { b: 'foo' } };
@@ -962,21 +940,19 @@ describe('world', () => {
 
         describe('withAny queries', () => {
             it('should return the correct query result with single "withAny" queries when spawning', () => {
-                const world = worldBuilder<WorldComponent, WorldEvent, WorldResources>()
-                    .defineQueries({
-                        one: queryBuilder<WorldComponent>().includeEntity().withAny([0, 1]).compile(),
-                        two: queryBuilder<WorldComponent>().includeEntity().withAny([1, 2]).compile(),
-                        three: queryBuilder<WorldComponent>().includeEntity().withAny([0, 1, 2]).compile(),
-                        four: queryBuilder<WorldComponent>().withAny([0, 1]).compile(),
-                        five: queryBuilder<WorldComponent>().withAny([0, 3]).compile(),
-                    })
-                    .compile();
+                const world = createWorld<WorldComponent, WorldEvent, WorldResources>().withQueries({
+                    one: queryBuilder<WorldComponent>().includeEntity().withAny([0, 1]).compile(),
+                    two: queryBuilder<WorldComponent>().includeEntity().withAny([1, 2]).compile(),
+                    three: queryBuilder<WorldComponent>().includeEntity().withAny([0, 1, 2]).compile(),
+                    four: queryBuilder<WorldComponent>().withAny([0, 1]).compile(),
+                    five: queryBuilder<WorldComponent>().withAny([0, 3]).compile(),
+                });
 
-                const one = world.getQuery('one').result;
-                const two = world.getQuery('two').result;
-                const three = world.getQuery('three').result;
-                const four = world.getQuery('four').result;
-                const five = world.getQuery('five').result;
+                const one = world.getQuery('one');
+                const two = world.getQuery('two');
+                const three = world.getQuery('three');
+                const four = world.getQuery('four');
+                const five = world.getQuery('five');
 
                 const a: A = { type: 0 };
                 const b: B = { type: 1, data: { pos: [0, 0] } };
@@ -1004,15 +980,13 @@ describe('world', () => {
             });
 
             it('should return the correct query result with single "withAny" query when adding a component', () => {
-                const world = worldBuilder<WorldComponent, WorldEvent, WorldResources>()
-                    .defineQueries({
-                        one: queryBuilder<WorldComponent>().includeEntity().withAny([0, 1]).compile(),
-                        two: queryBuilder<WorldComponent>().withAny([1, 2]).compile(),
-                    })
-                    .compile();
+                const world = createWorld<WorldComponent, WorldEvent, WorldResources>().withQueries({
+                    one: queryBuilder<WorldComponent>().includeEntity().withAny([0, 1]).compile(),
+                    two: queryBuilder<WorldComponent>().withAny([1, 2]).compile(),
+                });
 
-                const one = world.getQuery('one').result;
-                const two = world.getQuery('two').result;
+                const one = world.getQuery('one');
+                const two = world.getQuery('two');
 
                 const a: A = { type: 0 };
                 const b: B = { type: 1, data: { pos: [0, 0] } };
@@ -1039,17 +1013,15 @@ describe('world', () => {
             });
 
             it('should return the correct query result with single "withAny" query when removing a component', () => {
-                const world = worldBuilder<WorldComponent, WorldEvent, WorldResources>()
-                    .defineQueries({
-                        one: queryBuilder<WorldComponent>().includeEntity().withAny([0, 1]).compile(),
-                        two: queryBuilder<WorldComponent>().withAny([1, 2]).compile(),
-                        three: queryBuilder<WorldComponent>().withAny([3, 4]).compile(),
-                    })
-                    .compile();
+                const world = createWorld<WorldComponent, WorldEvent, WorldResources>().withQueries({
+                    one: queryBuilder<WorldComponent>().includeEntity().withAny([0, 1]).compile(),
+                    two: queryBuilder<WorldComponent>().withAny([1, 2]).compile(),
+                    three: queryBuilder<WorldComponent>().withAny([3, 4]).compile(),
+                });
 
-                const one = world.getQuery('one').result;
-                const two = world.getQuery('two').result;
-                const three = world.getQuery('three').result;
+                const one = world.getQuery('one');
+                const two = world.getQuery('two');
+                const three = world.getQuery('three');
 
                 const a: A = { type: 0 };
                 const b: B = { type: 1, data: { pos: [0, 0] } };
@@ -1086,17 +1058,15 @@ describe('world', () => {
             });
 
             it('should return the correct query result with single "withAny" query when despawning entities', () => {
-                const world = worldBuilder<WorldComponent, WorldEvent, WorldResources>()
-                    .defineQueries({
-                        one: queryBuilder<WorldComponent>().includeEntity().withAny([0, 1]).compile(),
-                        two: queryBuilder<WorldComponent>().withAny([1, 2]).compile(),
-                        three: queryBuilder<WorldComponent>().withAny([3, 4]).compile(),
-                    })
-                    .compile();
+                const world = createWorld<WorldComponent, WorldEvent, WorldResources>().withQueries({
+                    one: queryBuilder<WorldComponent>().includeEntity().withAny([0, 1]).compile(),
+                    two: queryBuilder<WorldComponent>().withAny([1, 2]).compile(),
+                    three: queryBuilder<WorldComponent>().withAny([3, 4]).compile(),
+                });
 
-                const one = world.getQuery('one').result;
-                const two = world.getQuery('two').result;
-                const three = world.getQuery('three').result;
+                const one = world.getQuery('one');
+                const two = world.getQuery('two');
+                const three = world.getQuery('three');
 
                 const a: A = { type: 0 };
                 const b: B = { type: 1, data: { pos: [0, 0] } };
@@ -1182,22 +1152,20 @@ describe('world', () => {
 
                 type WorldComp = T00 | T01 | T32 | T33;
 
-                const world = worldBuilder<WorldComp, WorldEvent, WorldResources>()
-                    .defineQueries({
-                        one: queryBuilder<WorldComp>()
-                            .includeEntity()
-                            .withAny([T.T00, T.T01])
-                            .withAny([T.T32, T.T33])
-                            .map(([id, t00_01, t32_33]) => ({
-                                id,
-                                t00_01: t00_01.data,
-                                t32_33: t32_33.data,
-                            }))
-                            .compile(),
-                    })
-                    .compile();
+                const world = createWorld<WorldComp, WorldEvent, WorldResources>().withQueries({
+                    one: queryBuilder<WorldComp>()
+                        .includeEntity()
+                        .withAny([T.T00, T.T01])
+                        .withAny([T.T32, T.T33])
+                        .map(([id, t00_01, t32_33]) => ({
+                            id,
+                            t00_01: t00_01.data,
+                            t32_33: t32_33.data,
+                        }))
+                        .compile(),
+                });
 
-                const one = world.getQuery('one').result;
+                const one = world.getQuery('one');
 
                 const t00: T00 = { type: 0, data: { a: true } };
                 const t01: T01 = { type: 1, data: { b: 'foo' } };
@@ -1364,22 +1332,20 @@ describe('world', () => {
 
                 type WorldComp = T00 | T01 | T32 | T33;
 
-                const world = worldBuilder<WorldComp, WorldEvent, WorldResources>()
-                    .defineQueries({
-                        testQuery: queryBuilder<WorldComp>()
-                            .includeEntity()
-                            .withAny([T.T00, T.T01])
-                            .withAny([T.T32, T.T33])
-                            .map(([id, comp1, comp2]) => ({
-                                id,
-                                first: comp1.data,
-                                second: comp2.data,
-                            }))
-                            .compile(),
-                    })
-                    .compile();
+                const world = createWorld<WorldComp, WorldEvent, WorldResources>().withQueries({
+                    testQuery: queryBuilder<WorldComp>()
+                        .includeEntity()
+                        .withAny([T.T00, T.T01])
+                        .withAny([T.T32, T.T33])
+                        .map(([id, comp1, comp2]) => ({
+                            id,
+                            first: comp1.data,
+                            second: comp2.data,
+                        }))
+                        .compile(),
+                });
 
-                const query = world.getQuery('testQuery').result;
+                const query = world.getQuery('testQuery');
 
                 const t00: T00 = { type: 0, data: { a: 'has-t00' } };
                 const t32: T32 = { type: 32, data: { c: 'has-t32' } };
@@ -1431,15 +1397,13 @@ describe('world', () => {
 
         describe('combined with and withAny queries', () => {
             it('should respect the query order and ignore the component order', () => {
-                const world = worldBuilder<WorldComponent, WorldEvent, WorldResources>()
-                    .defineQueries({
-                        one: queryBuilder<WorldComponent>().includeEntity().with(0).with(1).compile(),
-                        two: queryBuilder<WorldComponent>().includeEntity().with(1).with(0).compile(),
-                    })
-                    .compile();
+                const world = createWorld<WorldComponent, WorldEvent, WorldResources>().withQueries({
+                    one: queryBuilder<WorldComponent>().includeEntity().with(0).with(1).compile(),
+                    two: queryBuilder<WorldComponent>().includeEntity().with(1).with(0).compile(),
+                });
 
-                const one = world.getQuery('one').result;
-                const two = world.getQuery('two').result;
+                const one = world.getQuery('one');
+                const two = world.getQuery('two');
 
                 const a: A = { type: 0 };
                 const b: B = { type: 1, data: { pos: [0, 0] } };
@@ -1458,36 +1422,34 @@ describe('world', () => {
             });
 
             it('should return the correct query result for a complex query (with and without map)', () => {
-                const world = worldBuilder<WorldComponent, WorldEvent, WorldResources>()
-                    .defineQueries({
-                        one: queryBuilder<WorldComponent>().with(0).with(1).withAny([2, 3]).with(4).compile(),
-                        two: queryBuilder<WorldComponent>()
-                            .includeEntity()
-                            .with(0)
-                            .with(1)
-                            .withAny([2, 3])
-                            .with(4)
-                            .compile(),
-                        three: queryBuilder<WorldComponent>()
-                            .includeEntity()
-                            .with(0)
-                            .with(1)
-                            .withAny([2, 3])
-                            .with(4)
-                            .map(([id, a, b, cOrD, e]) => ({
-                                id,
-                                a: a.type,
-                                b: b.data.pos,
-                                cOrD: cOrD.type,
-                                e: e.data.health,
-                            }))
-                            .compile(),
-                    })
-                    .compile();
+                const world = createWorld<WorldComponent, WorldEvent, WorldResources>().withQueries({
+                    one: queryBuilder<WorldComponent>().with(0).with(1).withAny([2, 3]).with(4).compile(),
+                    two: queryBuilder<WorldComponent>()
+                        .includeEntity()
+                        .with(0)
+                        .with(1)
+                        .withAny([2, 3])
+                        .with(4)
+                        .compile(),
+                    three: queryBuilder<WorldComponent>()
+                        .includeEntity()
+                        .with(0)
+                        .with(1)
+                        .withAny([2, 3])
+                        .with(4)
+                        .map(([id, a, b, cOrD, e]) => ({
+                            id,
+                            a: a.type,
+                            b: b.data.pos,
+                            cOrD: cOrD.type,
+                            e: e.data.health,
+                        }))
+                        .compile(),
+                });
 
-                const one = world.getQuery('one').result;
-                const two = world.getQuery('two').result;
-                const three = world.getQuery('three').result;
+                const one = world.getQuery('one');
+                const two = world.getQuery('two');
+                const three = world.getQuery('three');
 
                 const a: A = { type: 0 };
                 const b: B = { type: 1, data: { pos: [0, 0] } };
@@ -1549,121 +1511,20 @@ describe('world', () => {
     });
 
     describe('systems', () => {
-        it('should get and set the active state of a system by name', () => {
-            const spawnWorld = createAsyncSystem({ stage: 'startup', fn: async () => {} });
-            const spawnPlaver = createAsyncSystem({ stage: 'startup', fn: async () => {} });
-            const spawnCamera = createAsyncSystem({ stage: 'startup', fn: async () => {} });
-
-            const handleInput = createSystem({ stage: 'update', fn: () => {} });
-            const applyGravity = createSystem({ stage: 'update', fn: () => {} });
-            const handleMovement = createSystem({ stage: 'update', fn: () => {} });
-            const checkCollisions = createSystem({ stage: 'update', fn: () => {} });
-
-            const depthPreRenderPass = createAsyncSystem({ stage: 'render', fn: async () => {} });
-            const shadowRenderPass = createAsyncSystem({ stage: 'render', fn: async () => {} });
-            const mainRenderPass = createSystem({ stage: 'render', fn: () => {} });
-            const postProcessRenderPass = createSystem({ stage: 'render', fn: () => {} });
-
-            const world = worldBuilder<WorldComponent>()
-                .defineSystemGraph({
-                    systems: {
-                        spawnWorld,
-                        spawnPlaver,
-                        spawnCamera,
-                        handleInput,
-                        applyGravity,
-                        handleMovement,
-                        checkCollisions,
-                        depthPreRenderPass,
-                        shadowRenderPass,
-                        mainRenderPass,
-                        postProcessRenderPass,
-                    },
-                    orderByStage: {
-                        startup: [['spawnPlaver', 'spawnWorld'], 'spawnCamera'],
-                        update: ['handleInput', 'applyGravity', 'handleMovement', 'checkCollisions'],
-                        render: [['depthPreRenderPass', 'shadowRenderPass'], 'mainRenderPass', 'postProcessRenderPass'],
-                    },
-                })
-                .compile();
-
-            expect({
-                a: world.getSystemActiveState('spawnCamera'),
-                b: world.getSystemActiveState('spawnPlaver'),
-                c: world.getSystemActiveState('spawnWorld'),
-
-                d: world.getSystemActiveState('handleInput'),
-                e: world.getSystemActiveState('applyGravity'),
-                f: world.getSystemActiveState('handleMovement'),
-                g: world.getSystemActiveState('checkCollisions'),
-
-                h: world.getSystemActiveState('depthPreRenderPass'),
-                i: world.getSystemActiveState('shadowRenderPass'),
-                j: world.getSystemActiveState('mainRenderPass'),
-                k: world.getSystemActiveState('postProcessRenderPass'),
-            }).toEqual({
-                a: true,
-                b: true,
-                c: true,
-                d: true,
-                e: true,
-                f: true,
-                g: true,
-                h: true,
-                i: true,
-                j: true,
-                k: true,
-            });
-
-            world.setSystemActiveState('spawnCamera', false);
-            world.setSystemActiveState('spawnWorld', false);
-            world.setSystemActiveState('handleInput', false);
-            world.setSystemActiveState('shadowRenderPass', false);
-            world.setSystemActiveState('postProcessRenderPass', false);
-
-            expect({
-                a: world.getSystemActiveState('spawnCamera'),
-                b: world.getSystemActiveState('spawnPlaver'),
-                c: world.getSystemActiveState('spawnWorld'),
-
-                d: world.getSystemActiveState('handleInput'),
-                e: world.getSystemActiveState('applyGravity'),
-                f: world.getSystemActiveState('handleMovement'),
-                g: world.getSystemActiveState('checkCollisions'),
-
-                h: world.getSystemActiveState('depthPreRenderPass'),
-                i: world.getSystemActiveState('shadowRenderPass'),
-                j: world.getSystemActiveState('mainRenderPass'),
-                k: world.getSystemActiveState('postProcessRenderPass'),
-            }).toEqual({
-                a: false,
-                b: true,
-                c: false,
-                d: false,
-                e: true,
-                f: true,
-                g: true,
-                h: true,
-                i: false,
-                j: true,
-                k: false,
-            });
-        });
-
         it('should allow to pass the result of defineSystemGraph as well', () => {
-            const spawnWorld = createAsyncSystem({ stage: 'startup', fn: async () => {} });
-            const spawnPlaver = createAsyncSystem({ stage: 'startup', fn: async () => {} });
-            const spawnCamera = createAsyncSystem({ stage: 'startup', fn: async () => {} });
+            const spawnWorld = defineAsyncSystem({ stage: 'startup' });
+            const spawnPlaver = defineAsyncSystem({ stage: 'startup' });
+            const spawnCamera = defineAsyncSystem({ stage: 'startup' });
 
-            const handleInput = createSystem({ stage: 'update', fn: () => {} });
-            const applyGravity = createSystem({ stage: 'update', fn: () => {} });
-            const handleMovement = createSystem({ stage: 'update', fn: () => {} });
-            const checkCollisions = createSystem({ stage: 'update', fn: () => {} });
+            const handleInput = defineSystem({ stage: 'update' });
+            const applyGravity = defineSystem({ stage: 'update' });
+            const handleMovement = defineSystem({ stage: 'update' });
+            const checkCollisions = defineSystem({ stage: 'update' });
 
-            const depthPreRenderPass = createAsyncSystem({ stage: 'render', fn: async () => {} });
-            const shadowRenderPass = createAsyncSystem({ stage: 'render', fn: async () => {} });
-            const mainRenderPass = createSystem({ stage: 'render', fn: () => {} });
-            const postProcessRenderPass = createSystem({ stage: 'render', fn: () => {} });
+            const depthPreRenderPass = defineAsyncSystem({ stage: 'render' });
+            const shadowRenderPass = defineAsyncSystem({ stage: 'render' });
+            const mainRenderPass = defineSystem({ stage: 'render' });
+            const postProcessRenderPass = defineSystem({ stage: 'render' });
 
             const systemGraph = defineSystemGraph({
                 systems: {
@@ -1686,7 +1547,7 @@ describe('world', () => {
                 },
             });
 
-            const world = worldBuilder<WorldComponent>().defineSystemGraph(systemGraph).compile();
+            const world = createWorld<WorldComponent>().withSystemGraph(systemGraph);
 
             expect({
                 a: world.getSystemActiveState('spawnCamera'),

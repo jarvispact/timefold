@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-unsafe-assignment */
-import { expect, it, describe } from 'vitest';
-import { defineSystemGraph, createSystem, mergeSystemGraphs, createAsyncSystem } from './system';
+import { describe, expect, it } from 'vitest';
+import { defineAsyncSystem, defineSystem, defineSystemGraph, mergeSystemGraphs } from './system';
 
 describe('system', () => {
     describe('defineSystemGraph', () => {
@@ -8,9 +8,9 @@ describe('system', () => {
             it('should generate the system order only for the update stage when not specified by the user', () => {
                 const result = defineSystemGraph({
                     systems: {
-                        update1: createSystem({ stage: 'update', fn: () => {} }),
-                        update2: createSystem({ stage: 'update', fn: () => {} }),
-                        update3: createSystem({ stage: 'update', fn: () => {} }),
+                        update1: defineSystem({ stage: 'update' }),
+                        update2: defineSystem({ stage: 'update' }),
+                        update3: defineSystem({ stage: 'update' }),
                     },
                 });
 
@@ -25,21 +25,21 @@ describe('system', () => {
             it('should generate the system order for all stages when not specified by the user', () => {
                 const result = defineSystemGraph({
                     systems: {
-                        startup1: createSystem({ stage: 'startup', fn: () => {} }),
-                        startup2: createSystem({ stage: 'startup', fn: () => {} }),
-                        startup3: createSystem({ stage: 'startup', fn: () => {} }),
+                        startup1: defineSystem({ stage: 'startup' }),
+                        startup2: defineSystem({ stage: 'startup' }),
+                        startup3: defineSystem({ stage: 'startup' }),
 
-                        update1: createSystem({ stage: 'update', fn: () => {} }),
-                        update2: createSystem({ stage: 'update', fn: () => {} }),
-                        update3: createSystem({ stage: 'update', fn: () => {} }),
+                        update1: defineSystem({ stage: 'update' }),
+                        update2: defineSystem({ stage: 'update' }),
+                        update3: defineSystem({ stage: 'update' }),
 
-                        render1: createSystem({ stage: 'render', fn: () => {} }),
-                        render2: createSystem({ stage: 'render', fn: () => {} }),
-                        render3: createSystem({ stage: 'render', fn: () => {} }),
+                        render1: defineSystem({ stage: 'render' }),
+                        render2: defineSystem({ stage: 'render' }),
+                        render3: defineSystem({ stage: 'render' }),
 
-                        cleanup1: createSystem({ stage: 'cleanup', fn: () => {} }),
-                        cleanup2: createSystem({ stage: 'cleanup', fn: () => {} }),
-                        cleanup3: createSystem({ stage: 'cleanup', fn: () => {} }),
+                        cleanup1: defineSystem({ stage: 'cleanup' }),
+                        cleanup2: defineSystem({ stage: 'cleanup' }),
+                        cleanup3: defineSystem({ stage: 'cleanup' }),
                     },
                 });
 
@@ -54,13 +54,13 @@ describe('system', () => {
             it('should respect the order from the user when defined only for one stage', () => {
                 const result = defineSystemGraph({
                     systems: {
-                        startup1: createSystem({ stage: 'startup', fn: () => {} }),
-                        startup2: createSystem({ stage: 'startup', fn: () => {} }),
-                        startup3: createSystem({ stage: 'startup', fn: () => {} }),
+                        startup1: defineSystem({ stage: 'startup' }),
+                        startup2: defineSystem({ stage: 'startup' }),
+                        startup3: defineSystem({ stage: 'startup' }),
 
-                        update1: createSystem({ stage: 'update', fn: () => {} }),
-                        update2: createSystem({ stage: 'update', fn: () => {} }),
-                        update3: createSystem({ stage: 'update', fn: () => {} }),
+                        update1: defineSystem({ stage: 'update' }),
+                        update2: defineSystem({ stage: 'update' }),
+                        update3: defineSystem({ stage: 'update' }),
                     },
                     orderByStage: {
                         update: ['update3', 'update2', 'update1'],
@@ -78,13 +78,13 @@ describe('system', () => {
             it('should respect the order from the user when defined for all stages', () => {
                 const result = defineSystemGraph({
                     systems: {
-                        startup1: createSystem({ stage: 'startup', fn: () => {} }),
-                        startup2: createSystem({ stage: 'startup', fn: () => {} }),
-                        startup3: createSystem({ stage: 'startup', fn: () => {} }),
+                        startup1: defineSystem({ stage: 'startup' }),
+                        startup2: defineSystem({ stage: 'startup' }),
+                        startup3: defineSystem({ stage: 'startup' }),
 
-                        update1: createSystem({ stage: 'update', fn: () => {} }),
-                        update2: createSystem({ stage: 'update', fn: () => {} }),
-                        update3: createSystem({ stage: 'update', fn: () => {} }),
+                        update1: defineSystem({ stage: 'update' }),
+                        update2: defineSystem({ stage: 'update' }),
+                        update3: defineSystem({ stage: 'update' }),
                     },
                     orderByStage: {
                         startup: ['startup2', 'startup1', 'startup3'],
@@ -104,9 +104,9 @@ describe('system', () => {
                 const buildGraph = () =>
                     defineSystemGraph({
                         systems: {
-                            startup1: createSystem({ stage: 'startup', fn: () => {} }),
-                            startup2: createSystem({ stage: 'startup', fn: () => {} }),
-                            startup3: createSystem({ stage: 'startup', fn: () => {} }),
+                            startup1: defineSystem({ stage: 'startup' }),
+                            startup2: defineSystem({ stage: 'startup' }),
+                            startup3: defineSystem({ stage: 'startup' }),
                         },
                         orderByStage: {
                             startup: ['startup2', 'startup1'],
@@ -122,9 +122,9 @@ describe('system', () => {
                 const buildGraph = () =>
                     defineSystemGraph({
                         systems: {
-                            startup1: createSystem({ stage: 'startup', fn: () => {} }),
-                            startup2: createSystem({ stage: 'startup', fn: () => {} }),
-                            startup3: createSystem({ stage: 'startup', fn: () => {} }),
+                            startup1: defineSystem({ stage: 'startup' }),
+                            startup2: defineSystem({ stage: 'startup' }),
+                            startup3: defineSystem({ stage: 'startup' }),
                         },
                         orderByStage: {
                             startup: ['startup2', 'startup1', 'startup3', 'startup2'],
@@ -141,9 +141,9 @@ describe('system', () => {
             it('should generate the system order only for the update stage when not specified by the user', () => {
                 const result = defineSystemGraph({
                     systems: {
-                        update1: createAsyncSystem({ stage: 'update', fn: async () => {} }),
-                        update2: createAsyncSystem({ stage: 'update', fn: async () => {} }),
-                        update3: createAsyncSystem({ stage: 'update', fn: async () => {} }),
+                        update1: defineAsyncSystem({ stage: 'update' }),
+                        update2: defineAsyncSystem({ stage: 'update' }),
+                        update3: defineAsyncSystem({ stage: 'update' }),
                     },
                 });
 
@@ -158,21 +158,21 @@ describe('system', () => {
             it('should generate the system order for all stages when not specified by the user', () => {
                 const result = defineSystemGraph({
                     systems: {
-                        startup1: createAsyncSystem({ stage: 'startup', fn: async () => {} }),
-                        startup2: createAsyncSystem({ stage: 'startup', fn: async () => {} }),
-                        startup3: createAsyncSystem({ stage: 'startup', fn: async () => {} }),
+                        startup1: defineAsyncSystem({ stage: 'startup' }),
+                        startup2: defineAsyncSystem({ stage: 'startup' }),
+                        startup3: defineAsyncSystem({ stage: 'startup' }),
 
-                        update1: createAsyncSystem({ stage: 'update', fn: async () => {} }),
-                        update2: createAsyncSystem({ stage: 'update', fn: async () => {} }),
-                        update3: createAsyncSystem({ stage: 'update', fn: async () => {} }),
+                        update1: defineAsyncSystem({ stage: 'update' }),
+                        update2: defineAsyncSystem({ stage: 'update' }),
+                        update3: defineAsyncSystem({ stage: 'update' }),
 
-                        render1: createAsyncSystem({ stage: 'render', fn: async () => {} }),
-                        render2: createAsyncSystem({ stage: 'render', fn: async () => {} }),
-                        render3: createAsyncSystem({ stage: 'render', fn: async () => {} }),
+                        render1: defineAsyncSystem({ stage: 'render' }),
+                        render2: defineAsyncSystem({ stage: 'render' }),
+                        render3: defineAsyncSystem({ stage: 'render' }),
 
-                        cleanup1: createAsyncSystem({ stage: 'cleanup', fn: async () => {} }),
-                        cleanup2: createAsyncSystem({ stage: 'cleanup', fn: async () => {} }),
-                        cleanup3: createAsyncSystem({ stage: 'cleanup', fn: async () => {} }),
+                        cleanup1: defineAsyncSystem({ stage: 'cleanup' }),
+                        cleanup2: defineAsyncSystem({ stage: 'cleanup' }),
+                        cleanup3: defineAsyncSystem({ stage: 'cleanup' }),
                     },
                 });
 
@@ -187,13 +187,13 @@ describe('system', () => {
             it('should respect the order from the user when defined only for one stage', () => {
                 const result = defineSystemGraph({
                     systems: {
-                        startup1: createAsyncSystem({ stage: 'startup', fn: async () => {} }),
-                        startup2: createAsyncSystem({ stage: 'startup', fn: async () => {} }),
-                        startup3: createAsyncSystem({ stage: 'startup', fn: async () => {} }),
+                        startup1: defineAsyncSystem({ stage: 'startup' }),
+                        startup2: defineAsyncSystem({ stage: 'startup' }),
+                        startup3: defineAsyncSystem({ stage: 'startup' }),
 
-                        update1: createAsyncSystem({ stage: 'update', fn: async () => {} }),
-                        update2: createAsyncSystem({ stage: 'update', fn: async () => {} }),
-                        update3: createAsyncSystem({ stage: 'update', fn: async () => {} }),
+                        update1: defineAsyncSystem({ stage: 'update' }),
+                        update2: defineAsyncSystem({ stage: 'update' }),
+                        update3: defineAsyncSystem({ stage: 'update' }),
                     },
                     orderByStage: {
                         update: [['update3', 'update2'], 'update1'],
@@ -211,13 +211,13 @@ describe('system', () => {
             it('should respect the order from the user when defined for all stages', () => {
                 const result = defineSystemGraph({
                     systems: {
-                        startup1: createAsyncSystem({ stage: 'startup', fn: async () => {} }),
-                        startup2: createAsyncSystem({ stage: 'startup', fn: async () => {} }),
-                        startup3: createAsyncSystem({ stage: 'startup', fn: async () => {} }),
+                        startup1: defineAsyncSystem({ stage: 'startup' }),
+                        startup2: defineAsyncSystem({ stage: 'startup' }),
+                        startup3: defineAsyncSystem({ stage: 'startup' }),
 
-                        update1: createAsyncSystem({ stage: 'update', fn: async () => {} }),
-                        update2: createAsyncSystem({ stage: 'update', fn: async () => {} }),
-                        update3: createAsyncSystem({ stage: 'update', fn: async () => {} }),
+                        update1: defineAsyncSystem({ stage: 'update' }),
+                        update2: defineAsyncSystem({ stage: 'update' }),
+                        update3: defineAsyncSystem({ stage: 'update' }),
                     },
                     orderByStage: {
                         startup: [['startup2', 'startup1'], 'startup3'],
@@ -237,9 +237,9 @@ describe('system', () => {
                 const buildGraph = () =>
                     defineSystemGraph({
                         systems: {
-                            startup1: createAsyncSystem({ stage: 'startup', fn: async () => {} }),
-                            startup2: createAsyncSystem({ stage: 'startup', fn: async () => {} }),
-                            startup3: createAsyncSystem({ stage: 'startup', fn: async () => {} }),
+                            startup1: defineAsyncSystem({ stage: 'startup' }),
+                            startup2: defineAsyncSystem({ stage: 'startup' }),
+                            startup3: defineAsyncSystem({ stage: 'startup' }),
                         },
                         orderByStage: {
                             startup: [['startup2', 'startup1']],
@@ -255,9 +255,9 @@ describe('system', () => {
                 const buildGraph = () =>
                     defineSystemGraph({
                         systems: {
-                            startup1: createAsyncSystem({ stage: 'startup', fn: async () => {} }),
-                            startup2: createAsyncSystem({ stage: 'startup', fn: async () => {} }),
-                            startup3: createAsyncSystem({ stage: 'startup', fn: async () => {} }),
+                            startup1: defineAsyncSystem({ stage: 'startup' }),
+                            startup2: defineAsyncSystem({ stage: 'startup' }),
+                            startup3: defineAsyncSystem({ stage: 'startup' }),
                         },
                         orderByStage: {
                             startup: ['startup2', ['startup1', 'startup3'], 'startup2'],
@@ -274,9 +274,9 @@ describe('system', () => {
             it('should generate the system order only for the update stage when not specified by the user', () => {
                 const result = defineSystemGraph({
                     systems: {
-                        update1: createSystem({ stage: 'update', fn: () => {} }),
-                        update2: createSystem({ stage: 'update', fn: () => {} }),
-                        update3: createAsyncSystem({ stage: 'update', fn: async () => {} }),
+                        update1: defineSystem({ stage: 'update' }),
+                        update2: defineSystem({ stage: 'update' }),
+                        update3: defineAsyncSystem({ stage: 'update' }),
                     },
                 });
 
@@ -291,21 +291,21 @@ describe('system', () => {
             it('should generate the system order for all stages when not specified by the user', () => {
                 const result = defineSystemGraph({
                     systems: {
-                        startup1: createAsyncSystem({ stage: 'startup', fn: async () => {} }),
-                        startup2: createAsyncSystem({ stage: 'startup', fn: async () => {} }),
-                        startup3: createSystem({ stage: 'startup', fn: () => {} }),
+                        startup1: defineAsyncSystem({ stage: 'startup' }),
+                        startup2: defineAsyncSystem({ stage: 'startup' }),
+                        startup3: defineSystem({ stage: 'startup' }),
 
-                        update1: createSystem({ stage: 'update', fn: () => {} }),
-                        update2: createSystem({ stage: 'update', fn: () => {} }),
-                        update3: createAsyncSystem({ stage: 'update', fn: async () => {} }),
+                        update1: defineSystem({ stage: 'update' }),
+                        update2: defineSystem({ stage: 'update' }),
+                        update3: defineAsyncSystem({ stage: 'update' }),
 
-                        render1: createSystem({ stage: 'render', fn: () => {} }),
-                        render2: createAsyncSystem({ stage: 'render', fn: async () => {} }),
-                        render3: createSystem({ stage: 'render', fn: () => {} }),
+                        render1: defineSystem({ stage: 'render' }),
+                        render2: defineAsyncSystem({ stage: 'render' }),
+                        render3: defineSystem({ stage: 'render' }),
 
-                        cleanup1: createAsyncSystem({ stage: 'cleanup', fn: async () => {} }),
-                        cleanup2: createSystem({ stage: 'cleanup', fn: () => {} }),
-                        cleanup3: createAsyncSystem({ stage: 'cleanup', fn: async () => {} }),
+                        cleanup1: defineAsyncSystem({ stage: 'cleanup' }),
+                        cleanup2: defineSystem({ stage: 'cleanup' }),
+                        cleanup3: defineAsyncSystem({ stage: 'cleanup' }),
                     },
                 });
 
@@ -320,21 +320,21 @@ describe('system', () => {
             it('should respect the order from the user when defined only for one stage', () => {
                 const result = defineSystemGraph({
                     systems: {
-                        startup1: createAsyncSystem({ stage: 'startup', fn: async () => {} }),
-                        startup2: createAsyncSystem({ stage: 'startup', fn: async () => {} }),
-                        startup3: createSystem({ stage: 'startup', fn: () => {} }),
+                        startup1: defineAsyncSystem({ stage: 'startup' }),
+                        startup2: defineAsyncSystem({ stage: 'startup' }),
+                        startup3: defineSystem({ stage: 'startup' }),
 
-                        update1: createSystem({ stage: 'update', fn: () => {} }),
-                        update2: createSystem({ stage: 'update', fn: () => {} }),
-                        update3: createAsyncSystem({ stage: 'update', fn: async () => {} }),
+                        update1: defineSystem({ stage: 'update' }),
+                        update2: defineSystem({ stage: 'update' }),
+                        update3: defineAsyncSystem({ stage: 'update' }),
 
-                        render1: createSystem({ stage: 'render', fn: () => {} }),
-                        render2: createAsyncSystem({ stage: 'render', fn: async () => {} }),
-                        render3: createSystem({ stage: 'render', fn: () => {} }),
+                        render1: defineSystem({ stage: 'render' }),
+                        render2: defineAsyncSystem({ stage: 'render' }),
+                        render3: defineSystem({ stage: 'render' }),
 
-                        cleanup1: createAsyncSystem({ stage: 'cleanup', fn: async () => {} }),
-                        cleanup2: createSystem({ stage: 'cleanup', fn: () => {} }),
-                        cleanup3: createAsyncSystem({ stage: 'cleanup', fn: async () => {} }),
+                        cleanup1: defineAsyncSystem({ stage: 'cleanup' }),
+                        cleanup2: defineSystem({ stage: 'cleanup' }),
+                        cleanup3: defineAsyncSystem({ stage: 'cleanup' }),
                     },
                     orderByStage: {
                         update: ['update2', 'update1', ['update3']],
@@ -352,21 +352,21 @@ describe('system', () => {
             it('should respect the order from the user when defined for all stages', () => {
                 const result = defineSystemGraph({
                     systems: {
-                        startup1: createAsyncSystem({ stage: 'startup', fn: async () => {} }),
-                        startup2: createAsyncSystem({ stage: 'startup', fn: async () => {} }),
-                        startup3: createSystem({ stage: 'startup', fn: () => {} }),
+                        startup1: defineAsyncSystem({ stage: 'startup' }),
+                        startup2: defineAsyncSystem({ stage: 'startup' }),
+                        startup3: defineSystem({ stage: 'startup' }),
 
-                        update1: createSystem({ stage: 'update', fn: () => {} }),
-                        update2: createSystem({ stage: 'update', fn: () => {} }),
-                        update3: createAsyncSystem({ stage: 'update', fn: async () => {} }),
+                        update1: defineSystem({ stage: 'update' }),
+                        update2: defineSystem({ stage: 'update' }),
+                        update3: defineAsyncSystem({ stage: 'update' }),
 
-                        render1: createSystem({ stage: 'render', fn: () => {} }),
-                        render2: createAsyncSystem({ stage: 'render', fn: async () => {} }),
-                        render3: createSystem({ stage: 'render', fn: () => {} }),
+                        render1: defineSystem({ stage: 'render' }),
+                        render2: defineAsyncSystem({ stage: 'render' }),
+                        render3: defineSystem({ stage: 'render' }),
 
-                        cleanup1: createAsyncSystem({ stage: 'cleanup', fn: async () => {} }),
-                        cleanup2: createSystem({ stage: 'cleanup', fn: () => {} }),
-                        cleanup3: createAsyncSystem({ stage: 'cleanup', fn: async () => {} }),
+                        cleanup1: defineAsyncSystem({ stage: 'cleanup' }),
+                        cleanup2: defineSystem({ stage: 'cleanup' }),
+                        cleanup3: defineAsyncSystem({ stage: 'cleanup' }),
                     },
                     orderByStage: {
                         startup: [['startup1'], 'startup2', 'startup3'],
@@ -388,9 +388,9 @@ describe('system', () => {
                 const buildGraph = () =>
                     defineSystemGraph({
                         systems: {
-                            startup1: createAsyncSystem({ stage: 'startup', fn: async () => {} }),
-                            startup2: createAsyncSystem({ stage: 'startup', fn: async () => {} }),
-                            startup3: createSystem({ stage: 'startup', fn: () => {} }),
+                            startup1: defineAsyncSystem({ stage: 'startup' }),
+                            startup2: defineAsyncSystem({ stage: 'startup' }),
+                            startup3: defineSystem({ stage: 'startup' }),
                         },
                         orderByStage: {
                             startup: ['startup2', 'startup1'],
@@ -406,9 +406,9 @@ describe('system', () => {
                 const buildGraph = () =>
                     defineSystemGraph({
                         systems: {
-                            startup1: createAsyncSystem({ stage: 'startup', fn: async () => {} }),
-                            startup2: createAsyncSystem({ stage: 'startup', fn: async () => {} }),
-                            startup3: createSystem({ stage: 'startup', fn: () => {} }),
+                            startup1: defineAsyncSystem({ stage: 'startup' }),
+                            startup2: defineAsyncSystem({ stage: 'startup' }),
+                            startup3: defineSystem({ stage: 'startup' }),
                         },
                         orderByStage: {
                             startup: ['startup2', 'startup1', 'startup3', 'startup2'],
@@ -426,17 +426,17 @@ describe('system', () => {
         it('should combine all systems into one object', () => {
             const a = defineSystemGraph({
                 systems: {
-                    updateA1: createSystem({ stage: 'update', fn: () => {} }),
-                    updateA2: createSystem({ stage: 'update', fn: () => {} }),
-                    updateA3: createSystem({ stage: 'update', fn: () => {} }),
+                    updateA1: defineSystem({ stage: 'update' }),
+                    updateA2: defineSystem({ stage: 'update' }),
+                    updateA3: defineSystem({ stage: 'update' }),
                 },
             });
 
             const b = defineSystemGraph({
                 systems: {
-                    updateB1: createSystem({ stage: 'update', fn: () => {} }),
-                    updateB2: createSystem({ stage: 'update', fn: () => {} }),
-                    updateB3: createSystem({ stage: 'update', fn: () => {} }),
+                    updateB1: defineSystem({ stage: 'update' }),
+                    updateB2: defineSystem({ stage: 'update' }),
+                    updateB3: defineSystem({ stage: 'update' }),
                 },
             });
 
@@ -456,17 +456,17 @@ describe('system', () => {
             it('should append both order definitions without rules', () => {
                 const a = defineSystemGraph({
                     systems: {
-                        updateA1: createSystem({ stage: 'update', fn: () => {} }),
-                        updateA2: createSystem({ stage: 'update', fn: () => {} }),
-                        updateA3: createSystem({ stage: 'update', fn: () => {} }),
+                        updateA1: defineSystem({ stage: 'update' }),
+                        updateA2: defineSystem({ stage: 'update' }),
+                        updateA3: defineSystem({ stage: 'update' }),
                     },
                 });
 
                 const b = defineSystemGraph({
                     systems: {
-                        updateB1: createSystem({ stage: 'update', fn: () => {} }),
-                        updateB2: createSystem({ stage: 'update', fn: () => {} }),
-                        updateB3: createSystem({ stage: 'update', fn: () => {} }),
+                        updateB1: defineSystem({ stage: 'update' }),
+                        updateB2: defineSystem({ stage: 'update' }),
+                        updateB3: defineSystem({ stage: 'update' }),
                     },
                 });
 
@@ -483,17 +483,17 @@ describe('system', () => {
             it('should resolve the merge rules correctly', () => {
                 const a = defineSystemGraph({
                     systems: {
-                        updateA1: createSystem({ stage: 'update', fn: () => {} }),
-                        updateA2: createSystem({ stage: 'update', fn: () => {} }),
-                        updateA3: createSystem({ stage: 'update', fn: () => {} }),
+                        updateA1: defineSystem({ stage: 'update' }),
+                        updateA2: defineSystem({ stage: 'update' }),
+                        updateA3: defineSystem({ stage: 'update' }),
                     },
                 });
 
                 const b = defineSystemGraph({
                     systems: {
-                        updateB1: createSystem({ stage: 'update', fn: () => {} }),
-                        updateB2: createSystem({ stage: 'update', fn: () => {} }),
-                        updateB3: createSystem({ stage: 'update', fn: () => {} }),
+                        updateB1: defineSystem({ stage: 'update' }),
+                        updateB2: defineSystem({ stage: 'update' }),
+                        updateB3: defineSystem({ stage: 'update' }),
                     },
                 });
 
@@ -516,17 +516,17 @@ describe('system', () => {
             it('should append both order definitions without rules', () => {
                 const a = defineSystemGraph({
                     systems: {
-                        updateA1: createAsyncSystem({ stage: 'update', fn: async () => {} }),
-                        updateA2: createAsyncSystem({ stage: 'update', fn: async () => {} }),
-                        updateA3: createAsyncSystem({ stage: 'update', fn: async () => {} }),
+                        updateA1: defineAsyncSystem({ stage: 'update' }),
+                        updateA2: defineAsyncSystem({ stage: 'update' }),
+                        updateA3: defineAsyncSystem({ stage: 'update' }),
                     },
                 });
 
                 const b = defineSystemGraph({
                     systems: {
-                        updateB1: createAsyncSystem({ stage: 'update', fn: async () => {} }),
-                        updateB2: createAsyncSystem({ stage: 'update', fn: async () => {} }),
-                        updateB3: createAsyncSystem({ stage: 'update', fn: async () => {} }),
+                        updateB1: defineAsyncSystem({ stage: 'update' }),
+                        updateB2: defineAsyncSystem({ stage: 'update' }),
+                        updateB3: defineAsyncSystem({ stage: 'update' }),
                     },
                 });
 
@@ -543,17 +543,17 @@ describe('system', () => {
             it('should resolve the merge rules correctly', () => {
                 const a = defineSystemGraph({
                     systems: {
-                        updateA1: createAsyncSystem({ stage: 'update', fn: async () => {} }),
-                        updateA2: createAsyncSystem({ stage: 'update', fn: async () => {} }),
-                        updateA3: createAsyncSystem({ stage: 'update', fn: async () => {} }),
+                        updateA1: defineAsyncSystem({ stage: 'update' }),
+                        updateA2: defineAsyncSystem({ stage: 'update' }),
+                        updateA3: defineAsyncSystem({ stage: 'update' }),
                     },
                 });
 
                 const b = defineSystemGraph({
                     systems: {
-                        updateB1: createAsyncSystem({ stage: 'update', fn: async () => {} }),
-                        updateB2: createAsyncSystem({ stage: 'update', fn: async () => {} }),
-                        updateB3: createAsyncSystem({ stage: 'update', fn: async () => {} }),
+                        updateB1: defineAsyncSystem({ stage: 'update' }),
+                        updateB2: defineAsyncSystem({ stage: 'update' }),
+                        updateB3: defineAsyncSystem({ stage: 'update' }),
                     },
                 });
 
@@ -576,41 +576,41 @@ describe('system', () => {
             it('should append both order definitions without rules', () => {
                 const a = defineSystemGraph({
                     systems: {
-                        startupA1: createAsyncSystem({ stage: 'startup', fn: async () => {} }),
-                        startupA2: createAsyncSystem({ stage: 'startup', fn: async () => {} }),
-                        startupA3: createSystem({ stage: 'startup', fn: () => {} }),
+                        startupA1: defineAsyncSystem({ stage: 'startup' }),
+                        startupA2: defineAsyncSystem({ stage: 'startup' }),
+                        startupA3: defineSystem({ stage: 'startup' }),
 
-                        updateA1: createSystem({ stage: 'update', fn: () => {} }),
-                        updateA2: createSystem({ stage: 'update', fn: () => {} }),
-                        updateA3: createAsyncSystem({ stage: 'update', fn: async () => {} }),
+                        updateA1: defineSystem({ stage: 'update' }),
+                        updateA2: defineSystem({ stage: 'update' }),
+                        updateA3: defineAsyncSystem({ stage: 'update' }),
 
-                        renderA1: createSystem({ stage: 'render', fn: () => {} }),
-                        renderA2: createAsyncSystem({ stage: 'render', fn: async () => {} }),
-                        renderA3: createSystem({ stage: 'render', fn: () => {} }),
+                        renderA1: defineSystem({ stage: 'render' }),
+                        renderA2: defineAsyncSystem({ stage: 'render' }),
+                        renderA3: defineSystem({ stage: 'render' }),
 
-                        cleanupA1: createAsyncSystem({ stage: 'cleanup', fn: async () => {} }),
-                        cleanupA2: createSystem({ stage: 'cleanup', fn: () => {} }),
-                        cleanupA3: createAsyncSystem({ stage: 'cleanup', fn: async () => {} }),
+                        cleanupA1: defineAsyncSystem({ stage: 'cleanup' }),
+                        cleanupA2: defineSystem({ stage: 'cleanup' }),
+                        cleanupA3: defineAsyncSystem({ stage: 'cleanup' }),
                     },
                 });
 
                 const b = defineSystemGraph({
                     systems: {
-                        startupB1: createAsyncSystem({ stage: 'startup', fn: async () => {} }),
-                        startupB2: createAsyncSystem({ stage: 'startup', fn: async () => {} }),
-                        startupB3: createSystem({ stage: 'startup', fn: () => {} }),
+                        startupB1: defineAsyncSystem({ stage: 'startup' }),
+                        startupB2: defineAsyncSystem({ stage: 'startup' }),
+                        startupB3: defineSystem({ stage: 'startup' }),
 
-                        updateB1: createSystem({ stage: 'update', fn: () => {} }),
-                        updateB2: createSystem({ stage: 'update', fn: () => {} }),
-                        updateB3: createAsyncSystem({ stage: 'update', fn: async () => {} }),
+                        updateB1: defineSystem({ stage: 'update' }),
+                        updateB2: defineSystem({ stage: 'update' }),
+                        updateB3: defineAsyncSystem({ stage: 'update' }),
 
-                        renderB1: createSystem({ stage: 'render', fn: () => {} }),
-                        renderB2: createAsyncSystem({ stage: 'render', fn: async () => {} }),
-                        renderB3: createSystem({ stage: 'render', fn: () => {} }),
+                        renderB1: defineSystem({ stage: 'render' }),
+                        renderB2: defineAsyncSystem({ stage: 'render' }),
+                        renderB3: defineSystem({ stage: 'render' }),
 
-                        cleanupB1: createAsyncSystem({ stage: 'cleanup', fn: async () => {} }),
-                        cleanupB2: createSystem({ stage: 'cleanup', fn: () => {} }),
-                        cleanupB3: createAsyncSystem({ stage: 'cleanup', fn: async () => {} }),
+                        cleanupB1: defineAsyncSystem({ stage: 'cleanup' }),
+                        cleanupB2: defineSystem({ stage: 'cleanup' }),
+                        cleanupB3: defineAsyncSystem({ stage: 'cleanup' }),
                     },
                 });
 
@@ -627,41 +627,41 @@ describe('system', () => {
             it('should resolve the merge rules correctly', () => {
                 const a = defineSystemGraph({
                     systems: {
-                        startupA1: createAsyncSystem({ stage: 'startup', fn: async () => {} }),
-                        startupA2: createAsyncSystem({ stage: 'startup', fn: async () => {} }),
-                        startupA3: createSystem({ stage: 'startup', fn: () => {} }),
+                        startupA1: defineAsyncSystem({ stage: 'startup' }),
+                        startupA2: defineAsyncSystem({ stage: 'startup' }),
+                        startupA3: defineSystem({ stage: 'startup' }),
 
-                        updateA1: createSystem({ stage: 'update', fn: () => {} }),
-                        updateA2: createSystem({ stage: 'update', fn: () => {} }),
-                        updateA3: createAsyncSystem({ stage: 'update', fn: async () => {} }),
+                        updateA1: defineSystem({ stage: 'update' }),
+                        updateA2: defineSystem({ stage: 'update' }),
+                        updateA3: defineAsyncSystem({ stage: 'update' }),
 
-                        renderA1: createSystem({ stage: 'render', fn: () => {} }),
-                        renderA2: createAsyncSystem({ stage: 'render', fn: async () => {} }),
-                        renderA3: createSystem({ stage: 'render', fn: () => {} }),
+                        renderA1: defineSystem({ stage: 'render' }),
+                        renderA2: defineAsyncSystem({ stage: 'render' }),
+                        renderA3: defineSystem({ stage: 'render' }),
 
-                        cleanupA1: createAsyncSystem({ stage: 'cleanup', fn: async () => {} }),
-                        cleanupA2: createSystem({ stage: 'cleanup', fn: () => {} }),
-                        cleanupA3: createAsyncSystem({ stage: 'cleanup', fn: async () => {} }),
+                        cleanupA1: defineAsyncSystem({ stage: 'cleanup' }),
+                        cleanupA2: defineSystem({ stage: 'cleanup' }),
+                        cleanupA3: defineAsyncSystem({ stage: 'cleanup' }),
                     },
                 });
 
                 const b = defineSystemGraph({
                     systems: {
-                        startupB1: createAsyncSystem({ stage: 'startup', fn: async () => {} }),
-                        startupB2: createAsyncSystem({ stage: 'startup', fn: async () => {} }),
-                        startupB3: createSystem({ stage: 'startup', fn: () => {} }),
+                        startupB1: defineAsyncSystem({ stage: 'startup' }),
+                        startupB2: defineAsyncSystem({ stage: 'startup' }),
+                        startupB3: defineSystem({ stage: 'startup' }),
 
-                        updateB1: createSystem({ stage: 'update', fn: () => {} }),
-                        updateB2: createSystem({ stage: 'update', fn: () => {} }),
-                        updateB3: createAsyncSystem({ stage: 'update', fn: async () => {} }),
+                        updateB1: defineSystem({ stage: 'update' }),
+                        updateB2: defineSystem({ stage: 'update' }),
+                        updateB3: defineAsyncSystem({ stage: 'update' }),
 
-                        renderB1: createSystem({ stage: 'render', fn: () => {} }),
-                        renderB2: createAsyncSystem({ stage: 'render', fn: async () => {} }),
-                        renderB3: createSystem({ stage: 'render', fn: () => {} }),
+                        renderB1: defineSystem({ stage: 'render' }),
+                        renderB2: defineAsyncSystem({ stage: 'render' }),
+                        renderB3: defineSystem({ stage: 'render' }),
 
-                        cleanupB1: createAsyncSystem({ stage: 'cleanup', fn: async () => {} }),
-                        cleanupB2: createSystem({ stage: 'cleanup', fn: () => {} }),
-                        cleanupB3: createAsyncSystem({ stage: 'cleanup', fn: async () => {} }),
+                        cleanupB1: defineAsyncSystem({ stage: 'cleanup' }),
+                        cleanupB2: defineSystem({ stage: 'cleanup' }),
+                        cleanupB3: defineAsyncSystem({ stage: 'cleanup' }),
                     },
                 });
 

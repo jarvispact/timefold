@@ -8,47 +8,41 @@ import {
 
 export type SystemStage = 'startup' | 'update' | 'render' | 'cleanup';
 
-type SystemArgs<Stage extends SystemStage = SystemStage> = {
+export type SystemArgs<Stage extends SystemStage = SystemStage> = {
     stage: Stage;
     active?: boolean;
-    fn: () => void;
 };
 
 export type System<Stage extends SystemStage = SystemStage> = {
     async: false;
     stage: Stage;
     active: boolean;
-    fn: () => void;
 };
 
-export function createSystem<Stage extends SystemStage>(systemArgs: SystemArgs<Stage>): System<Stage> {
+export function defineSystem<Stage extends SystemStage>(systemArgs: SystemArgs<Stage>): System<Stage> {
     return {
         async: false,
         stage: systemArgs.stage,
         active: systemArgs.active ?? true,
-        fn: systemArgs.fn,
     };
 }
 
-type AsyncSystemArgs<Stage extends SystemStage = SystemStage> = {
+export type AsyncSystemArgs<Stage extends SystemStage = SystemStage> = {
     stage: Stage;
     active?: boolean;
-    fn: () => Promise<void>;
 };
 
 export type AsyncSystem<Stage extends SystemStage = SystemStage> = {
     async: true;
     stage: Stage;
     active: boolean;
-    fn: () => Promise<void>;
 };
 
-export function createAsyncSystem<Stage extends SystemStage>(systemArgs: AsyncSystemArgs<Stage>): AsyncSystem<Stage> {
+export function defineAsyncSystem<Stage extends SystemStage>(systemArgs: AsyncSystemArgs<Stage>): AsyncSystem<Stage> {
     return {
         async: true,
         stage: systemArgs.stage,
         active: systemArgs.active ?? true,
-        fn: systemArgs.fn,
     };
 }
 
@@ -60,7 +54,6 @@ export type SystemGraphArgs<
         [S in SystemStage]: SystemOrder;
     }>,
 > = {
-    type: 'system-graph-args';
     systems: Systems;
     orderByStage?: OrderByStage;
 };
@@ -73,7 +66,6 @@ export type SystemGraph<
         [S in SystemStage]: SystemOrder;
     },
 > = {
-    type: 'system-graph';
     systems: Systems;
     orderByStage: OrderByStage;
 };
@@ -95,14 +87,11 @@ export type SystemOrder<
 > = (SystemName | AsyncSystemName | AsyncSystemName[])[];
 
 export function defineSystemGraph<Systems extends Record<string, System | AsyncSystem>>(
-    graph: Omit<
-        SystemGraphArgs<
-            Systems,
-            Partial<{
-                [S in SystemStage]: SystemOrder<SystemNamesForStage<Systems, S>, AsyncSystemNamesForStage<Systems, S>>;
-            }>
-        >,
-        'type'
+    graph: SystemGraphArgs<
+        Systems,
+        Partial<{
+            [S in SystemStage]: SystemOrder<SystemNamesForStage<Systems, S>, AsyncSystemNamesForStage<Systems, S>>;
+        }>
     >,
 ): SystemGraph<
     Systems,
@@ -132,7 +121,6 @@ export function defineSystemGraph<Systems extends Record<string, System | AsyncS
     warnAboutSingleAsyncSystem('cleanup', cleanup);
 
     return {
-        type: 'system-graph',
         systems: graph.systems,
         orderByStage: {
             startup,
@@ -168,7 +156,6 @@ export const mergeSystemGraphs = <A extends SystemGraph, B extends SystemGraph>(
     const mergeRules = rules ?? {};
 
     return {
-        type: 'system-graph',
         systems,
         orderByStage: {
             startup: mergeSystemOrder(startupOrderA, startupOrderB, mergeRules, systems),

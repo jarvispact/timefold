@@ -1,10 +1,16 @@
-import { worldBuilder, queryBuilder, createSystem } from '@timefold/ecs';
+import {
+    queryBuilder,
+    defineSystem,
+    defineResources,
+    defineQueries,
+    defineSystemGraph,
+    createWorld,
+} from '@timefold/ecs';
 import { Vec2 } from '@timefold/math';
 import { createRenderer } from './renderer';
 import {
     createBallTag,
     createColor,
-    createPlayerTag,
     createPosition,
     createShape,
     createVelocity,
@@ -12,84 +18,148 @@ import {
     T,
     WorldComponent,
 } from './components';
-
-const canvas = document.getElementById('canvas') as HTMLCanvasElement;
-canvas.width = canvas.clientWidth;
-canvas.height = canvas.clientHeight;
+import {
+    ARENA_BOTTOM,
+    ARENA_LEFT,
+    ARENA_RIGHT,
+    ARENA_TOP,
+    ball,
+    BALL_RADIUS,
+    BALL_START_POSITION,
+    BALL_START_VELOCITY,
+    canvas,
+    RESTITUTION,
+} from './constants';
 
 const renderer = createRenderer(canvas);
 
-// TODO: system functions cannot be statically defined. They need access to the compiled world for queries and resources.
-// Remove fn and spawn them instead?
+const resources = defineResources({ delta: 0 });
 
-const world = worldBuilder<WorldComponent>()
-    .defineQueries({
-        renderable: queryBuilder<WorldComponent>()
-            .includeEntity()
-            .with(T.Position)
-            .with(T.Color)
-            .with(T.Shape)
-            .map(([id, position, color, shape]) => ({
-                id,
-                position: position.data,
-                color: color.data,
-                shape: shape.data,
-            }))
-            .onAdd((_id, renderEntity) => {
-                renderer.addEntity(renderEntity);
-            })
-            .onRemove((entity) => {
-                renderer.removeEntity(entity);
-            })
-            .compile(),
-    })
-    .defineSystemGraph({
-        systems: {
-            render: createSystem({
-                stage: 'render',
-                fn: () => {
-                    renderer.render();
-                },
-            }),
-        },
-    })
-    .compile();
+const queries = defineQueries({
+    movable: queryBuilder<WorldComponent>()
+        .with(T.Position)
+        .with(T.Velocity)
+        .map(([position, velocity]) => ({
+            position: position.data,
+            velocity: velocity.data,
+        }))
+        .compile(),
+    collidable: queryBuilder<WorldComponent>()
+        .with(T.Position)
+        .with(T.Shape)
+        .with(T.Velocity)
+        .map(([position, shape, velocity]) => ({
+            position: position.data,
+            shape: shape.data,
+            velocity: velocity.data,
+        }))
+        .compile(),
+    renderable: queryBuilder<WorldComponent>()
+        .with(T.Position)
+        .with(T.Color)
+        .with(T.Shape)
+        .map(([position, color, shape]) => ({
+            position: position.data,
+            color: color.data,
+            shape: shape.data,
+        }))
+        .compile(),
+});
 
-const query = world.getQuery('renderable');
+const systemGraph = defineSystemGraph({
+    systems: {
+        spawnPlayerAndBall: defineSystem({ stage: 'startup' }),
+        checkCollisions: defineSystem({ stage: 'update' }),
+        handleMovement: defineSystem({ stage: 'update' }),
+        render: defineSystem({ stage: 'render' }),
+    },
+    orderByStage: {
+        update: ['handleMovement', 'checkCollisions'],
+    },
+});
 
-let entity = 0;
-const nextEntityId = () => entity++;
+const world = createWorld<WorldComponent>().withResources(resources).withQueries(queries).withSystemGraph(systemGraph);
 
-const player1 = nextEntityId();
-const player2 = nextEntityId();
-const ball = nextEntityId();
+const movable = world.getQuery('movable');
+const collidable = world.getQuery('collidable');
+const renderable = world.getQuery('renderable');
 
-world.spawn(player1, [
-    createPlayerTag(),
-    createPosition(Vec2.create(10, 10)),
-    createVelocity(Vec2.create(1, 1)),
-    createShape({ type: Shape.Box, halfExtends: Vec2.create(100, 200) }),
-    createColor('red'),
-]);
-world.spawn(player2, [
-    createPlayerTag(),
-    createPosition(Vec2.create(300, 300)),
-    createVelocity(Vec2.create(1, 1)),
-    createShape({ type: Shape.Box, halfExtends: Vec2.create(200, 100) }),
-    createColor('green'),
-]);
-world.spawn(ball, [
-    createBallTag(),
-    createPosition(Vec2.create(600, 600)),
-    createVelocity(Vec2.create(1, 1)),
-    createShape({ type: Shape.Circle, radius: 50 }),
-    createColor('blue'),
-]);
+world.insertSystems({
+    spawnPlayerAndBall: () => {
+        world.spawn(ball, [
+            createBallTag(),
+            createPosition(BALL_START_POSITION),
+            createVelocity(BALL_START_VELOCITY),
+            createShape({ type: Shape.Circle, radius: BALL_RADIUS }),
+            createColor('white'),
+        ]);
+    },
+    checkCollisions: () => {
+        for (const item of collidable) {
+            if (item.shape.type === Shape.Circle) {
+                const radius = item.shape.radius;
 
-renderer.render();
+                // Left wall
+                if (item.position[0] - radius < ARENA_LEFT[0]) {
+                    item.position[0] = ARENA_LEFT[0] + radius;
+                    item.velocity[0] = -item.velocity[0] * RESTITUTION;
+                }
 
-setTimeout(() => {
-    world.despawn(player1);
-    renderer.render();
-}, 2000);
-console.log({ query });
+                // Right wall
+                if (item.position[0] + radius > ARENA_RIGHT[0]) {
+                    item.position[0] = ARENA_RIGHT[0] - radius;
+                    item.velocity[0] = -item.velocity[0] * RESTITUTION;
+                }
+
+                // Top wall
+                if (item.position[1] - radius < ARENA_TOP[1]) {
+                    item.position[1] = ARENA_TOP[1] + radius;
+                    item.velocity[1] = -item.velocity[1] * RESTITUTION;
+                }
+
+                // Bottom wall
+                if (item.position[1] + radius > ARENA_BOTTOM[1]) {
+                    item.position[1] = ARENA_BOTTOM[1] - radius;
+                    item.velocity[1] = -item.velocity[1] * RESTITUTION;
+                }
+            } else {
+                const halfW = item.shape.halfExtends[0];
+                const halfH = item.shape.halfExtends[1];
+
+                // Left wall
+                if (item.position[0] - halfW < ARENA_LEFT[0]) {
+                    item.position[0] = ARENA_LEFT[0] + halfW;
+                    item.velocity[0] = -item.velocity[0] * RESTITUTION;
+                }
+
+                // Right wall
+                if (item.position[0] + halfW > ARENA_RIGHT[0]) {
+                    item.position[0] = ARENA_RIGHT[0] - halfW;
+                    item.velocity[0] = -item.velocity[0] * RESTITUTION;
+                }
+
+                // Top wall
+                if (item.position[1] - halfH < ARENA_TOP[1]) {
+                    item.position[1] = ARENA_TOP[1] + halfH;
+                    item.velocity[1] = -item.velocity[1] * RESTITUTION;
+                }
+
+                // Bottom wall
+                if (item.position[1] + halfH > ARENA_BOTTOM[1]) {
+                    item.position[1] = ARENA_BOTTOM[1] - halfH;
+                    item.velocity[1] = -item.velocity[1] * RESTITUTION;
+                }
+            }
+        }
+    },
+    handleMovement: (dt) => {
+        for (const item of movable) {
+            Vec2.add(item.position, item.velocity, dt);
+        }
+    },
+    render: () => {
+        renderer.render(renderable);
+    },
+});
+
+void world.start();

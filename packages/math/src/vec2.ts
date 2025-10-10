@@ -49,15 +49,15 @@ export function set(out: Vec2Type, x: number, y: number): Vec2Type {
     return out;
 }
 
-export function addition(out: Vec2Type, a: Vec2Type, b: Vec2Type) {
-    out[0] = a[0] + b[0];
-    out[1] = a[1] + b[1];
+export function addition(out: Vec2Type, a: Vec2Type, b: Vec2Type, dt = 1) {
+    out[0] = a[0] + b[0] * dt;
+    out[1] = a[1] + b[1] * dt;
     return out;
 }
 
 // [INLINE]
-export function add(out: Vec2Type, vec2: Vec2Type) {
-    return addition(out, out, vec2);
+export function add(out: Vec2Type, vec2: Vec2Type, dt = 1) {
+    return addition(out, out, vec2, dt);
 }
 
 export function subtraction(out: Vec2Type, a: Vec2Type, b: Vec2Type) {

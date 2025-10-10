@@ -398,35 +398,50 @@ export function mergeSystemOrder(
     return result;
 }
 
-type GenericSystemForStage<S extends SystemStage> = System<S> | AsyncSystem<S>;
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export type GenericSystemWithFn = { active: boolean; async: boolean; fn: (...args: any[]) => void | Promise<void> };
 
-export function getSortedSystemsByStage<Systems extends Record<string, System | AsyncSystem>>(
-    graph: SystemGraph<
-        Systems,
-        {
-            [S in SystemStage]: (keyof Systems | (keyof Systems)[])[];
-        }
-    >,
-): {
-    systemsByStage: { [S in SystemStage]: (GenericSystemForStage<S> | GenericSystemForStage<S>[])[] };
+function createDefaultSystemFn(name: string, async: boolean) {
+    function defaultSystem() {
+        console.warn(`System "${name}" has not been spawned yet.`);
+    }
+
+    // eslint-disable-next-line @typescript-eslint/require-await
+    async function defaultAsyncSystem() {
+        console.warn(`AsyncSystem "${name}" has not been spawned yet.`);
+    }
+
+    return async ? defaultAsyncSystem : defaultSystem;
+}
+
+export function getSortedSystemsByStage(graph: SystemGraph): {
+    systemsByStage: { [S in SystemStage]: (GenericSystemWithFn | GenericSystemWithFn[])[] };
     nameToStageAndIndex: Record<string, { stage: SystemStage; index: [number] | [number, number] }>;
 } {
     const nameToStageAndIndex: Record<string, { stage: SystemStage; index: [number] | [number, number] }> = {};
 
-    function map<SS extends SystemStage>(
+    function map(
         systemName: (string | number | symbol) | (string | number | symbol)[],
         idx: number,
-    ): (GenericSystemForStage<SS> | GenericSystemForStage<SS>[])[] {
+    ): GenericSystemWithFn | GenericSystemWithFn[] {
         if (Array.isArray(systemName))
             return systemName.map((n, idx2) => {
                 const system = graph.systems[n.toString()];
                 nameToStageAndIndex[n.toString()] = { stage: system.stage, index: [idx, idx2] };
-                return system;
-            }) as never;
+                return {
+                    active: system.active,
+                    async: system.async,
+                    fn: createDefaultSystemFn(n.toString(), system.async),
+                };
+            });
 
         const system = graph.systems[systemName.toString()];
         nameToStageAndIndex[systemName.toString()] = { stage: system.stage, index: [idx] };
-        return system as never;
+        return {
+            active: system.active,
+            async: system.async,
+            fn: createDefaultSystemFn(systemName.toString(), system.async),
+        };
     }
 
     const systemsByStage = {
@@ -440,4 +455,20 @@ export function getSortedSystemsByStage<Systems extends Record<string, System | 
         systemsByStage,
         nameToStageAndIndex,
     };
+}
+
+export function callSystem(system: GenericSystemWithFn) {
+    return system.fn();
+}
+
+export function callSystemWithTime(delta: number, time: number) {
+    function callFn(system: GenericSystemWithFn) {
+        return system.fn(delta, time);
+    }
+
+    return callFn;
+}
+
+export function isSystemActive(system: GenericSystemWithFn) {
+    return system.active;
 }
