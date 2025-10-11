@@ -37,7 +37,7 @@ import {
     PLAYER2_START_POSITION,
     PLAYER2_START_VELOCITY,
 } from './constants';
-import { checkCircleBoxCollision } from './collision-utils';
+import { circleBoxCollision, createCollisionResult } from './collision-utils';
 
 const renderer = createRenderer(canvas);
 
@@ -73,8 +73,6 @@ const queries = defineQueries({
             shape: shape.data,
         }))
         .onAdd((_entity, renderable) => {
-            console.log(renderable);
-
             renderer.addEntity(renderable);
         })
         .compile(),
@@ -96,6 +94,8 @@ const world = createWorld<WorldComponent>().withResources(resources).withQueries
 
 const movable = world.getQuery('movable');
 const collidable = world.getQuery('collidable');
+
+const collisionResult = createCollisionResult();
 
 world.insertSystems({
     spawnPlayerAndBall: () => {
@@ -181,12 +181,27 @@ world.insertSystems({
 
                 if (item.shape.type === Shape.Circle && item2.shape.type === Shape.Box) {
                     if (
-                        checkCircleBoxCollision(
+                        circleBoxCollision(
+                            collisionResult,
                             { position: item.position, radius: item.shape.radius },
                             { position: item2.position, halfExtends: item2.shape.halfExtends },
                         )
                     ) {
-                        console.log('collision');
+                        // Position correction: move ball out of collision
+                        item.position[0] += collisionResult.normal[0] * collisionResult.penetration;
+                        item.position[1] += collisionResult.normal[1] * collisionResult.penetration;
+
+                        // Determine which axis had the collision based on normal
+                        const absNormalX = Math.abs(collisionResult.normal[0]);
+                        const absNormalY = Math.abs(collisionResult.normal[1]);
+
+                        if (absNormalX > absNormalY) {
+                            // Hit vertical edge - flip X velocity only
+                            item.velocity[0] = -item.velocity[0];
+                        } else {
+                            // Hit horizontal edge - flip Y velocity only
+                            item.velocity[1] = -item.velocity[1];
+                        }
                     }
                 }
             }

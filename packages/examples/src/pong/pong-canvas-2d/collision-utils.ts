@@ -10,14 +10,21 @@ type Circle = {
     radius: number;
 };
 
-interface CollisionMetadata {
-    intersects: boolean;
+export type CollisionResult = {
     normal: Vec2Type;
     penetration: number;
     contactPoint: Vec2Type;
+};
+
+export function createCollisionResult(): CollisionResult {
+    return {
+        normal: Vec2.create(0, 0),
+        penetration: 0,
+        contactPoint: Vec2.create(0, 0),
+    };
 }
 
-export function checkCircleBoxCollision(circle: Circle, box: Box): boolean {
+export function circleBoxCollision(result: CollisionResult, circle: Circle, box: Box): boolean {
     const halfW = box.halfExtends[0];
     const halfH = box.halfExtends[1];
 
@@ -28,39 +35,12 @@ export function checkCircleBoxCollision(circle: Circle, box: Box): boolean {
     const dy = circle.position[1] - closestY;
     const distSq = dx * dx + dy * dy;
 
-    return distSq < circle.radius * circle.radius;
-}
+    const intersection = distSq < circle.radius * circle.radius;
+    if (!intersection) return false;
 
-export function getCircleBoxCollisionMetadata(sphere: Circle, box: Box): CollisionMetadata {
-    const halfW = box.halfExtends[0];
-    const halfH = box.halfExtends[1];
-
-    // Find closest point on box to sphere center
-    const closestX = Math.max(box.position[0] - halfW, Math.min(sphere.position[0], box.position[0] + halfW));
-    const closestY = Math.max(box.position[1] - halfH, Math.min(sphere.position[1], box.position[1] + halfH));
-
-    // Vector from closest point to sphere center
-    const dx = sphere.position[0] - closestX;
-    const dy = sphere.position[1] - closestY;
-    const distSq = dx * dx + dy * dy;
     const dist = Math.sqrt(distSq);
+    const penetration = circle.radius - dist;
 
-    // Check if intersecting
-    const intersects = distSq < sphere.radius * sphere.radius;
-
-    if (!intersects) {
-        return {
-            intersects: false,
-            normal: Vec2.create(0, 0),
-            penetration: 0,
-            contactPoint: Vec2.create(closestX, closestY),
-        };
-    }
-
-    // Calculate penetration depth
-    const penetration = sphere.radius - dist;
-
-    // Calculate normal (direction to push sphere out)
     let normalX = 0;
     let normalY = 0;
 
@@ -70,10 +50,10 @@ export function getCircleBoxCollisionMetadata(sphere: Circle, box: Box): Collisi
         normalY = dy / dist;
     } else {
         // Sphere center is inside box - find closest edge
-        const distLeft = sphere.position[0] - (box.position[0] - halfW);
-        const distRight = box.position[0] + halfW - sphere.position[0];
-        const distTop = sphere.position[1] - (box.position[1] - halfH);
-        const distBottom = box.position[1] + halfH - sphere.position[1];
+        const distLeft = circle.position[0] - (box.position[0] - halfW);
+        const distRight = box.position[0] + halfW - circle.position[0];
+        const distTop = circle.position[1] - (box.position[1] - halfH);
+        const distBottom = box.position[1] + halfH - circle.position[1];
 
         const minDist = Math.min(distLeft, distRight, distTop, distBottom);
 
@@ -92,10 +72,8 @@ export function getCircleBoxCollisionMetadata(sphere: Circle, box: Box): Collisi
         }
     }
 
-    return {
-        intersects: true,
-        normal: Vec2.create(normalX, normalY),
-        penetration,
-        contactPoint: Vec2.create(closestX, closestY),
-    };
+    Vec2.set(result.normal, normalX, normalY);
+    result.penetration = penetration;
+    Vec2.set(result.contactPoint, closestX, closestY);
+    return true;
 }
