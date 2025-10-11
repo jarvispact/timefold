@@ -1,10 +1,10 @@
+import { BoxShape, CircleShape, Shape } from './components';
 import { Vec2Type } from '@timefold/math';
-import { Shape } from './components';
 
-export type RenderEntity = {
+type Renderable = {
     position: Vec2Type;
     color: string;
-    shape: Shape;
+    shape: BoxShape | CircleShape;
 };
 
 const END_ANGLE = 2 * Math.PI;
@@ -12,30 +12,37 @@ const END_ANGLE = 2 * Math.PI;
 export function createRenderer(canvas: HTMLCanvasElement) {
     const ctx = canvas.getContext('2d') as CanvasRenderingContext2D;
 
-    function render(entities: RenderEntity[]) {
+    const renderables: Renderable[] = [];
+
+    function addEntity(renderable: Renderable) {
+        renderables.push(renderable);
+    }
+
+    function render() {
         ctx.fillStyle = 'black';
         ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-        for (let i = 0; i < entities.length; i++) {
-            const entity = entities[i];
-            ctx.fillStyle = entity.color;
+        for (let i = 0; i < renderables.length; i++) {
+            const renderable = renderables[i];
+            ctx.fillStyle = renderable.color;
 
-            if (entity.shape.type === Shape.Box) {
+            if (renderable.shape.type === Shape.Box) {
                 ctx.fillRect(
-                    entity.position[0],
-                    entity.position[1],
-                    entity.shape.halfExtends[0],
-                    entity.shape.halfExtends[1],
+                    renderable.position[0] - renderable.shape.halfExtends[0],
+                    renderable.position[1] - renderable.shape.halfExtends[1],
+                    renderable.shape.halfExtends[0] * 2,
+                    renderable.shape.halfExtends[1] * 2,
                 );
             } else {
                 ctx.beginPath();
-                ctx.arc(entity.position[0], entity.position[1], entity.shape.radius, 0, END_ANGLE);
+                ctx.arc(renderable.position[0], renderable.position[1], renderable.shape.radius, 0, END_ANGLE);
                 ctx.fill();
             }
         }
     }
 
     return {
+        addEntity,
         render,
     };
 }

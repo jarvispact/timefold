@@ -14,8 +14,8 @@ import {
     Bitmasks,
     callSystem,
     callSystemWithTime,
+    createDefaultSystemFn,
     GenericSystemWithFn,
-    getSortedSystemsByStage,
     InternalQuery,
     isSystemActive,
     isWithAnyItem,
@@ -351,9 +351,37 @@ class WorldClass<
     private initSystems() {
         if (this.initSystemsCalled) return;
 
-        const result = getSortedSystemsByStage(this.systemGraph);
-        this.systemsByStage = result.systemsByStage;
-        this.nameToStageAndIndex = result.nameToStageAndIndex;
+        const map = (
+            systemName: (string | number | symbol) | (string | number | symbol)[],
+            idx: number,
+        ): GenericSystemWithFn | GenericSystemWithFn[] => {
+            if (Array.isArray(systemName))
+                return systemName.map((n, idx2) => {
+                    const system = this.systemGraph.systems[n.toString()];
+                    this.nameToStageAndIndex[n.toString()] = { stage: system.stage, index: [idx, idx2] };
+                    return {
+                        active: system.active,
+                        async: system.async,
+                        fn: createDefaultSystemFn(n.toString(), system.async),
+                    };
+                });
+
+            const system = this.systemGraph.systems[systemName.toString()];
+            this.nameToStageAndIndex[systemName.toString()] = { stage: system.stage, index: [idx] };
+            return {
+                active: system.active,
+                async: system.async,
+                fn: createDefaultSystemFn(systemName.toString(), system.async),
+            };
+        };
+
+        this.systemsByStage = {
+            startup: this.systemGraph.orderByStage.startup.map(map),
+            update: this.systemGraph.orderByStage.update.map(map),
+            render: this.systemGraph.orderByStage.render.map(map),
+            cleanup: this.systemGraph.orderByStage.cleanup.map(map),
+        };
+
         this.initSystemsCalled = true;
     }
 

@@ -401,7 +401,7 @@ export function mergeSystemOrder(
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export type GenericSystemWithFn = { active: boolean; async: boolean; fn: (...args: any[]) => void | Promise<void> };
 
-function createDefaultSystemFn(name: string, async: boolean) {
+export function createDefaultSystemFn(name: string, async: boolean) {
     function defaultSystem() {
         console.warn(`System "${name}" has not been spawned yet.`);
     }
@@ -412,49 +412,6 @@ function createDefaultSystemFn(name: string, async: boolean) {
     }
 
     return async ? defaultAsyncSystem : defaultSystem;
-}
-
-export function getSortedSystemsByStage(graph: SystemGraph): {
-    systemsByStage: { [S in SystemStage]: (GenericSystemWithFn | GenericSystemWithFn[])[] };
-    nameToStageAndIndex: Record<string, { stage: SystemStage; index: [number] | [number, number] }>;
-} {
-    const nameToStageAndIndex: Record<string, { stage: SystemStage; index: [number] | [number, number] }> = {};
-
-    function map(
-        systemName: (string | number | symbol) | (string | number | symbol)[],
-        idx: number,
-    ): GenericSystemWithFn | GenericSystemWithFn[] {
-        if (Array.isArray(systemName))
-            return systemName.map((n, idx2) => {
-                const system = graph.systems[n.toString()];
-                nameToStageAndIndex[n.toString()] = { stage: system.stage, index: [idx, idx2] };
-                return {
-                    active: system.active,
-                    async: system.async,
-                    fn: createDefaultSystemFn(n.toString(), system.async),
-                };
-            });
-
-        const system = graph.systems[systemName.toString()];
-        nameToStageAndIndex[systemName.toString()] = { stage: system.stage, index: [idx] };
-        return {
-            active: system.active,
-            async: system.async,
-            fn: createDefaultSystemFn(systemName.toString(), system.async),
-        };
-    }
-
-    const systemsByStage = {
-        startup: graph.orderByStage.startup.map(map),
-        update: graph.orderByStage.update.map(map),
-        render: graph.orderByStage.render.map(map),
-        cleanup: graph.orderByStage.cleanup.map(map),
-    } as never;
-
-    return {
-        systemsByStage,
-        nameToStageAndIndex,
-    };
 }
 
 export function callSystem(system: GenericSystemWithFn) {
