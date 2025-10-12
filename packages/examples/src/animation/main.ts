@@ -35,9 +35,9 @@ const animation = Animation.create({
             type: 'vec3',
             initialValue: [255, 255, 255],
             keyframes: [
-                { easing: 'easeOutBounce', value: [255, 0, 0], time: 0 },
-                { easing: 'easeOutBounce', value: [255, 255, 0], time: 0.25 },
-                { easing: 'easeOutBounce', value: [0, 255, 255], time: 0.5 },
+                { easing: 'easeOutBounce', value: [255, 255, 255], time: 0 },
+                { easing: 'easeOutBounce', value: [255, 0, 0], time: 0.25 },
+                { easing: 'easeOutBounce', value: [0, 255, 0], time: 0.5 },
                 { easing: 'easeOutBounce', value: [0, 0, 255], time: 0.75 },
                 { easing: 'easeOutBounce', value: [255, 255, 255], time: 1 },
             ],
