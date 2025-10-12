@@ -56,9 +56,10 @@ export function resume<Tracks extends Record<string, AnimationTrack>>(data: Anim
 }
 
 function findKeyframeSegment<Value>(keyframes: AnimationKeyframe<Value>[], normalizedTime: number) {
-    if (keyframes.length === 0) return null;
+    if (keyframes.length === 0) return undefined;
+
     if (keyframes.length === 1 || normalizedTime <= keyframes[0].time) {
-        return { start: null, end: keyframes[0], progress: 0 };
+        return { start: undefined, end: keyframes[0], progress: 0 };
     }
 
     for (let i = 0; i < keyframes.length - 1; i++) {
@@ -72,9 +73,8 @@ function findKeyframeSegment<Value>(keyframes: AnimationKeyframe<Value>[], norma
         }
     }
 
-    // Past the last keyframe
     const last = keyframes[keyframes.length - 1];
-    return { start: last, end: null, progress: 1 };
+    return { start: last, end: undefined, progress: 1 };
 }
 
 function evaluateScalarTrack(track: ScalarAnimationTrack, normalizedTime: number): number {
@@ -83,12 +83,10 @@ function evaluateScalarTrack(track: ScalarAnimationTrack, normalizedTime: number
     const segment = findKeyframeSegment<number>(track.keyframes, normalizedTime);
     if (!segment) return track.initialValue;
 
-    // Before first keyframe
     if (!segment.start) {
         return track.initialValue;
     }
 
-    // After last keyframe
     if (!segment.end) {
         return segment.start.value;
     }
@@ -102,12 +100,10 @@ function evaluateVec2Track(out: Vec2Type, track: Vec2AnimationTrack, normalizedT
     const segment = findKeyframeSegment<Vec2Type>(track.keyframes, normalizedTime);
     if (!segment) return track.initialValue;
 
-    // Before first keyframe
     if (!segment.start) {
         return Vec2.copy(out, track.initialValue);
     }
 
-    // After last keyframe
     if (!segment.end) {
         return segment.start.value;
     }
@@ -126,12 +122,10 @@ function evaluateVec3Track(out: Vec3Type, track: Vec3AnimationTrack, normalizedT
     const segment = findKeyframeSegment<Vec3Type>(track.keyframes, normalizedTime);
     if (!segment) return track.initialValue;
 
-    // Before first keyframe
     if (!segment.start) {
         return Vec3.copy(out, track.initialValue);
     }
 
-    // After last keyframe
     if (!segment.end) {
         return segment.start.value;
     }
@@ -150,12 +144,10 @@ function evaluateQuatTrack(out: QuatType, track: QuatAnimationTrack, normalizedT
     const segment = findKeyframeSegment<QuatType>(track.keyframes, normalizedTime);
     if (!segment) return track.initialValue;
 
-    // Before first keyframe
     if (!segment.start) {
         return Quat.copy(out, track.initialValue);
     }
 
-    // After last keyframe
     if (!segment.end) {
         return segment.start.value;
     }
@@ -169,13 +161,13 @@ function evaluateQuatTrack(out: QuatType, track: QuatAnimationTrack, normalizedT
 }
 
 export function update<Tracks extends Record<string, AnimationTrack>>(
+    out: { [K in keyof Tracks]: Tracks[K]['initialValue'] },
     animation: AnimationData<Tracks>,
-    valuesByTrack: { [K in keyof Tracks]: Tracks[K]['initialValue'] },
     delta: number,
-): void {
-    if (!animation.playing) return;
+) {
+    if (!animation.playing) return false;
 
-    animation.time = (animation.time || 0) + delta;
+    animation.time += delta;
 
     if (animation.time >= animation.duration) {
         if (animation.loop) {
@@ -186,8 +178,7 @@ export function update<Tracks extends Record<string, AnimationTrack>>(
         }
     }
 
-    const time = animation.time || 0;
-    const normalizedTime = Math.min(time / animation.duration, 1);
+    const normalizedTime = Math.min(animation.time / animation.duration, 1);
 
     for (let i = 0; i < animation.trackKeys.length; i++) {
         const trackKey = animation.trackKeys[i];
@@ -195,17 +186,19 @@ export function update<Tracks extends Record<string, AnimationTrack>>(
 
         switch (track.type) {
             case 'scalar':
-                valuesByTrack[trackKey] = evaluateScalarTrack(track, normalizedTime);
+                out[trackKey] = evaluateScalarTrack(track, normalizedTime);
                 break;
             case 'vec2':
-                evaluateVec2Track(valuesByTrack[trackKey] as Vec2Type, track, normalizedTime);
+                evaluateVec2Track(out[trackKey] as Vec2Type, track, normalizedTime);
                 break;
             case 'vec3':
-                evaluateVec3Track(valuesByTrack[trackKey] as Vec3Type, track, normalizedTime);
+                evaluateVec3Track(out[trackKey] as Vec3Type, track, normalizedTime);
                 break;
             case 'quat':
-                evaluateQuatTrack(valuesByTrack[trackKey] as QuatType, track, normalizedTime);
+                evaluateQuatTrack(out[trackKey] as QuatType, track, normalizedTime);
                 break;
         }
     }
+
+    return true;
 }

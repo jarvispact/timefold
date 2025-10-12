@@ -35,18 +35,18 @@ const animation = Animation.create({
             type: 'vec3',
             initialValue: [255, 255, 255],
             keyframes: [
-                { easing: 'easeOutBounce', value: [255, 255, 255], time: 0 },
-                { easing: 'easeOutBounce', value: [255, 0, 0], time: 0.25 },
-                { easing: 'easeOutBounce', value: [0, 255, 0], time: 0.5 },
-                { easing: 'easeOutBounce', value: [0, 0, 255], time: 0.75 },
-                { easing: 'easeOutBounce', value: [255, 255, 255], time: 1 },
+                { easing: 'linear', value: [255, 255, 255], time: 0 },
+                { easing: 'linear', value: [255, 0, 0], time: 0.25 },
+                { easing: 'linear', value: [0, 255, 0], time: 0.5 },
+                { easing: 'linear', value: [0, 0, 255], time: 0.75 },
+                { easing: 'linear', value: [255, 255, 255], time: 1 },
             ],
         },
     },
-});
+}).data;
 
 setTimeout(() => {
-    Animation.start(animation.data);
+    Animation.start(animation);
 }, 1000);
 
 const result = { position: entity.position, color: Vec3.create(0, 0, 0) };
@@ -62,7 +62,7 @@ const getDelta = (now: number) => {
 
 const tick = (time: number) => {
     const delta = getDelta(time);
-    Animation.update(animation.data, result, delta);
+    Animation.update(result, animation, delta);
     entity.color = `rgb(${result.color[0]}, ${result.color[1]}, ${result.color[2]})`;
     renderer.render();
     window.requestAnimationFrame(tick);
