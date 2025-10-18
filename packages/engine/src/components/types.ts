@@ -1,7 +1,10 @@
 import { Component, defineComponentTypes } from '@timefold/ecs';
 import { EasingFunction, QuatType, Vec2Type, Vec3Type } from '@timefold/math';
 
-export const EngineComponentType = defineComponentTypes(['Position2D', 'Rotation2D', 'Scale2D', 'Clock', 'Animation']);
+const ComponentTypes = defineComponentTypes(['Position2D', 'Rotation2D', 'Scale2D', 'Clock', 'Animation']);
+
+export const EngineComponentType = ComponentTypes.T;
+export const EngineComponentTypeNames = ComponentTypes.typeNames;
 
 export type Position2DComponent = Component<typeof EngineComponentType.Position2D, Vec2Type>;
 export type Rotation2DComponent = Component<typeof EngineComponentType.Rotation2D, number>;
@@ -62,9 +65,4 @@ export type AnimationData<Tracks extends Record<string, AnimationTrack> = Record
 export type AnimationComponent<Tracks extends Record<string, AnimationTrack> = Record<string, AnimationTrack>> =
     Component<typeof EngineComponentType.Animation, AnimationData<Tracks>>;
 
-export type EngineComponent =
-    | Position2DComponent
-    | Rotation2DComponent
-    | Scale2DComponent
-    | ClockComponent
-    | AnimationComponent;
+export type EngineComponent = Position2DComponent | Rotation2DComponent | ClockComponent | AnimationComponent;
