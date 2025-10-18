@@ -92,8 +92,8 @@ const systemGraph = defineSystemGraph({
 
 const world = createWorld<WorldComponent>().withResources(resources).withQueries(queries).withSystemGraph(systemGraph);
 
-const movable = world.getQuery('movable');
-const collidable = world.getQuery('collidable');
+const movable = world.getQueryResults('movable');
+const collidable = world.getQueryResults('collidable');
 
 const ball = {
     position: createPosition(Vec2.create(canvas.width / 2, 150)),
@@ -216,4 +216,4 @@ world.insertSystems({
     },
 });
 
-void world.start();
+void world.startup();

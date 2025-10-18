@@ -10,6 +10,8 @@
     "build:animation": "sed 's/{example-folder}/animation/g' index.html.template > index.html && vite build",
     "dev:platformer": "sed 's/{example-folder}/platformer/g' index.html.template > index.html && vite --port 9093",
     "build:platformer": "sed 's/{example-folder}/platformer/g' index.html.template > index.html && vite build",
+    "dev:webgpu-2d": "sed 's/{example-folder}/webgpu-2d/g' index.html.template > index.html && vite --port 9093",
+    "build:webgpu-2d": "sed 's/{example-folder}/webgpu-2d/g' index.html.template > index.html && vite build",
     "preview": "vite preview --port 9191"
   }
 }

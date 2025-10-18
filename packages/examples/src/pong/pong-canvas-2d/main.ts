@@ -92,8 +92,8 @@ const systemGraph = defineSystemGraph({
 
 const world = createWorld<WorldComponent>().withResources(resources).withQueries(queries).withSystemGraph(systemGraph);
 
-const movable = world.getQuery('movable');
-const collidable = world.getQuery('collidable');
+const movable = world.getQueryResults('movable');
+const collidable = world.getQueryResults('collidable');
 
 const collisionResult = createCollisionResult();
 
@@ -217,4 +217,4 @@ world.insertSystems({
     },
 });
 
-void world.start();
+void world.startup();
