@@ -1,4 +1,5 @@
 import {
+    Component,
     createWorld,
     defineQueries,
     defineResources,
@@ -8,7 +9,10 @@ import {
 } from '@timefold/ecs';
 import { Vec2 } from '@timefold/math';
 import {
+    CircleShape,
+    createCollider,
     createInputMapping,
+    createPlayerTag,
     createPosition,
     createShape,
     createVelocity,
@@ -50,10 +54,20 @@ const queries = defineQueries({
             renderer.addEntity(renderable);
         })
         .compile(),
+    collidable: queryBuilder<WorldComponent>()
+        .with(T.Position)
+        .with(T.Shape)
+        .with(T.Collider)
+        .map(([position, shape]) => ({
+            position: position.data,
+            shape: shape.data,
+        }))
+        .compile(),
     movable: queryBuilder<WorldComponent>()
         .with(T.Position)
         .with(T.Shape)
         .with(T.Velocity)
+        .with(T.PlayerTag)
         .map(([position, shape, velocity]) => ({
             position: position.data,
             shape: shape.data,
@@ -79,10 +93,15 @@ const systemGraph = defineSystemGraph({
 const world = createWorld<WorldComponent>().withResources(resources).withQueries(queries).withSystemGraph(systemGraph);
 
 const movable = world.getQuery('movable');
-const renderable = world.getQuery('renderable');
+const collidable = world.getQuery('collidable');
+
+const ball = {
+    position: createPosition(Vec2.create(canvas.width / 2, 150)),
+    shape: createShape({ type: Shape.Circle, radius: 30 }) as Component<typeof T.Shape, CircleShape>,
+    velocity: createVelocity(Vec2.create(0, 0)),
+};
 
 const ballInputMap = { Left: 'ArrowLeft', Right: 'ArrowRight', Jump: ' ' };
-const ballVelocity = Vec2.create(0, 0);
 let isGrounded = false;
 const input = { left: false, right: false, jump: false };
 
@@ -116,39 +135,43 @@ world.insertSystems({
         world.spawn(nextEntityId(), [
             createPosition(Vec2.create(150, canvas.height - 50)),
             createShape({ type: Shape.Box, halfExtends: Vec2.create(canvas.width / 8, 20) }),
+            createCollider(),
         ]);
 
         world.spawn(nextEntityId(), [
             createPosition(Vec2.create(canvas.width / 2, canvas.height - 50)),
             createShape({ type: Shape.Box, halfExtends: Vec2.create(canvas.width / 8, 20) }),
+            createCollider(),
         ]);
 
         world.spawn(nextEntityId(), [
             createPosition(Vec2.create(canvas.width - 150, canvas.height - 50)),
             createShape({ type: Shape.Box, halfExtends: Vec2.create(canvas.width / 8, 20) }),
+            createCollider(),
         ]);
 
         world.spawn(nextEntityId(), [
-            createPosition(Vec2.create(canvas.width / 2, 150)),
-            createShape({ type: Shape.Circle, radius: 30 }),
-            createVelocity(ballVelocity),
+            ball.position,
+            ball.shape,
+            ball.velocity,
             createInputMapping(ballInputMap),
+            createPlayerTag(),
         ]);
     },
     handleInput: () => {
         if (input.jump) {
-            ballVelocity[1] = -500;
+            ball.velocity.data[1] = -500;
             input.jump = false;
         }
 
         if (input.left && input.right) {
-            ballVelocity[0] = 0;
+            ball.velocity.data[0] = 0;
         } else if (input.left) {
-            ballVelocity[0] = -300;
+            ball.velocity.data[0] = -300;
         } else if (input.right) {
-            ballVelocity[0] = 300;
+            ball.velocity.data[0] = 300;
         } else {
-            ballVelocity[0] = 0;
+            ball.velocity.data[0] = 0;
         }
     },
     applyGravity: (delta) => {
@@ -164,24 +187,26 @@ world.insertSystems({
     checkCollisions: () => {
         isGrounded = false;
 
-        for (const item of renderable) {
-            for (const item2 of renderable) {
-                if (item === item2) continue;
+        for (const item of collidable) {
+            if (
+                item.shape.type === Shape.Box &&
+                circleBoxCollision(
+                    collisionResult,
+                    { position: ball.position.data, radius: ball.shape.data.radius },
+                    { position: item.position, halfExtends: item.shape.halfExtends },
+                )
+            ) {
+                ball.position.data[0] += collisionResult.normal[0] * collisionResult.penetration;
+                ball.position.data[1] += collisionResult.normal[1] * collisionResult.penetration;
 
-                if (
-                    item.shape.type === Shape.Circle &&
-                    item2.shape.type === Shape.Box &&
-                    circleBoxCollision(
-                        collisionResult,
-                        { position: item.position, radius: item.shape.radius },
-                        { position: item2.position, halfExtends: item2.shape.halfExtends },
-                    )
-                ) {
-                    item.position[0] += collisionResult.normal[0] * collisionResult.penetration;
-                    item.position[1] += collisionResult.normal[1] * collisionResult.penetration;
+                const dotProduct = Vec2.dot(ball.velocity.data, collisionResult.normal);
+                if (dotProduct < 0) {
+                    ball.velocity.data[0] -= collisionResult.normal[0] * dotProduct;
+                    ball.velocity.data[1] -= collisionResult.normal[1] * dotProduct;
+                }
+
+                if (collisionResult.normal[1] < -0.5) {
                     isGrounded = true;
-                    ballVelocity[0] = 0;
-                    ballVelocity[1] = 0;
                 }
             }
         }

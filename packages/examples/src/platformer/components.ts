@@ -1,7 +1,7 @@
 import { createComponent, defineComponentTypes } from '@timefold/ecs';
 import { Vec2Type } from '@timefold/math';
 
-export const T = defineComponentTypes(['Position', 'Velocity', 'InputMapping', 'Shape']);
+export const T = defineComponentTypes(['Position', 'Velocity', 'InputMapping', 'Shape', 'PlayerTag', 'Collider']);
 
 export const Shape = { Box: 0, Circle: 1 } as const;
 
@@ -21,9 +21,20 @@ export const createPosition = (vec2: Vec2Type) => createComponent(T.Position, ve
 export const createVelocity = (vec2: Vec2Type) => createComponent(T.Velocity, vec2);
 export const createInputMapping = (mapping: Record<string, string>) => createComponent(T.InputMapping, mapping);
 export const createShape = (shape: Shape) => createComponent(T.Shape, shape);
+export const createPlayerTag = () => createComponent(T.PlayerTag);
+export const createCollider = () => createComponent(T.Collider);
 
 export type PositionComponent = ReturnType<typeof createPosition>;
 export type VelocityComponent = ReturnType<typeof createVelocity>;
 export type InputMappingComponent = ReturnType<typeof createInputMapping>;
 export type ShapeComponent = ReturnType<typeof createShape>;
-export type WorldComponent = PositionComponent | VelocityComponent | InputMappingComponent | ShapeComponent;
+export type PlayerTagComponent = ReturnType<typeof createPlayerTag>;
+export type ColliderComponent = ReturnType<typeof createCollider>;
+
+export type WorldComponent =
+    | PositionComponent
+    | VelocityComponent
+    | InputMappingComponent
+    | ShapeComponent
+    | PlayerTagComponent
+    | ColliderComponent;

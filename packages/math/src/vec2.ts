@@ -151,3 +151,7 @@ export function rotation(out: Vec2Type, a: Vec2Type, b: Vec2Type, rad: number) {
 export function rotate(out: Vec2Type, vec2: Vec2Type, rad: number) {
     return rotation(out, out, vec2, rad);
 }
+
+export function dot(a: Vec2Type, b: Vec2Type) {
+    return a[0] * b[0] + a[1] * b[1];
+}
