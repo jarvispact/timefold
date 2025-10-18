@@ -368,15 +368,15 @@ describe('world', () => {
                 three: queryBuilder<WorldComponent>().includeEntity().with(1).with(2).compile(),
             });
 
-            const one = world.getQuery('one');
+            const one = world.getQueryResults('one');
             expectTypeOf<typeof one>().toExtend<[number, { type: 0 }][]>();
 
-            const two = world.getQuery('two');
+            const two = world.getQueryResults('two');
             expectTypeOf<typeof two>().toExtend<
                 [number, { type: 0 } | { type: 1; data: { pos: [number, number] } }][]
             >();
 
-            const three = world.getQuery('three');
+            const three = world.getQueryResults('three');
             expectTypeOf<typeof three>().toExtend<
                 [
                     number,
@@ -397,12 +397,12 @@ describe('world', () => {
                     six: queryBuilder<WorldComponent>().with(3).compile(),
                 });
 
-                const one = world.getQuery('one');
-                const two = world.getQuery('two');
-                const three = world.getQuery('three');
-                const four = world.getQuery('four');
-                const five = world.getQuery('five');
-                const six = world.getQuery('six');
+                const one = world.getQueryResults('one');
+                const two = world.getQueryResults('two');
+                const three = world.getQueryResults('three');
+                const four = world.getQueryResults('four');
+                const five = world.getQueryResults('five');
+                const six = world.getQueryResults('six');
 
                 const a: A = { type: 0 };
                 const b: B = { type: 1, data: { pos: [0, 0] } };
@@ -451,12 +451,12 @@ describe('world', () => {
                     six: queryBuilder<WorldComponent>().with(0).with(2).with(3).with(1).with(4).compile(),
                 });
 
-                const one = world.getQuery('one');
-                const two = world.getQuery('two');
-                const three = world.getQuery('three');
-                const four = world.getQuery('four');
-                const five = world.getQuery('five');
-                const six = world.getQuery('six');
+                const one = world.getQueryResults('one');
+                const two = world.getQueryResults('two');
+                const three = world.getQueryResults('three');
+                const four = world.getQueryResults('four');
+                const five = world.getQueryResults('five');
+                const six = world.getQueryResults('six');
 
                 const a: A = { type: 0 };
                 const b: B = { type: 1, data: { pos: [0, 0] } };
@@ -513,8 +513,8 @@ describe('world', () => {
                     two: queryBuilder<WorldComponent>().with(0).with(1).compile(),
                 });
 
-                const one = world.getQuery('one');
-                const two = world.getQuery('two');
+                const one = world.getQueryResults('one');
+                const two = world.getQueryResults('two');
 
                 const a: A = { type: 0 };
                 const b: B = { type: 1, data: { pos: [0, 0] } };
@@ -561,9 +561,9 @@ describe('world', () => {
                     three: queryBuilder<WorldComponent>().with(2).with(3).compile(),
                 });
 
-                const one = world.getQuery('one');
-                const two = world.getQuery('two');
-                const three = world.getQuery('three');
+                const one = world.getQueryResults('one');
+                const two = world.getQueryResults('two');
+                const three = world.getQueryResults('three');
 
                 const a: A = { type: 0 };
                 const b: B = { type: 1, data: { pos: [0, 0] } };
@@ -616,9 +616,9 @@ describe('world', () => {
                     three: queryBuilder<WorldComponent>().with(2).with(3).compile(),
                 });
 
-                const one = world.getQuery('one');
-                const two = world.getQuery('two');
-                const three = world.getQuery('three');
+                const one = world.getQueryResults('one');
+                const two = world.getQueryResults('two');
+                const three = world.getQueryResults('three');
 
                 const a: A = { type: 0 };
                 const b: B = { type: 1, data: { pos: [0, 0] } };
@@ -671,9 +671,9 @@ describe('world', () => {
                     three: queryBuilder<WorldComponent>().includeEntity().with(1).with(2).compile(),
                 });
 
-                const one = world.getQuery('one');
-                const two = world.getQuery('two');
-                const three = world.getQuery('three');
+                const one = world.getQueryResults('one');
+                const two = world.getQueryResults('two');
+                const three = world.getQueryResults('three');
 
                 const a: A = { type: 0 };
                 const b: B = { type: 1, data: { pos: [0, 0] } };
@@ -743,7 +743,7 @@ describe('world', () => {
             });
 
             it('should be able to handle lots of different component types (bitset array) across multiple actions', () => {
-                const T = defineComponentTypes([
+                const { T } = defineComponentTypes([
                     'T00',
                     'T01',
                     'T02',
@@ -809,7 +809,7 @@ describe('world', () => {
                         .compile(),
                 });
 
-                const one = world.getQuery('one');
+                const one = world.getQueryResults('one');
 
                 const t00: T00 = { type: 0, data: { a: true } };
                 const t01: T01 = { type: 1, data: { b: 'foo' } };
@@ -948,11 +948,11 @@ describe('world', () => {
                     five: queryBuilder<WorldComponent>().withAny([0, 3]).compile(),
                 });
 
-                const one = world.getQuery('one');
-                const two = world.getQuery('two');
-                const three = world.getQuery('three');
-                const four = world.getQuery('four');
-                const five = world.getQuery('five');
+                const one = world.getQueryResults('one');
+                const two = world.getQueryResults('two');
+                const three = world.getQueryResults('three');
+                const four = world.getQueryResults('four');
+                const five = world.getQueryResults('five');
 
                 const a: A = { type: 0 };
                 const b: B = { type: 1, data: { pos: [0, 0] } };
@@ -985,8 +985,8 @@ describe('world', () => {
                     two: queryBuilder<WorldComponent>().withAny([1, 2]).compile(),
                 });
 
-                const one = world.getQuery('one');
-                const two = world.getQuery('two');
+                const one = world.getQueryResults('one');
+                const two = world.getQueryResults('two');
 
                 const a: A = { type: 0 };
                 const b: B = { type: 1, data: { pos: [0, 0] } };
@@ -1019,9 +1019,9 @@ describe('world', () => {
                     three: queryBuilder<WorldComponent>().withAny([3, 4]).compile(),
                 });
 
-                const one = world.getQuery('one');
-                const two = world.getQuery('two');
-                const three = world.getQuery('three');
+                const one = world.getQueryResults('one');
+                const two = world.getQueryResults('two');
+                const three = world.getQueryResults('three');
 
                 const a: A = { type: 0 };
                 const b: B = { type: 1, data: { pos: [0, 0] } };
@@ -1064,9 +1064,9 @@ describe('world', () => {
                     three: queryBuilder<WorldComponent>().withAny([3, 4]).compile(),
                 });
 
-                const one = world.getQuery('one');
-                const two = world.getQuery('two');
-                const three = world.getQuery('three');
+                const one = world.getQueryResults('one');
+                const two = world.getQueryResults('two');
+                const three = world.getQueryResults('three');
 
                 const a: A = { type: 0 };
                 const b: B = { type: 1, data: { pos: [0, 0] } };
@@ -1103,7 +1103,7 @@ describe('world', () => {
             });
 
             it('should be able to handle lots of different component types (bitset array) across multiple actions', () => {
-                const T = defineComponentTypes([
+                const { T } = defineComponentTypes([
                     'T00',
                     'T01',
                     'T02',
@@ -1165,7 +1165,7 @@ describe('world', () => {
                         .compile(),
                 });
 
-                const one = world.getQuery('one');
+                const one = world.getQueryResults('one');
 
                 const t00: T00 = { type: 0, data: { a: true } };
                 const t01: T01 = { type: 1, data: { b: 'foo' } };
@@ -1283,7 +1283,7 @@ describe('world', () => {
             });
 
             it('should handle spawning and adding of component types correctly.', () => {
-                const T = defineComponentTypes([
+                const { T } = defineComponentTypes([
                     'T00',
                     'T01',
                     'T02',
@@ -1345,7 +1345,7 @@ describe('world', () => {
                         .compile(),
                 });
 
-                const query = world.getQuery('testQuery');
+                const query = world.getQueryResults('testQuery');
 
                 const t00: T00 = { type: 0, data: { a: 'has-t00' } };
                 const t32: T32 = { type: 32, data: { c: 'has-t32' } };
@@ -1402,8 +1402,8 @@ describe('world', () => {
                     two: queryBuilder<WorldComponent>().includeEntity().with(1).with(0).compile(),
                 });
 
-                const one = world.getQuery('one');
-                const two = world.getQuery('two');
+                const one = world.getQueryResults('one');
+                const two = world.getQueryResults('two');
 
                 const a: A = { type: 0 };
                 const b: B = { type: 1, data: { pos: [0, 0] } };
@@ -1447,9 +1447,9 @@ describe('world', () => {
                         .compile(),
                 });
 
-                const one = world.getQuery('one');
-                const two = world.getQuery('two');
-                const three = world.getQuery('three');
+                const one = world.getQueryResults('one');
+                const two = world.getQueryResults('two');
+                const three = world.getQueryResults('three');
 
                 const a: A = { type: 0 };
                 const b: B = { type: 1, data: { pos: [0, 0] } };

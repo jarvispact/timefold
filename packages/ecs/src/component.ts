@@ -7,18 +7,18 @@ type MaxComponentTypesRange = Range<Increment<MaxComponentTypes>>;
 export function defineComponentTypes<const T extends string[]>(
     typeNames: T,
 ): T['length'] extends MaxComponentTypesRange
-    ? ComponentTypes<T>
+    ? { T: ComponentTypes<T>; typeNames: T }
     : `ERR: Only ${MaxComponentTypes} component types supported.` {
-    if (typeNames.length > MAX_COMPONENT_TYPES) return {} as never;
+    if (typeNames.length > MAX_COMPONENT_TYPES) return { T: {}, typeNames: [] } as never;
 
-    const componentTypes: Record<string, number> = {};
+    const T: Record<string, number> = {};
 
     for (let i = 0; i < typeNames.length; i++) {
         const key = typeNames[i];
-        componentTypes[key] = i;
+        T[key] = i;
     }
 
-    return componentTypes as never;
+    return { T, typeNames } as never;
 }
 
 export type Component<ComponentType extends number = number, Data = undefined> = Data extends undefined

@@ -403,12 +403,12 @@ export type GenericSystemWithFn = { active: boolean; async: boolean; fn: (...arg
 
 export function createDefaultSystemFn(name: string, async: boolean) {
     function defaultSystem() {
-        console.warn(`System "${name}" has not been spawned yet.`);
+        console.warn(`System "${name}" has not been inserted.`);
     }
 
     // eslint-disable-next-line @typescript-eslint/require-await
     async function defaultAsyncSystem() {
-        console.warn(`AsyncSystem "${name}" has not been spawned yet.`);
+        console.warn(`AsyncSystem "${name}" has not been inserted.`);
     }
 
     return async ? defaultAsyncSystem : defaultSystem;

@@ -48,6 +48,8 @@ const createGetDelta = (then: number) => (now: number) => {
     return delta;
 };
 
+const ONE_SECOND = 1000;
+
 class WorldClass<
     WorldComponent extends Component,
     CustomEvent extends GenericEcsEvent = never,
@@ -60,6 +62,11 @@ class WorldClass<
 > {
     private initQueriesCalled = false;
     private initSystemsCalled = false;
+    private startupCalled = false;
+    private debugUpdateTotalTimes = { update: 0, render: 0 };
+    private debugUpdatesPerSecond = { update: 0, render: 0 };
+    private debugTimeToPrint = performance.now() + ONE_SECOND;
+    private debugUpdateRuns = 0;
 
     private resources: Record<string, unknown> = {};
     private queries: Record<string, QueryDefinitionGeneric<WorldComponent>> = {};
@@ -236,7 +243,9 @@ class WorldClass<
         this.initQueriesCalled = true;
     }
 
-    getQuery<Name extends keyof Queries>(name: Name): MapQueryDefinitionToTuple<WorldComponent, Queries[Name]>[] {
+    getQueryResults<Name extends keyof Queries>(
+        name: Name,
+    ): MapQueryDefinitionToTuple<WorldComponent, Queries[Name]>[] {
         const idx = this.nameToQueryIdx[name as string];
         if (idx === undefined) {
             console.warn(`Query with name "${String(name)}" does not exist. Returning empty array.`);
@@ -411,8 +420,9 @@ class WorldClass<
               : () => void,
     ) {
         const system = this.getSystem(name as string);
-        if (!system) return;
+        if (!system) return this;
         system.fn = fn;
+        return this;
     }
 
     insertSystems(
@@ -429,6 +439,8 @@ class WorldClass<
         for (const name in systems) {
             this.insertSystem(name, systems[name] as never);
         }
+
+        return this;
     }
 
     getSystemActiveState(name: keyof Graph['systems']): boolean {
@@ -445,7 +457,18 @@ class WorldClass<
         system.active = active;
     }
 
-    async start() {
+    // startup, update, render, cleanup
+
+    async startup() {
+        if (this.startupCalled) return;
+
+        if (!this.initSystemsCalled || !this.initQueriesCalled) {
+            console.error(`Can only startup the world when systems and queries were setup already.`);
+            return;
+        }
+
+        this.getDelta = createGetDelta(0);
+
         const startupSystemList = this.systemsByStage.startup;
 
         for (let i = 0; i < startupSystemList.length; i++) {
@@ -460,43 +483,160 @@ class WorldClass<
             }
         }
 
+        this.startupCalled = true;
+    }
+
+    async update(time: number) {
+        const delta = this.getDelta(time);
+
+        const updateSystemList = this.systemsByStage.update;
+
+        for (let i = 0; i < updateSystemList.length; i++) {
+            const systemOrSystemList = updateSystemList[i];
+            if (Array.isArray(systemOrSystemList)) {
+                await Promise.allSettled(
+                    systemOrSystemList.filter(isSystemActive).map(callSystemWithTime(delta, time)),
+                );
+            } else if (systemOrSystemList.active) {
+                const maybePromise = systemOrSystemList.fn(delta, time);
+                if (maybePromise && 'then' in maybePromise) {
+                    await maybePromise;
+                }
+            }
+        }
+
+        const renderSystemList = this.systemsByStage.render;
+
+        for (let i = 0; i < renderSystemList.length; i++) {
+            const systemOrSystemList = renderSystemList[i];
+            if (Array.isArray(systemOrSystemList)) {
+                await Promise.allSettled(
+                    systemOrSystemList.filter(isSystemActive).map(callSystemWithTime(delta, time)),
+                );
+            } else if (systemOrSystemList.active) {
+                const maybePromise = systemOrSystemList.fn(delta, time);
+                if (maybePromise && 'then' in maybePromise) {
+                    await maybePromise;
+                }
+            }
+        }
+    }
+
+    async debugUpdate(time: number) {
+        const delta = this.getDelta(time);
+
+        const updateSystemList = this.systemsByStage.update;
+
+        const u1 = performance.now();
+
+        for (let i = 0; i < updateSystemList.length; i++) {
+            const systemOrSystemList = updateSystemList[i];
+            if (Array.isArray(systemOrSystemList)) {
+                await Promise.allSettled(
+                    systemOrSystemList.filter(isSystemActive).map(callSystemWithTime(delta, time)),
+                );
+            } else if (systemOrSystemList.active) {
+                const maybePromise = systemOrSystemList.fn(delta, time);
+                if (maybePromise && 'then' in maybePromise) {
+                    await maybePromise;
+                }
+            }
+        }
+
+        const u2 = performance.now();
+        this.debugUpdateTotalTimes.update += u2 - u1;
+
+        const renderSystemList = this.systemsByStage.render;
+
+        const r1 = performance.now();
+
+        for (let i = 0; i < renderSystemList.length; i++) {
+            const systemOrSystemList = renderSystemList[i];
+            if (Array.isArray(systemOrSystemList)) {
+                await Promise.allSettled(
+                    systemOrSystemList.filter(isSystemActive).map(callSystemWithTime(delta, time)),
+                );
+            } else if (systemOrSystemList.active) {
+                const maybePromise = systemOrSystemList.fn(delta, time);
+                if (maybePromise && 'then' in maybePromise) {
+                    await maybePromise;
+                }
+            }
+        }
+
+        const r2 = performance.now();
+        this.debugUpdateTotalTimes.render += r2 - r1;
+
+        this.debugUpdateRuns++;
+        this.debugUpdatesPerSecond.update++;
+        this.debugUpdatesPerSecond.render++;
+
+        if (performance.now() > this.debugTimeToPrint) {
+            const avgUpdateTime = (this.debugUpdateTotalTimes.update / this.debugUpdateRuns).toFixed(2);
+            const avgRenderTime = (this.debugUpdateTotalTimes.render / this.debugUpdateRuns).toFixed(2);
+            const updatesPerSecond = this.debugUpdatesPerSecond.update.toString();
+            const rendersPerSecond = this.debugUpdatesPerSecond.render.toString();
+
+            console.log(
+                `Avg update time: ${avgUpdateTime} | Avg render time: ${avgRenderTime} | updates per second: ${updatesPerSecond} | renders per second: ${rendersPerSecond}`,
+            );
+
+            this.debugUpdatesPerSecond.update = 0;
+            this.debugUpdatesPerSecond.render = 0;
+            this.debugTimeToPrint = performance.now() + ONE_SECOND;
+        }
+    }
+
+    async cleanup() {
+        const cleanupSystemList = this.systemsByStage.cleanup;
+
+        for (let i = 0; i < cleanupSystemList.length; i++) {
+            const systemOrSystemList = cleanupSystemList[i];
+            if (Array.isArray(systemOrSystemList)) {
+                await Promise.allSettled(systemOrSystemList.filter(isSystemActive).map(callSystem));
+            } else if (systemOrSystemList.active) {
+                const maybePromise = systemOrSystemList.fn();
+                if (maybePromise && 'then' in maybePromise) {
+                    await maybePromise;
+                }
+            }
+        }
+    }
+
+    async start(args: { loop?: boolean } = {}) {
+        if (!this.initSystemsCalled || !this.initQueriesCalled) {
+            console.error(`Can only startup the world when systems and queries were setup already.`);
+            return;
+        }
+
+        const loop = args.loop ?? true;
+
+        await this.startup();
+
         const tick = async (time: number) => {
-            const delta = this.getDelta(time);
-
-            const updateSystemList = this.systemsByStage.update;
-
-            for (let i = 0; i < updateSystemList.length; i++) {
-                const systemOrSystemList = updateSystemList[i];
-                if (Array.isArray(systemOrSystemList)) {
-                    await Promise.allSettled(
-                        systemOrSystemList.filter(isSystemActive).map(callSystemWithTime(delta, time)),
-                    );
-                } else if (systemOrSystemList.active) {
-                    const maybePromise = systemOrSystemList.fn(delta, time);
-                    if (maybePromise && 'then' in maybePromise) {
-                        await maybePromise;
-                    }
-                }
-            }
-
-            const renderSystemList = this.systemsByStage.render;
-
-            for (let i = 0; i < renderSystemList.length; i++) {
-                const systemOrSystemList = renderSystemList[i];
-                if (Array.isArray(systemOrSystemList)) {
-                    await Promise.allSettled(
-                        systemOrSystemList.filter(isSystemActive).map(callSystemWithTime(delta, time)),
-                    );
-                } else if (systemOrSystemList.active) {
-                    const maybePromise = systemOrSystemList.fn(delta, time);
-                    if (maybePromise && 'then' in maybePromise) {
-                        await maybePromise;
-                    }
-                }
-            }
-
+            await this.update(time);
             // eslint-disable-next-line @typescript-eslint/no-misused-promises
-            window.requestAnimationFrame(tick);
+            if (loop) window.requestAnimationFrame(tick);
+        };
+
+        // eslint-disable-next-line @typescript-eslint/no-misused-promises
+        window.requestAnimationFrame(tick);
+    }
+
+    async debugStart(args: { loop?: boolean } = {}) {
+        if (!this.initSystemsCalled || !this.initQueriesCalled) {
+            console.error(`Can only startup the world when systems and queries were setup already.`);
+            return;
+        }
+
+        const loop = args.loop ?? true;
+
+        await this.startup();
+
+        const tick = async (time: number) => {
+            await this.debugUpdate(time);
+            // eslint-disable-next-line @typescript-eslint/no-misused-promises
+            if (loop) window.requestAnimationFrame(tick);
         };
 
         // eslint-disable-next-line @typescript-eslint/no-misused-promises

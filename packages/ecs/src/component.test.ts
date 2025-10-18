@@ -13,7 +13,7 @@ describe('component', () => {
     });
 
     it('should define component types and return the correct type', () => {
-        const T = defineComponentTypes(['POS', 'VEL', 'COLOR']);
+        const { T } = defineComponentTypes(['POS', 'VEL', 'COLOR']);
 
         expectTypeOf(T).toMatchObjectType<{
             POS: 0;
