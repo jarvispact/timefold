@@ -1,6 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
 import {
+    ArrayBufferCastedToTupleMode,
     ArrayBufferMode,
     FormatMap,
     GenericMode,
@@ -8,6 +9,7 @@ import {
     IndexFormatToTypedArray,
     NumberTupleMode,
     RemoveNever,
+    SharedArrayBufferCastedToTupleMode,
     SharedArrayBufferMode,
     Tuple,
     TupleIndices,
@@ -21,7 +23,7 @@ import { LookupTableEntry, WgslArrayType, WgslPrimitive } from './lookup-table';
 // wgsl type
 
 export type WgslTypeCreateResult<Mode extends GenericMode, Type extends WgslPrimitive> = GenericMode extends Mode
-    ? { buffer: ArrayBuffer; view: TypedArrayOrTuple<Type, ArrayBuffer, ArrayBufferMode> }
+    ? { buffer: ArrayBuffer; view: TypedArrayOrTuple<Type, ArrayBuffer, NumberTupleMode> }
     : Mode extends NumberTupleMode
       ? { view: TypedArrayOrTuple<Type, ArrayBufferLike, NumberTupleMode> }
       : Mode extends SharedArrayBufferMode
@@ -29,7 +31,14 @@ export type WgslTypeCreateResult<Mode extends GenericMode, Type extends WgslPrim
               buffer: SharedArrayBuffer;
               view: TypedArrayOrTuple<Type, SharedArrayBuffer, SharedArrayBufferMode>;
           }
-        : { buffer: ArrayBuffer; view: TypedArrayOrTuple<Type, ArrayBuffer, ArrayBufferMode> };
+        : Mode extends SharedArrayBufferCastedToTupleMode
+          ? {
+                buffer: SharedArrayBuffer;
+                view: TypedArrayOrTuple<Type, SharedArrayBuffer, NumberTupleMode>;
+            }
+          : Mode extends ArrayBufferCastedToTupleMode
+            ? { buffer: ArrayBuffer; view: TypedArrayOrTuple<Type, ArrayBuffer, NumberTupleMode> }
+            : { buffer: ArrayBuffer; view: TypedArrayOrTuple<Type, ArrayBuffer, ArrayBufferMode> };
 
 export type WgslType<T extends WgslPrimitive> = {
     type: T;
@@ -69,7 +78,7 @@ export type WgslStructCreateResult<
     Definition extends GenericWgslStructDefinition,
     Mode extends GenericMode,
 > = GenericMode extends Mode
-    ? { buffer: ArrayBuffer; views: WgslStructViews<Definition, ArrayBuffer, ArrayBufferMode> }
+    ? { buffer: ArrayBuffer; views: WgslStructViews<Definition, ArrayBuffer, NumberTupleMode> }
     : Mode extends NumberTupleMode
       ? { views: WgslStructViews<Definition, ArrayBufferLike, NumberTupleMode> }
       : Mode extends SharedArrayBufferMode
@@ -77,7 +86,14 @@ export type WgslStructCreateResult<
               buffer: SharedArrayBuffer;
               views: WgslStructViews<Definition, SharedArrayBuffer, SharedArrayBufferMode>;
           }
-        : { buffer: ArrayBuffer; views: WgslStructViews<Definition, ArrayBuffer, ArrayBufferMode> };
+        : Mode extends SharedArrayBufferCastedToTupleMode
+          ? {
+                buffer: SharedArrayBuffer;
+                views: WgslStructViews<Definition, SharedArrayBuffer, NumberTupleMode>;
+            }
+          : Mode extends ArrayBufferCastedToTupleMode
+            ? { buffer: ArrayBuffer; views: WgslStructViews<Definition, ArrayBuffer, NumberTupleMode> }
+            : { buffer: ArrayBuffer; views: WgslStructViews<Definition, ArrayBuffer, ArrayBufferMode> };
 
 export type WgslStructViewConfig = Record<string, ViewConfigEntry | ViewConfigEntry[] | Record<string, unknown>>;
 
@@ -127,7 +143,7 @@ export type WgslArrayCreateResult<
     Size extends number,
     Mode extends GenericMode,
 > = GenericMode extends Mode
-    ? { buffer: ArrayBuffer; views: WgslArrayViews<Element, Size, ArrayBuffer, ArrayBufferMode> }
+    ? { buffer: ArrayBuffer; views: WgslArrayViews<Element, Size, ArrayBuffer, NumberTupleMode> }
     : Mode extends NumberTupleMode
       ? { views: WgslArrayViews<Element, Size, ArrayBufferLike, NumberTupleMode> }
       : Mode extends SharedArrayBufferMode
@@ -135,7 +151,20 @@ export type WgslArrayCreateResult<
               buffer: SharedArrayBuffer;
               views: WgslArrayViews<Element, Size, SharedArrayBuffer, SharedArrayBufferMode>;
           }
-        : { buffer: ArrayBuffer; views: WgslArrayViews<Element, Size, ArrayBuffer, ArrayBufferMode> };
+        : Mode extends SharedArrayBufferCastedToTupleMode
+          ? {
+                buffer: SharedArrayBuffer;
+                views: WgslArrayViews<Element, Size, SharedArrayBuffer, NumberTupleMode>;
+            }
+          : Mode extends ArrayBufferCastedToTupleMode
+            ? {
+                  buffer: ArrayBuffer;
+                  views: WgslArrayViews<Element, Size, ArrayBuffer, NumberTupleMode>;
+              }
+            : {
+                  buffer: ArrayBuffer;
+                  views: WgslArrayViews<Element, Size, ArrayBuffer, ArrayBufferMode>;
+              };
 
 export type WgslArrayViewConfig<Size extends number> = Tuple<
     ViewConfigEntry | Record<string, ViewConfigEntry> | ViewConfigEntry[],

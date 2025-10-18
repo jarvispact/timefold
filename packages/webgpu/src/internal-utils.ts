@@ -27,9 +27,17 @@ export type RemoveNever<T> = {
 };
 
 export type ArrayBufferMode = 'array-buffer';
+export type ArrayBufferCastedToTupleMode = 'array-buffer-casted-to-tuple';
 export type SharedArrayBufferMode = 'shared-array-buffer';
+export type SharedArrayBufferCastedToTupleMode = 'shared-array-buffer-casted-to-tuple';
 export type NumberTupleMode = 'number-tuple';
-export type GenericTypedArrayMode = ArrayBufferMode | SharedArrayBufferMode;
+
+export type GenericTypedArrayMode =
+    | ArrayBufferMode
+    | SharedArrayBufferMode
+    | ArrayBufferCastedToTupleMode
+    | SharedArrayBufferCastedToTupleMode;
+
 export type GenericMode = GenericTypedArrayMode | NumberTupleMode;
 
 export type TypedArrayOrTuple<T extends WgslPrimitive, Buffer extends ArrayBufferLike, Mode extends GenericMode> =

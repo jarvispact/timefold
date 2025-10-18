@@ -2,7 +2,13 @@ import { WgslScalar, Tuple } from './internal-utils';
 
 const create = <Size extends number>(size: Size): Tuple<number, Size> => {
     if (size === 1) return 0 as never;
-    return new Array(size).fill(0) as never;
+    const array: number[] = [];
+
+    for (let i = 0; i < size; i++) {
+        array.push(0);
+    }
+
+    return array as never;
 };
 
 type WithCreateFn<T extends Record<string, { elements: number }>> = {
