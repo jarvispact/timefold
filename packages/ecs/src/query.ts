@@ -244,6 +244,11 @@ export function queryBuilder<
     return api as unknown as QueryBuilderApi<WorldComponent, false, Tuple, UsedMethods>;
 }
 
-export function defineQueries<Queries extends Record<string, QueryDefinitionGeneric>>(queries: Queries) {
+export type GenericQueries<WorldComponent extends Component = Component> = Record<
+    string,
+    QueryDefinitionGeneric<WorldComponent>
+>;
+
+export function defineQueries<Queries extends GenericQueries>(queries: Queries) {
     return queries;
 }

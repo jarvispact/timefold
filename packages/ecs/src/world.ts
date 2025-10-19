@@ -13,193 +13,164 @@ import {
 import {
     Bitmasks,
     callSystem,
-    callSystemWithTime,
-    createDefaultSystemFn,
     GenericSystemWithFn,
     InternalQuery,
-    isSystemActive,
-    isWithAnyItem,
-    isWithItem,
+    MergeRules,
     updateQueriesForDespawn,
     updateQueriesForRemoveComponent,
     updateQueriesForSpawnAndAddComponent,
+    isSystemActive as _isSystemActive,
+    callSystemWithTime,
+    createDefaultSystemFn,
+    isWithItem,
+    isWithAnyItem,
 } from './internal';
-import { MapQueryDefinitionToTuple, QueryDefinitionGeneric } from './query';
-import { SystemGraph, SystemStage } from './system';
+import { Plugin } from './plugin';
+import { GenericQueries, MapQueryDefinitionToTuple } from './query';
+import { GenericResources } from './resource';
+import { createDefaultSystemGraph, DefaultSystemGraph, mergeSystemGraphs, SystemGraph, SystemStage } from './system';
+
+type PluginFn = (world: World<Component, GenericEcsEvent, GenericResources, GenericQueries>) => void | Promise<void>;
+
+type WorldBuilderData = {
+    resources: GenericResources;
+    queries: GenericQueries;
+    systemGraph: SystemGraph;
+    pluginFns: PluginFn[];
+};
 
 type EventSubscriber = (payload: unknown) => void;
 
 const COMPONENT_TYPE_DIVISOR = 32;
 
-const defaultSystemGraph: SystemGraph = {
-    systems: {},
-    orderByStage: {
-        startup: [],
-        update: [],
-        render: [],
-        cleanup: [],
-    },
-};
-
-const createGetDelta = (then: number) => (now: number) => {
-    now *= 0.001;
-    const delta = now - then;
-    then = now;
-    return delta;
-};
-
-const ONE_SECOND = 1000;
-
-class WorldClass<
-    WorldComponent extends Component,
-    CustomEvent extends GenericEcsEvent = never,
-    Resources extends Record<string, unknown> = Record<string, unknown>,
-    Queries extends Record<string, QueryDefinitionGeneric<WorldComponent>> = Record<
-        string,
-        QueryDefinitionGeneric<WorldComponent>
-    >,
-    Graph extends SystemGraph = SystemGraph,
-> {
-    private initQueriesCalled = false;
-    private initSystemsCalled = false;
-    private startupCalled = false;
-    private debugUpdateTotalTimes = { update: 0, render: 0 };
-    private debugUpdatesPerSecond = { update: 0, render: 0 };
-    private debugTimeToPrint = performance.now() + ONE_SECOND;
-    private debugUpdateRuns = 0;
-
-    private resources: Record<string, unknown> = {};
-    private queries: Record<string, QueryDefinitionGeneric<WorldComponent>> = {};
-    private systemGraph: SystemGraph = defaultSystemGraph;
-
-    private subscribersByEventType: Record<string, EventSubscriber[] | undefined> = {};
-
-    private internalQueries: InternalQuery[] = [];
-    private nameToQueryIdx: Record<string, number | undefined> = {};
-
-    private entities = new Map<number, { componentsByType: Map<number, WorldComponent>; bitmasks: Bitmasks }>();
-
-    private systemsByStage: { [S in SystemStage]: (GenericSystemWithFn | GenericSystemWithFn[])[] } = {
-        startup: [],
-        update: [],
-        render: [],
-        cleanup: [],
-    };
-    private nameToStageAndIndex: Record<string, { stage: SystemStage; index: [number] | [number, number] }> = {};
-
-    private getDelta = createGetDelta(0);
-
-    // builder methods
-
-    withResources<T extends Record<string, unknown>>(resources: T) {
-        this.resources = resources;
-        return this as unknown as WorldClass<WorldComponent, CustomEvent, T, Queries, Graph>;
-    }
-
-    withQueries<T extends Record<string, QueryDefinitionGeneric<WorldComponent>>>(queries: T) {
-        this.queries = queries;
-        this.initQueries();
-        return this as unknown as WorldClass<WorldComponent, CustomEvent, Resources, T, Graph>;
-    }
-
-    withSystemGraph<T extends SystemGraph>(systemGraph: T) {
-        this.systemGraph = systemGraph;
-        this.initSystems();
-        return this as unknown as WorldClass<WorldComponent, CustomEvent, Resources, Queries, T>;
-    }
-
-    // set methods
-
-    setResources(resources: Resources) {
-        this.resources = resources;
-        return this;
-    }
-
-    setQueries(queries: Queries) {
-        this.queries = queries;
-        this.initQueries();
-        return this;
-    }
-
-    setSystemGraph(systemGraph: Graph) {
-        this.systemGraph = systemGraph;
-        this.initSystems();
-        return this;
-    }
-
-    // events
-
-    private internalEmit(event: EcsEvent<WorldComponent, Resources>) {
-        this.emit(event as unknown as CustomEvent);
-    }
-
-    emit(event: CustomEvent): void {
-        const subscribers = this.subscribersByEventType[event.type];
-        if (!subscribers) return;
-
-        for (let i = 0; i < subscribers.length; i++) {
-            const subscriber = subscribers[i];
-            subscriber((event as unknown as { payload: unknown }).payload);
-        }
-    }
-
-    on<EventType extends (CustomEvent | EcsEvent<WorldComponent, Resources>)['type']>(
+export type World<
+    C extends Component,
+    E extends GenericEcsEvent = never,
+    R extends GenericResources = GenericResources,
+    Q extends GenericQueries<C> = GenericQueries<C>,
+    S extends SystemGraph = SystemGraph,
+> = {
+    emit: (event: E['type'] extends never ? GenericEcsEvent : E) => World<C, E, R, Q, S>;
+    on: <EventType extends (E | EcsEvent<C, R>)['type']>(
         type: EventType,
         cb: (
-            ...payload: Extract<CustomEvent | EcsEvent<WorldComponent, Resources>, { type: EventType }> extends {
+            ...payload: Extract<E | EcsEvent<C, R>, { type: EventType }> extends {
                 payload: infer Payload;
             }
                 ? [Payload]
                 : []
         ) => void,
-    ): void {
-        if (!this.subscribersByEventType[type]) {
-            this.subscribersByEventType[type] = [];
-        }
+    ) => World<C, E, R, Q, S>;
 
-        this.subscribersByEventType[type].push(cb as EventSubscriber);
-    }
+    getResource: <Name extends keyof R>(name: Name) => R[Name];
+    setResource: <Name extends keyof R>(name: Name, data: R[Name]) => World<C, E, R, Q, S>;
+    removeResource: (name: keyof R) => World<C, E, R, Q, S>;
 
-    // resources
+    getQueryResults: <Name extends keyof Q>(name: Name) => MapQueryDefinitionToTuple<C, Q[Name]>[];
 
-    getResource<Name extends keyof Resources>(name: Name) {
-        return this.resources[name as string] as Resources[Name];
-    }
+    spawn: (entity: Entity, components: C[]) => Entity;
+    despawn: (entity: Entity) => boolean;
+    getComponent: <T extends C['type']>(
+        entity: Entity,
+        componentType: T,
+    ) => Extract<C, { type: T }> extends never ? Component : Extract<C, { type: T }>;
+    addComponent: (entity: Entity, component: C) => boolean;
+    removeComponent: (entity: Entity, componentType: C['type']) => boolean;
 
-    setResource<Name extends keyof Resources>(name: Name, data: Resources[Name]): void {
-        this.resources[name as string] = data;
+    insertSystem: <Name extends keyof S['systems']>(
+        name: Name,
+        fn: S['systems'][Name]['stage'] extends 'update' | 'render'
+            ? S['systems'][Name]['async'] extends true
+                ? (delta: number, time: number) => Promise<void>
+                : (delta: number, time: number) => void
+            : S['systems'][Name]['async'] extends true
+              ? () => Promise<void>
+              : () => void,
+    ) => World<C, E, R, Q, S>;
+    insertSystems: (
+        systems: Partial<{
+            [K in keyof S['systems']]: S['systems'][K]['stage'] extends 'update' | 'render'
+                ? S['systems'][K]['async'] extends true
+                    ? (delta: number, time: number) => Promise<void>
+                    : (delta: number, time: number) => void
+                : S['systems'][K]['async'] extends true
+                  ? () => Promise<void>
+                  : () => void;
+        }>,
+    ) => World<C, E, R, Q, S>;
+    isSystemActive: (name: keyof S['systems']) => boolean;
+    setSystemActive: (name: keyof S['systems'], active: boolean) => World<C, E, R, Q, S>;
 
-        const event: SetResourceEcsEvent<Resources, keyof Resources> = {
-            type: 'ecs/set-resource',
-            payload: { name, data } as never,
+    // TODO: Can we infer if this is async or not?
+    startup: () => Promise<void>;
+    update: (time: number) => Promise<void>;
+    cleanup: () => Promise<void>;
+    start: (args?: { loop?: boolean }) => Promise<void>;
+};
+
+function createWorld<
+    C extends Component,
+    E extends GenericEcsEvent,
+    R extends GenericResources,
+    Q extends GenericQueries<C>,
+    S extends SystemGraph,
+>(worldBuilderData: WorldBuilderData) {
+    const subscribersByEventType: Record<string, EventSubscriber[] | undefined> = {};
+
+    const resources: Record<string, unknown> = worldBuilderData.resources;
+
+    const internalQueries: InternalQuery[] = [];
+    const nameToQueryIdx: Record<string, number | undefined> = {};
+
+    const entities = new Map<number, { componentsByType: Map<number, C>; bitmasks: Bitmasks }>();
+
+    const nameToStageAndIndex: Record<string, { stage: SystemStage; index: [number] | [number, number] }> = {};
+    const systemsByStage: { [S in SystemStage]: (GenericSystemWithFn | GenericSystemWithFn[])[] } = {
+        startup: [],
+        update: [],
+        render: [],
+        cleanup: [],
+    };
+
+    // utils
+
+    function setupSystems() {
+        const map = (
+            systemName: (string | number | symbol) | (string | number | symbol)[],
+            idx: number,
+        ): GenericSystemWithFn | GenericSystemWithFn[] => {
+            if (Array.isArray(systemName))
+                return systemName.map((n, idx2) => {
+                    const system = worldBuilderData.systemGraph.systems[n.toString()];
+                    nameToStageAndIndex[n.toString()] = { stage: system.stage, index: [idx, idx2] };
+                    return {
+                        active: system.active,
+                        async: system.async,
+                        fn: createDefaultSystemFn(n.toString(), system.async),
+                    };
+                });
+
+            const system = worldBuilderData.systemGraph.systems[systemName.toString()];
+            nameToStageAndIndex[systemName.toString()] = { stage: system.stage, index: [idx] };
+            return {
+                active: system.active,
+                async: system.async,
+                fn: createDefaultSystemFn(systemName.toString(), system.async),
+            };
         };
 
-        this.internalEmit(event);
+        systemsByStage.startup = worldBuilderData.systemGraph.orderByStage.startup.map(map);
+        systemsByStage.update = worldBuilderData.systemGraph.orderByStage.update.map(map);
+        systemsByStage.render = worldBuilderData.systemGraph.orderByStage.render.map(map);
+        systemsByStage.cleanup = worldBuilderData.systemGraph.orderByStage.cleanup.map(map);
     }
 
-    removeResource(name: keyof Resources): void {
-        const data = this.resources[name as string];
-
-        const event: RemoveResourceEcsEvent<Resources, keyof Resources> = {
-            type: 'ecs/remove-resource',
-            payload: { name, data } as never,
-        };
-
-        this.internalEmit(event);
-
-        this.resources[name as string] = undefined;
-    }
-
-    // query
-
-    private initQueries() {
-        if (this.initQueriesCalled) return;
-
-        const queryKeys = Object.keys(this.queries);
+    function setupQueries() {
+        const queryKeys = Object.keys(worldBuilderData.queries);
 
         for (let i = 0; i < queryKeys.length; i++) {
             const name = queryKeys[i];
-            const query = this.queries[name];
+            const query = worldBuilderData.queries[name];
 
             const bitmasks: Bitmasks = {
                 with: [0, 0, 0, 0],
@@ -227,7 +198,7 @@ class WorldClass<
                 }
             }
 
-            this.internalQueries.push({
+            internalQueries.push({
                 name,
                 defintion: query,
                 bitmasks,
@@ -237,28 +208,99 @@ class WorldClass<
                 result: [],
             });
 
-            this.nameToQueryIdx[name] = this.internalQueries.length - 1;
+            nameToQueryIdx[name] = internalQueries.length - 1;
         }
-
-        this.initQueriesCalled = true;
     }
 
-    getQueryResults<Name extends keyof Queries>(
-        name: Name,
-    ): MapQueryDefinitionToTuple<WorldComponent, Queries[Name]>[] {
-        const idx = this.nameToQueryIdx[name as string];
+    let then = 0;
+    function getDelta(now: number) {
+        now *= 0.001;
+        const delta = now - then;
+        then = now;
+        return delta;
+    }
+
+    // eventbus
+
+    function emit(event: E['type'] extends never ? GenericEcsEvent : E) {
+        const subscribers = subscribersByEventType[event.type];
+        if (!subscribers) return;
+
+        for (let i = 0; i < subscribers.length; i++) {
+            const subscriber = subscribers[i];
+            subscriber((event as unknown as { payload: unknown }).payload);
+        }
+
+        return api;
+    }
+
+    function on<EventType extends (CustomEvent | EcsEvent<C, R>)['type']>(
+        type: EventType,
+        cb: (
+            ...payload: Extract<CustomEvent | EcsEvent<C, R>, { type: EventType }> extends {
+                payload: infer Payload;
+            }
+                ? [Payload]
+                : []
+        ) => void,
+    ) {
+        if (!subscribersByEventType[type]) {
+            subscribersByEventType[type] = [];
+        }
+
+        subscribersByEventType[type].push(cb as EventSubscriber);
+
+        return api;
+    }
+
+    // resources
+
+    function getResource<Name extends keyof R>(name: Name) {
+        return resources[name as string] as R[Name];
+    }
+
+    function setResource<Name extends keyof R>(name: Name, data: R[Name]) {
+        resources[name as string] = data;
+
+        const event: SetResourceEcsEvent<R, keyof R> = {
+            type: 'ecs/set-resource',
+            payload: { name, data } as never,
+        };
+
+        emit(event as never);
+        return api;
+    }
+
+    function removeResource(name: keyof R) {
+        const data = resources[name as string];
+
+        const event: RemoveResourceEcsEvent<R, keyof R> = {
+            type: 'ecs/remove-resource',
+            payload: { name, data } as never,
+        };
+
+        emit(event as never);
+
+        resources[name as string] = undefined;
+        return api;
+    }
+
+    // queries
+
+    function getQueryResults<Name extends keyof Q>(name: Name): MapQueryDefinitionToTuple<C, Q[Name]>[] {
+        const idx = nameToQueryIdx[name as string];
         if (idx === undefined) {
             console.warn(`Query with name "${String(name)}" does not exist. Returning empty array.`);
             return [];
         }
 
-        return this.internalQueries[idx].result as MapQueryDefinitionToTuple<WorldComponent, Queries[Name]>[];
+        return internalQueries[idx].result as MapQueryDefinitionToTuple<C, Q[Name]>[];
     }
 
     // entities / components
 
-    spawn(entity: Entity, components: WorldComponent[]): Entity {
-        const componentsByType = new Map<number, WorldComponent>();
+    function spawn(entity: Entity, components: C[]): Entity {
+        const componentsByType = new Map<number, C>();
 
         const bitmasks: Bitmasks = {
             with: [0, 0, 0, 0],
@@ -273,22 +315,22 @@ class WorldClass<
             bitmasks.withAny[bitmaskIdx] |= 1 << component.type % COMPONENT_TYPE_DIVISOR;
         }
 
-        this.entities.set(entity, { componentsByType, bitmasks });
+        entities.set(entity, { componentsByType, bitmasks });
 
-        const event: SpawnEntityEcsEvent<WorldComponent> = {
+        const event: SpawnEntityEcsEvent<C> = {
             type: 'ecs/spawn-entity',
             payload: { entity, components },
         };
 
-        this.internalEmit(event);
+        emit(event as never);
 
-        updateQueriesForSpawnAndAddComponent(this.internalQueries, bitmasks, entity, componentsByType);
+        updateQueriesForSpawnAndAddComponent(internalQueries, bitmasks, entity, componentsByType);
 
         return entity;
     }
 
-    despawn(entity: Entity): boolean {
-        const entry = this.entities.get(entity);
+    function despawn(entity: Entity): boolean {
+        const entry = entities.get(entity);
         if (entry === undefined) return false;
 
         const event: DespawnEntityEcsEvent = {
@@ -296,22 +338,22 @@ class WorldClass<
             payload: { entity },
         };
 
-        this.internalEmit(event);
+        emit(event as never);
 
-        updateQueriesForDespawn(this.internalQueries, entity);
+        updateQueriesForDespawn(internalQueries, entity);
 
-        this.entities.delete(entity);
+        entities.delete(entity);
         return true;
     }
 
-    getComponent<ComponentType extends WorldComponent['type']>(entity: Entity, componentType: ComponentType) {
-        const entry = this.entities.get(entity);
+    function getComponent<ComponentType extends C['type']>(entity: Entity, componentType: ComponentType) {
+        const entry = entities.get(entity);
         if (entry === undefined) return undefined;
-        return entry.componentsByType.get(componentType) as Extract<WorldComponent, { type: ComponentType }>;
+        return entry.componentsByType.get(componentType) as Extract<C, { type: ComponentType }>;
     }
 
-    addComponent(entity: Entity, component: WorldComponent): boolean {
-        const entry = this.entities.get(entity);
+    function addComponent(entity: Entity, component: C): boolean {
+        const entry = entities.get(entity);
         if (entry === undefined) return false;
         if (entry.componentsByType.get(component.type) !== undefined) return false;
         entry.componentsByType.set(component.type, component);
@@ -320,20 +362,20 @@ class WorldClass<
         entry.bitmasks.with[bitmaskIdx] |= 1 << component.type % COMPONENT_TYPE_DIVISOR;
         entry.bitmasks.withAny[bitmaskIdx] |= 1 << component.type % COMPONENT_TYPE_DIVISOR;
 
-        const event: AddComponentEcsEvent<WorldComponent> = {
+        const event: AddComponentEcsEvent<C> = {
             type: 'ecs/add-component',
             payload: { entity, component },
         };
 
-        this.internalEmit(event);
+        emit(event as never);
 
-        updateQueriesForSpawnAndAddComponent(this.internalQueries, entry.bitmasks, entity, entry.componentsByType);
+        updateQueriesForSpawnAndAddComponent(internalQueries, entry.bitmasks, entity, entry.componentsByType);
 
         return true;
     }
 
-    removeComponent(entity: Entity, componentType: WorldComponent['type']): boolean {
-        const entry = this.entities.get(entity);
+    function removeComponent(entity: Entity, componentType: C['type']): boolean {
+        const entry = entities.get(entity);
         if (entry === undefined) return false;
         const component = entry.componentsByType.get(componentType);
         if (component === undefined) return false;
@@ -343,64 +385,26 @@ class WorldClass<
         entry.bitmasks.with[bitmaskIdx] &= ~(1 << componentType % COMPONENT_TYPE_DIVISOR);
         entry.bitmasks.withAny[bitmaskIdx] &= ~(1 << componentType % COMPONENT_TYPE_DIVISOR);
 
-        const event: RemoveComponentEcsEvent<WorldComponent> = {
+        const event: RemoveComponentEcsEvent<C> = {
             type: 'ecs/remove-component',
             payload: { entity, component },
         };
 
-        this.internalEmit(event);
+        emit(event as never);
 
-        updateQueriesForRemoveComponent(this.internalQueries, entity, entry.bitmasks);
+        updateQueriesForRemoveComponent(internalQueries, entity, entry.bitmasks);
 
         return true;
     }
 
     // systems
 
-    private initSystems() {
-        if (this.initSystemsCalled) return;
-
-        const map = (
-            systemName: (string | number | symbol) | (string | number | symbol)[],
-            idx: number,
-        ): GenericSystemWithFn | GenericSystemWithFn[] => {
-            if (Array.isArray(systemName))
-                return systemName.map((n, idx2) => {
-                    const system = this.systemGraph.systems[n.toString()];
-                    this.nameToStageAndIndex[n.toString()] = { stage: system.stage, index: [idx, idx2] };
-                    return {
-                        active: system.active,
-                        async: system.async,
-                        fn: createDefaultSystemFn(n.toString(), system.async),
-                    };
-                });
-
-            const system = this.systemGraph.systems[systemName.toString()];
-            this.nameToStageAndIndex[systemName.toString()] = { stage: system.stage, index: [idx] };
-            return {
-                active: system.active,
-                async: system.async,
-                fn: createDefaultSystemFn(systemName.toString(), system.async),
-            };
-        };
-
-        this.systemsByStage = {
-            startup: this.systemGraph.orderByStage.startup.map(map),
-            update: this.systemGraph.orderByStage.update.map(map),
-            render: this.systemGraph.orderByStage.render.map(map),
-            cleanup: this.systemGraph.orderByStage.cleanup.map(map),
-        };
-
-        this.initSystemsCalled = true;
-    }
-
-    private getSystem(name: string) {
-        const result = this.nameToStageAndIndex[name];
-
+    function _getSystem(name: string) {
+        const result = nameToStageAndIndex[name];
         // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
         if (!result) return;
 
-        const systemList = this.systemsByStage[result.stage];
+        const systemList = systemsByStage[result.stage];
 
         return (
             result.index.length === 2
@@ -409,72 +413,72 @@ class WorldClass<
         ) as GenericSystemWithFn;
     }
 
-    insertSystem<Name extends keyof Graph['systems']>(
+    function insertSystem<Name extends keyof S['systems']>(
         name: Name,
-        fn: Graph['systems'][Name]['stage'] extends 'update' | 'render'
-            ? Graph['systems'][Name]['async'] extends true
+        fn: S['systems'][Name]['stage'] extends 'update' | 'render'
+            ? S['systems'][Name]['async'] extends true
                 ? (delta: number, time: number) => Promise<void>
                 : (delta: number, time: number) => void
-            : Graph['systems'][Name]['async'] extends true
+            : S['systems'][Name]['async'] extends true
               ? () => Promise<void>
               : () => void,
     ) {
-        const system = this.getSystem(name as string);
-        if (!system) return this;
+        const system = _getSystem(name as string);
+        if (!system) return api;
         system.fn = fn;
-        return this;
+        return api;
     }
 
-    insertSystems(
+    function insertSystems(
         systems: Partial<{
-            [K in keyof Graph['systems']]: Graph['systems'][K]['stage'] extends 'update' | 'render'
-                ? Graph['systems'][K]['async'] extends true
+            [K in keyof S['systems']]: S['systems'][K]['stage'] extends 'update' | 'render'
+                ? S['systems'][K]['async'] extends true
                     ? (delta: number, time: number) => Promise<void>
                     : (delta: number, time: number) => void
-                : Graph['systems'][K]['async'] extends true
+                : S['systems'][K]['async'] extends true
                   ? () => Promise<void>
                   : () => void;
         }>,
     ) {
-        for (const name in systems) {
-            this.insertSystem(name, systems[name] as never);
+        const names = Object.keys(systems);
+
+        for (let i = 0; i < names.length; i++) {
+            const name = names[i];
+            const sys = _getSystem(name);
+            if (!sys || !systems[name]) continue;
+            sys.fn = systems[name];
         }
 
-        return this;
+        return api;
     }
 
-    getSystemActiveState(name: keyof Graph['systems']): boolean {
-        const system = this.getSystem(name as string);
+    function isSystemActive(name: keyof S['systems']): boolean {
+        const system = _getSystem(name as string);
         if (!system) return false;
 
         return system.active;
     }
 
-    setSystemActiveState(name: keyof Graph['systems'], active: boolean): void {
-        const system = this.getSystem(name as string);
+    function setSystemActive(name: keyof S['systems'], active: boolean) {
+        const system = _getSystem(name as string);
         if (!system) return;
 
         system.active = active;
+        return api;
     }
 
-    // startup, update, render, cleanup
-
-    async startup() {
-        if (this.startupCalled) return;
-
-        if (!this.initSystemsCalled || !this.initQueriesCalled) {
-            console.error(`Can only startup the world when systems and queries were setup already.`);
-            return;
+    async function startup() {
+        for (let i = 0; i < worldBuilderData.pluginFns.length; i++) {
+            const plugin = worldBuilderData.pluginFns[i];
+            await plugin(api as never);
         }
 
-        this.getDelta = createGetDelta(0);
-
-        const startupSystemList = this.systemsByStage.startup;
+        const startupSystemList = systemsByStage.startup;
 
         for (let i = 0; i < startupSystemList.length; i++) {
             const systemOrSystemList = startupSystemList[i];
             if (Array.isArray(systemOrSystemList)) {
-                await Promise.allSettled(systemOrSystemList.filter(isSystemActive).map(callSystem));
+                await Promise.allSettled(systemOrSystemList.filter(_isSystemActive).map(callSystem));
             } else if (systemOrSystemList.active) {
                 const maybePromise = systemOrSystemList.fn();
                 if (maybePromise && 'then' in maybePromise) {
@@ -482,20 +486,18 @@ class WorldClass<
                 }
             }
         }
-
-        this.startupCalled = true;
     }
 
-    async update(time: number) {
-        const delta = this.getDelta(time);
+    async function update(time: number) {
+        const delta = getDelta(time);
 
-        const updateSystemList = this.systemsByStage.update;
+        const updateSystemList = systemsByStage.update;
 
         for (let i = 0; i < updateSystemList.length; i++) {
             const systemOrSystemList = updateSystemList[i];
             if (Array.isArray(systemOrSystemList)) {
                 await Promise.allSettled(
-                    systemOrSystemList.filter(isSystemActive).map(callSystemWithTime(delta, time)),
+                    systemOrSystemList.filter(_isSystemActive).map(callSystemWithTime(delta, time)),
                 );
             } else if (systemOrSystemList.active) {
                 const maybePromise = systemOrSystemList.fn(delta, time);
@@ -505,13 +507,13 @@ class WorldClass<
             }
         }
 
-        const renderSystemList = this.systemsByStage.render;
+        const renderSystemList = systemsByStage.render;
 
         for (let i = 0; i < renderSystemList.length; i++) {
             const systemOrSystemList = renderSystemList[i];
             if (Array.isArray(systemOrSystemList)) {
                 await Promise.allSettled(
-                    systemOrSystemList.filter(isSystemActive).map(callSystemWithTime(delta, time)),
+                    systemOrSystemList.filter(_isSystemActive).map(callSystemWithTime(delta, time)),
                 );
             } else if (systemOrSystemList.active) {
                 const maybePromise = systemOrSystemList.fn(delta, time);
@@ -522,78 +524,13 @@ class WorldClass<
         }
     }
 
-    async debugUpdate(time: number) {
-        const delta = this.getDelta(time);
-
-        const updateSystemList = this.systemsByStage.update;
-
-        const u1 = performance.now();
-
-        for (let i = 0; i < updateSystemList.length; i++) {
-            const systemOrSystemList = updateSystemList[i];
-            if (Array.isArray(systemOrSystemList)) {
-                await Promise.allSettled(
-                    systemOrSystemList.filter(isSystemActive).map(callSystemWithTime(delta, time)),
-                );
-            } else if (systemOrSystemList.active) {
-                const maybePromise = systemOrSystemList.fn(delta, time);
-                if (maybePromise && 'then' in maybePromise) {
-                    await maybePromise;
-                }
-            }
-        }
-
-        const u2 = performance.now();
-        this.debugUpdateTotalTimes.update += u2 - u1;
-
-        const renderSystemList = this.systemsByStage.render;
-
-        const r1 = performance.now();
-
-        for (let i = 0; i < renderSystemList.length; i++) {
-            const systemOrSystemList = renderSystemList[i];
-            if (Array.isArray(systemOrSystemList)) {
-                await Promise.allSettled(
-                    systemOrSystemList.filter(isSystemActive).map(callSystemWithTime(delta, time)),
-                );
-            } else if (systemOrSystemList.active) {
-                const maybePromise = systemOrSystemList.fn(delta, time);
-                if (maybePromise && 'then' in maybePromise) {
-                    await maybePromise;
-                }
-            }
-        }
-
-        const r2 = performance.now();
-        this.debugUpdateTotalTimes.render += r2 - r1;
-
-        this.debugUpdateRuns++;
-        this.debugUpdatesPerSecond.update++;
-        this.debugUpdatesPerSecond.render++;
-
-        if (performance.now() > this.debugTimeToPrint) {
-            const avgUpdateTime = (this.debugUpdateTotalTimes.update / this.debugUpdateRuns).toFixed(2);
-            const avgRenderTime = (this.debugUpdateTotalTimes.render / this.debugUpdateRuns).toFixed(2);
-            const updatesPerSecond = this.debugUpdatesPerSecond.update.toString();
-            const rendersPerSecond = this.debugUpdatesPerSecond.render.toString();
-
-            console.log(
-                `Avg update time: ${avgUpdateTime} | Avg render time: ${avgRenderTime} | updates per second: ${updatesPerSecond} | renders per second: ${rendersPerSecond}`,
-            );
-
-            this.debugUpdatesPerSecond.update = 0;
-            this.debugUpdatesPerSecond.render = 0;
-            this.debugTimeToPrint = performance.now() + ONE_SECOND;
-        }
-    }
-
-    async cleanup() {
-        const cleanupSystemList = this.systemsByStage.cleanup;
+    async function cleanup() {
+        const cleanupSystemList = systemsByStage.cleanup;
 
         for (let i = 0; i < cleanupSystemList.length; i++) {
             const systemOrSystemList = cleanupSystemList[i];
             if (Array.isArray(systemOrSystemList)) {
-                await Promise.allSettled(systemOrSystemList.filter(isSystemActive).map(callSystem));
+                await Promise.allSettled(systemOrSystemList.filter(_isSystemActive).map(callSystem));
             } else if (systemOrSystemList.active) {
                 const maybePromise = systemOrSystemList.fn();
                 if (maybePromise && 'then' in maybePromise) {
@@ -603,18 +540,13 @@ class WorldClass<
         }
     }
 
-    async start(args: { loop?: boolean } = {}) {
-        if (!this.initSystemsCalled || !this.initQueriesCalled) {
-            console.error(`Can only startup the world when systems and queries were setup already.`);
-            return;
-        }
-
+    async function start(args: { loop?: boolean } = {}) {
         const loop = args.loop ?? true;
 
-        await this.startup();
+        await startup();
 
         const tick = async (time: number) => {
-            await this.update(time);
+            await update(time);
             // eslint-disable-next-line @typescript-eslint/no-misused-promises
             if (loop) window.requestAnimationFrame(tick);
         };
@@ -623,47 +555,110 @@ class WorldClass<
         window.requestAnimationFrame(tick);
     }
 
-    async debugStart(args: { loop?: boolean } = {}) {
-        if (!this.initSystemsCalled || !this.initQueriesCalled) {
-            console.error(`Can only startup the world when systems and queries were setup already.`);
-            return;
-        }
+    const api = {
+        emit,
+        on,
 
-        const loop = args.loop ?? true;
+        getResource,
+        setResource,
+        removeResource,
 
-        await this.startup();
+        getQueryResults,
 
-        const tick = async (time: number) => {
-            await this.debugUpdate(time);
-            // eslint-disable-next-line @typescript-eslint/no-misused-promises
-            if (loop) window.requestAnimationFrame(tick);
-        };
+        spawn,
+        despawn,
+        getComponent,
+        addComponent,
+        removeComponent,
 
-        // eslint-disable-next-line @typescript-eslint/no-misused-promises
-        window.requestAnimationFrame(tick);
-    }
+        insertSystem,
+        insertSystems,
+        isSystemActive,
+        setSystemActive,
+
+        startup,
+        update,
+        cleanup,
+        start,
+    };
+
+    setupSystems();
+    setupQueries();
+
+    return api as World<C, E, R, Q, S>;
 }
 
-export type World<
-    WorldComponent extends Component,
-    CustomEvent extends GenericEcsEvent = never,
-    Resources extends Record<string, unknown> = Record<string, unknown>,
-    Queries extends Record<string, QueryDefinitionGeneric<WorldComponent>> = Record<
-        string,
-        QueryDefinitionGeneric<WorldComponent>
-    >,
-    Graph extends SystemGraph = SystemGraph,
-> = WorldClass<WorldComponent, CustomEvent, Resources, Queries, Graph>;
+type WorldBuilderApi<
+    C extends Component,
+    E extends GenericEcsEvent,
+    R extends GenericResources,
+    Q extends GenericQueries<C>,
+    S extends SystemGraph,
+> = {
+    withResources: <WR extends GenericResources>(resources: WR) => WorldBuilderApi<C, E, R & WR, Q, S>;
+    withQueries: <WQ extends GenericQueries>(queries: WQ) => WorldBuilderApi<C, E, R, Q & WQ, S>;
+    withSystemGraph: <WSG extends SystemGraph>(
+        systemGraph: WSG,
+        ...rules: keyof S['systems'] extends never ? [] : [MergeRules<S, WSG>?]
+    ) => WorldBuilderApi<C, E, R, Q, SystemGraph<S['systems'] & WSG['systems']>>;
+    withPlugin: <PR extends GenericResources, PQ extends GenericQueries<C>, PS extends SystemGraph>(
+        plugin: Plugin<PR, PQ, PS>,
+        ...rules: keyof S['systems'] extends never ? [] : [MergeRules<S, PS>?]
+    ) => WorldBuilderApi<C, E, R & PR, Q & PQ, SystemGraph<S['systems'] & PS['systems']>>;
+    compile: () => World<C, E, R, Q, S>;
+};
 
-export function createWorld<
-    WorldComponent extends Component,
-    CustomEvent extends GenericEcsEvent = never,
-    Resources extends Record<string, unknown> = Record<string, unknown>,
-    Queries extends Record<string, QueryDefinitionGeneric<WorldComponent>> = Record<
-        string,
-        QueryDefinitionGeneric<WorldComponent>
-    >,
-    Graph extends SystemGraph = SystemGraph,
+export function worldBuilder<
+    C extends Component,
+    E extends GenericEcsEvent = never,
+    R extends GenericResources = NonNullable<unknown>,
+    Q extends GenericQueries<C> = NonNullable<unknown>,
+    S extends SystemGraph = DefaultSystemGraph,
 >() {
-    return new WorldClass<WorldComponent, CustomEvent, Resources, Queries, Graph>();
+    const data: WorldBuilderData = {
+        resources: {},
+        queries: {},
+        systemGraph: createDefaultSystemGraph(),
+        pluginFns: [],
+    };
+
+    const api = {
+        withResources: (res: GenericResources) => {
+            const resourceKeys = Object.keys(res);
+
+            for (let i = 0; i < resourceKeys.length; i++) {
+                const resourceKey = resourceKeys[i];
+                data.resources[resourceKey] = res[resourceKey];
+            }
+
+            return api;
+        },
+        withQueries: (qry: GenericQueries) => {
+            const queryKeys = Object.keys(qry);
+
+            for (let i = 0; i < queryKeys.length; i++) {
+                const queryKey = queryKeys[i];
+                data.queries[queryKey] = qry[queryKey];
+            }
+
+            return api;
+        },
+        withSystemGraph: (graph: SystemGraph, mergeRules?: MergeRules<SystemGraph, SystemGraph>) => {
+            data.systemGraph = mergeSystemGraphs(data.systemGraph, graph, mergeRules);
+            return api;
+        },
+        withPlugin: (plugin: Plugin, mergeRules?: MergeRules<SystemGraph, SystemGraph>) => {
+            data.pluginFns.push(plugin.build as never);
+            return api
+                .withResources(plugin.resources)
+                .withQueries(plugin.queries)
+                .withSystemGraph(plugin.systemGraph, mergeRules);
+        },
+        compile: () => {
+            const world = createWorld<C, E, R, Q, S>(data);
+            return world;
+        },
+    };
+
+    return api as WorldBuilderApi<C, E, R, Q, S>;
 }

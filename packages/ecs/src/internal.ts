@@ -285,16 +285,22 @@ type MergeRuleAfter<T> = { after: T };
 export type MergeRules<A extends SystemGraph, B extends SystemGraph> = Partial<{
     [K in keyof B['systems']]:
         | MergeRuleBefore<
-              | SystemNamesForStage<A['systems'], B['systems'][K]['stage']>
-              | AsyncSystemNamesForStage<A['systems'], B['systems'][K]['stage']>
-              | SystemNamesForStage<B['systems'], B['systems'][K]['stage']>
-              | AsyncSystemNamesForStage<B['systems'], B['systems'][K]['stage']>
+              Exclude<
+                  | SystemNamesForStage<A['systems'], B['systems'][K]['stage']>
+                  | AsyncSystemNamesForStage<A['systems'], B['systems'][K]['stage']>
+                  | SystemNamesForStage<B['systems'], B['systems'][K]['stage']>
+                  | AsyncSystemNamesForStage<B['systems'], B['systems'][K]['stage']>,
+                  K
+              >
           >
         | MergeRuleAfter<
-              | SystemNamesForStage<A['systems'], B['systems'][K]['stage']>
-              | AsyncSystemNamesForStage<A['systems'], B['systems'][K]['stage']>
-              | SystemNamesForStage<B['systems'], B['systems'][K]['stage']>
-              | AsyncSystemNamesForStage<B['systems'], B['systems'][K]['stage']>
+              Exclude<
+                  | SystemNamesForStage<A['systems'], B['systems'][K]['stage']>
+                  | AsyncSystemNamesForStage<A['systems'], B['systems'][K]['stage']>
+                  | SystemNamesForStage<B['systems'], B['systems'][K]['stage']>
+                  | AsyncSystemNamesForStage<B['systems'], B['systems'][K]['stage']>,
+                  K
+              >
           >;
 }>;
 

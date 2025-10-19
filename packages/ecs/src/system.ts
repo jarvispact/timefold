@@ -165,3 +165,25 @@ export const mergeSystemGraphs = <A extends SystemGraph, B extends SystemGraph>(
         },
     };
 };
+
+export type DefaultSystemGraph = {
+    systems: NonNullable<unknown>;
+    orderByStage: {
+        startup: SystemOrder;
+        update: SystemOrder;
+        render: SystemOrder;
+        cleanup: SystemOrder;
+    };
+};
+
+export function createDefaultSystemGraph(): DefaultSystemGraph {
+    return {
+        systems: {},
+        orderByStage: {
+            startup: [],
+            update: [],
+            render: [],
+            cleanup: [],
+        },
+    };
+}
