@@ -80,7 +80,7 @@ describe('Wgsl.type', () => {
             {
                 const { buffer, view } = type.create();
                 expectTypeOf(buffer).toExtend<ArrayBuffer>();
-                expectTypeOf(view).toExtend<Int32Array>();
+                expectTypeOf(view).toExtend<typeof expectedTuple>();
                 expect(buffer).toEqual(expectedBuffer);
                 expect(view).toEqual(expectedView);
             }
@@ -164,7 +164,7 @@ describe('Wgsl.type', () => {
             {
                 const { buffer, view } = type.create();
                 expectTypeOf(buffer).toExtend<ArrayBuffer>();
-                expectTypeOf(view).toExtend<Uint32Array>();
+                expectTypeOf(view).toExtend<typeof expectedTuple>();
                 expect(buffer).toEqual(expectedBuffer);
                 expect(view).toEqual(expectedView);
             }
@@ -258,7 +258,7 @@ describe('Wgsl.type', () => {
             {
                 const { buffer, view } = type.create();
                 expectTypeOf(buffer).toExtend<ArrayBuffer>();
-                expectTypeOf(view).toExtend<Float32Array>();
+                expectTypeOf(view).toExtend<typeof expectedTuple>();
                 expect(buffer).toEqual(expectedBuffer);
                 expect(view).toEqual(expectedView);
             }

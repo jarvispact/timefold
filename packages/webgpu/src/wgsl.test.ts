@@ -9,7 +9,7 @@ describe('wgsl create args and result', () => {
             const result1 = Test.create();
             expectTypeOf(result1).toMatchObjectType<{
                 buffer: ArrayBuffer;
-                view: Float32Array<ArrayBuffer>;
+                view: number;
             }>();
 
             const result2 = Test.create({ mode: 'array-buffer' });
@@ -48,7 +48,7 @@ describe('wgsl create args and result', () => {
             const result1 = Test.create();
             expectTypeOf(result1).toExtend<{
                 buffer: ArrayBuffer;
-                view: Float32Array<ArrayBuffer>;
+                view: [number, number, number];
             }>();
 
             const result2 = Test.create({ mode: 'array-buffer' });
@@ -77,7 +77,7 @@ describe('wgsl create args and result', () => {
             const result1 = Test.create();
             expectTypeOf(result1).toExtend<{
                 buffer: ArrayBuffer;
-                views: [Float32Array<ArrayBuffer>, Float32Array<ArrayBuffer>];
+                views: [[number, number, number], [number, number, number]];
             }>();
 
             const result2 = Test.create({ mode: 'array-buffer' });
@@ -122,10 +122,10 @@ describe('wgsl create args and result', () => {
             expectTypeOf(result1).toMatchObjectType<{
                 buffer: ArrayBuffer;
                 views: {
-                    one: Float32Array<ArrayBuffer>;
-                    two: Int32Array<ArrayBuffer>;
-                    three: Uint32Array<ArrayBuffer>;
-                    four: Float32Array<ArrayBuffer>;
+                    one: [number, number, number];
+                    two: [number, number];
+                    three: number;
+                    four: [number, number, number, number];
                 };
             }>();
 
