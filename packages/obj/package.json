@@ -19,8 +19,8 @@
   "author": "jarvispact <jarvispact@gmail.com>",
   "license": "MIT",
   "scripts": {
-    "test": "vitest --typecheck",
-    "test:run": "vitest run --typecheck",
+    "test": "vitest",
+    "test:run": "tsc -p tsconfig.test.json --noEmit && vitest run",
     "build": "rm -rf ./dist && vite build && tsc",
     "publish-to-npm": "npm publish"
   }

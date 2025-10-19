@@ -24,7 +24,7 @@ export const handlers = [
         const fileExtension = filename.substring(filename.lastIndexOf('.'), filename.length);
 
         if (fileExtension === '.bin' || fileExtension === '.glb') {
-            const bin = await readFile(`./gltf2-test-files/${filename}`);
+            const bin = (await readFile(`./gltf2-test-files/${filename}`)).buffer;
             return HttpResponse.arrayBuffer(bin);
         }
 
