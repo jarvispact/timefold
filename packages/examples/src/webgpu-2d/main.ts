@@ -1,31 +1,14 @@
-import {
-    createWorld,
-    defineQueries,
-    defineResources,
-    defineSystem,
-    defineSystemGraph,
-    queryBuilder,
-} from '@timefold/ecs';
-import { Vec2 } from '@timefold/math';
-import { createColor, createPosition2D, T, WorldComponent } from './components';
-import './renderer';
-
-const canvas = document.getElementById('canvas') as HTMLCanvasElement;
-canvas.width = canvas.clientWidth;
-canvas.height = canvas.clientHeight;
-
-const RECT_SIZE = 10;
-const COUNT = Math.floor(canvas.height / RECT_SIZE);
+import { createEntitySequence, defineResources, defineSystem, defineSystemGraph, worldBuilder } from '@timefold/ecs';
+import { Mat4x4, MathUtils, Vec2, Vec3 } from '@timefold/math';
+import { createColor, createPosition2D, WorldComponent } from './components';
+import { createRenderPlugin } from './render-plugin';
+import { DomUtils } from '@timefold/engine';
 
 async function main() {
-    const resources = defineResources({ gravity: Vec2.down() });
+    const canvas = DomUtils.getCanvasById('canvas');
+    const RenderPlugin = await createRenderPlugin(canvas);
 
-    const queries = defineQueries({
-        movable: queryBuilder<WorldComponent>()
-            .with(T.Position2D)
-            .map(([pos]) => ({ position: pos.data }))
-            .compile(),
-    });
+    const resources = defineResources({ gravity: Vec2.down() });
 
     const systemGraph = defineSystemGraph({
         systems: {
@@ -34,31 +17,36 @@ async function main() {
         },
     });
 
-    const world = createWorld<WorldComponent>()
+    const world = worldBuilder<WorldComponent>()
         .withResources(resources)
-        .withQueries(queries)
-        .withSystemGraph(systemGraph);
+        .withSystemGraph(systemGraph)
+        .withPlugin(RenderPlugin)
+        .compile();
 
-    let entity = 0;
-
-    function rnd() {
-        return Math.round(Math.random() * 255);
-    }
+    const { nextId } = createEntitySequence();
 
     function spawn() {
-        for (let i = 0; i < COUNT; i++) {
-            const position = Vec2.create(0, i * RECT_SIZE);
-            const color = `rgb(${rnd()}, ${rnd()}, ${rnd()})`;
-            world.spawn(entity++, [createPosition2D(position), createColor(color)]);
+        const minX = -4 * (canvas.width / canvas.height);
+        const maxX = 4 * (canvas.width / canvas.height);
+        const minY = -4;
+        const maxY = 4;
+
+        for (let i = 0; i < 100; i++) {
+            const x = Math.random() * (maxX - minX) + minX;
+            const y = Math.random() * (maxY - minY) + minY;
+
+            world.spawn(nextId(), [
+                createPosition2D(Vec2.create(x, y)),
+                createColor(Vec3.create(Math.random(), Math.random(), Math.random())),
+            ]);
         }
     }
 
-    const movable = world.getQueryResults('movable');
-    const movement = Vec2.create(10, 0);
+    const renderable = world.getQueryResults('renderable');
 
     function move(delta: number) {
-        for (const item of movable) {
-            Vec2.add(item.position, movement, delta);
+        for (const item of renderable) {
+            Mat4x4.rotateZ(item.modelMatrix, MathUtils.degreesToRadians(360) * delta);
         }
     }
 
@@ -67,7 +55,7 @@ async function main() {
         move,
     });
 
-    await world.debugStart();
+    await world.start();
 }
 
 void main();
