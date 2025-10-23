@@ -1,4 +1,4 @@
-const defaultImageBitmapOptions: ImageBitmapOptions = { imageOrientation: 'flipY' };
+const defaultImageBitmapOptions: ImageBitmapOptions = {};
 
 export const ImageLoader = {
     loadImage: (url: string, options?: ImageBitmapOptions) =>
