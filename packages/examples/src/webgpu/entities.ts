@@ -99,12 +99,15 @@ const run = async () => {
     const { device, context, format } = await WebgpuUtils.createDeviceAndContext({ canvas });
     const module = device.createShaderModule({ code: shaderCode });
 
-    const colorTexture = device.createTexture({
-        format,
-        usage: GPUTextureUsage.RENDER_ATTACHMENT,
-        size: [canvas.width, canvas.height],
-        sampleCount: 4,
-    });
+    const createColorTexture = () =>
+        device.createTexture({
+            format,
+            usage: GPUTextureUsage.RENDER_ATTACHMENT,
+            size: [canvas.width, canvas.height],
+            sampleCount: 4,
+        });
+
+    let colorTexture = createColorTexture();
 
     const pipeline = device.createRenderPipeline({
         layout: PipelineLayout.createLayout(device),
@@ -130,6 +133,20 @@ const run = async () => {
         group: 0,
         bindings: {
             scene: WebgpuUtils.createUniformBufferDescriptor({ label: 'Scene Uniform Buffer' }),
+        },
+    });
+
+    DomUtils.onResize({
+        canvas,
+        fn: (width, height) => {
+            colorTexture.destroy();
+            colorTexture = createColorTexture();
+            renderPassDescriptor.colorAttachments[0] = WebgpuUtils.createColorAttachmentFromView(
+                colorTexture.createView(),
+            );
+
+            const proj = Mat4x4.createPerspective(MathUtils.degreesToRadians(65), width / height, 0);
+            Mat4x4.multiplication(views.view_projection_matrix, proj, view);
         },
     });
 

@@ -1,1 +1,1 @@
-import './entities';
+import './instanced';
