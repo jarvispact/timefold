@@ -47,9 +47,7 @@ export type TypedArrayOrTuple<T extends WgslPrimitive, Buffer extends ArrayBuffe
     }
         ? Mode extends GenericTypedArrayMode
             ? ViewForViewConstructor<Buffer>[Type]
-            : ReturnType<Create> extends [number]
-              ? number
-              : ReturnType<Create>
+            : ReturnType<Create>
         : never;
 
 export type ViewConfigEntry = {

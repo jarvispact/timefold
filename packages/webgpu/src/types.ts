@@ -51,8 +51,10 @@ export type WgslType<T extends WgslPrimitive> = {
     ) => ViewForViewConstructor<Buffer>[LookupTableEntry<T>['type']];
 };
 
-export type InferWgslTypeResult<T extends WgslType<WgslPrimitive>, Mode extends GenericMode = 'array-buffer'> =
-    T extends WgslType<infer WT> ? WgslTypeCreateResult<Mode, WT> : never;
+export type InferWgslTypeResult<
+    T extends WgslType<WgslPrimitive>,
+    Mode extends GenericMode = 'array-buffer-casted-to-tuple',
+> = T extends WgslType<infer WT> ? WgslTypeCreateResult<Mode, WT> : never;
 
 // ===========================================================
 // wgsl struct
@@ -109,8 +111,10 @@ export type WgslStruct<Name extends string, Definition extends GenericWgslStruct
     ) => WgslStructViews<Definition, Buffer, GenericTypedArrayMode>;
 };
 
-export type InferWgslStructResult<T extends WgslStruct<string, any>, Mode extends GenericMode = 'array-buffer'> =
-    T extends WgslStruct<string, infer Definition> ? WgslStructCreateResult<Definition, Mode> : never;
+export type InferWgslStructResult<
+    T extends WgslStruct<string, any>,
+    Mode extends GenericMode = 'array-buffer-casted-to-tuple',
+> = T extends WgslStruct<string, infer Definition> ? WgslStructCreateResult<Definition, Mode> : never;
 
 // ===========================================================
 // wgsl array
@@ -185,7 +189,7 @@ export type WgslArray<Element extends WgslArrayElement, Size extends number> = {
 
 export type InferWgslArrayResult<
     T extends WgslArray<WgslArrayElement, any>,
-    Mode extends GenericMode = 'array-buffer',
+    Mode extends GenericMode = 'array-buffer-casted-to-tuple',
 > = T extends WgslArray<infer Element, infer Size> ? WgslArrayCreateResult<Element, Size, Mode> : never;
 
 // ===========================================================
@@ -360,11 +364,6 @@ export type BuffersByBindingKey<Group extends UniformGroup<number, Record<string
     [BindingKey in keyof Group['bindings']]: Group['bindings'][BindingKey]['type'] extends 'buffer' ? GPUBuffer : never;
 }>;
 
-export type CreatePipelineLayoutArgs<Groups extends UniformGroup<number, Record<string, GenericBinding>>[]> = {
-    device: GPUDevice;
-    uniformGroups: Groups;
-};
-
 export type CreateBindGroupResult<Group extends UniformGroup<number, Record<string, GenericBinding>>> = {
     group: Group['group'];
     bindGroup: GPUBindGroup;
@@ -372,21 +371,11 @@ export type CreateBindGroupResult<Group extends UniformGroup<number, Record<stri
 };
 
 export type CreatePipelineLayoutResult<Groups extends UniformGroup<number, Record<string, GenericBinding>>[]> = {
-    layout: GPUPipelineLayout;
-    uniformGroups: Groups;
-    createBindGroups: <Group extends TupleIndices<Groups>>(
-        group: Group,
-        bindings: BindingsForGroup<Groups[Group]>,
-    ) => CreateBindGroupResult<Groups[Group]>;
-};
-
-// TODO: Decide for one variant of the `CreatePipelineLayoutResult` type.
-export type CreatePipelineLayoutResult2<Groups extends UniformGroup<number, Record<string, GenericBinding>>[]> = {
     uniformGroups: Groups;
     createLayout: (device: GPUDevice) => GPUPipelineLayout;
-    createBindGroups: <Group extends TupleIndices<Groups>>(
-        device: GPUDevice,
-        group: Group,
-        bindings: BindingsForGroup<Groups[Group]>,
-    ) => CreateBindGroupResult<Groups[Group]>;
+    createBindGroups: <Group extends TupleIndices<Groups>>(args: {
+        device: GPUDevice;
+        group: Group;
+        bindings: BindingsForGroup<Groups[Group]>;
+    }) => CreateBindGroupResult<Groups[Group]>;
 };

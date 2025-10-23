@@ -8,9 +8,7 @@ import {
     CreateDeviceOptions,
     CreateIndexBufferArgs,
     CreateIndexBufferResult,
-    CreatePipelineLayoutArgs,
     CreatePipelineLayoutResult,
-    CreatePipelineLayoutResult2,
     CreateVertexBufferLayoutDefinition,
     CreateVertexBufferLayoutResult,
     CreateVertexBufferMode,
@@ -120,10 +118,15 @@ export const getBlendState = (mode: 'opaque' | 'transparent'): GPUBlendState | u
 export const createVertexBufferLayout = <
     Mode extends CreateVertexBufferMode,
     Definition extends CreateVertexBufferLayoutDefinition<Mode>,
->(
-    mode: Mode,
-    definition: Definition,
-): CreateVertexBufferLayoutResult<Mode, Definition> => {
+>({
+    label,
+    mode,
+    definition,
+}: {
+    label: string;
+    mode: Mode;
+    definition: Definition;
+}): CreateVertexBufferLayoutResult<Mode, Definition> => {
     const vertexDefinitionKeys = Object.keys(definition);
 
     const locationByName: Record<string, number> = {};
@@ -159,7 +162,7 @@ export const createVertexBufferLayout = <
             data: InstanceType<GenericTypedArrayConstructor>,
         ) => {
             const buffer = device.createBuffer({
-                label: `${name.toString()} vertex buffer`,
+                label: `[${label}] ${name.toString()} vertex buffer`,
                 size: data.byteLength,
                 usage: GPUBufferUsage.VERTEX | GPUBufferUsage.COPY_DST,
                 mappedAtCreation: true,
@@ -210,15 +213,13 @@ export const createVertexBufferLayout = <
         const attr = definition[key] as { format: SupportedFormat; stride: number };
         const { stride, View } = formatMap[attr.format];
 
-        // TODO: Is this a good idea?
-        arrayStride += attr.stride === -1 ? 0 : stride * View.BYTES_PER_ELEMENT;
-        totalStride += attr.stride === -1 ? 0 : stride;
+        arrayStride += stride * View.BYTES_PER_ELEMENT;
+        totalStride += stride;
 
         return {
             format: attr.format,
             shaderLocation: locationByName[key],
-            // TODO: Is this a good idea?
-            offset: attr.stride === -1 ? 0 : attr.stride * View.BYTES_PER_ELEMENT,
+            offset: attr.stride * View.BYTES_PER_ELEMENT,
         };
     });
 
@@ -232,7 +233,7 @@ export const createVertexBufferLayout = <
 
     const createBuffer: InterleavedCreateBuffer = (device, data) => {
         const buffer = device.createBuffer({
-            label: 'interleaved vertex buffer',
+            label: `[${label}] interleaved vertex buffer`,
             size: data.byteLength,
             usage: GPUBufferUsage.VERTEX | GPUBufferUsage.COPY_DST,
             mappedAtCreation: true,
@@ -261,31 +262,37 @@ export const createVertexBufferLayout = <
 // ===========================================================
 // index buffer
 
-export const createIndexBuffer = <Format extends GPUIndexFormat>(
-    device: GPUDevice,
-    args: CreateIndexBufferArgs<Format>,
-): CreateIndexBufferResult<Format> => {
+export const createIndexBuffer = <Format extends GPUIndexFormat>({
+    device,
+    label,
+    format,
+    data,
+}: CreateIndexBufferArgs<Format> & { label: string; device: GPUDevice }): CreateIndexBufferResult<Format> => {
     const buffer = device.createBuffer({
-        size: Math.ceil(args.data.byteLength / 4) * 4,
+        label,
+        size: Math.ceil(data.byteLength / 4) * 4,
         usage: GPUBufferUsage.INDEX | GPUBufferUsage.COPY_DST,
         mappedAtCreation: true,
     });
 
     const gpuBufferArray = new Uint8Array(buffer.getMappedRange());
-    gpuBufferArray.set(new Uint8Array(args.data.buffer, args.data.byteOffset, args.data.byteLength));
+    gpuBufferArray.set(new Uint8Array(data.buffer, data.byteOffset, data.byteLength));
     buffer.unmap();
 
     return {
         buffer,
-        count: args.data.length,
-        format: args.format,
+        count: data.length,
+        format: format,
     };
 };
 
 // ===========================================================
 // uniform bindings
 
-export const createSampler = (device: GPUDevice, options: GPUSamplerDescriptor = {}): GPUSampler => {
+export const createSampler = ({
+    device,
+    ...options
+}: GPUSamplerDescriptor & { label: string; device: GPUDevice }): GPUSampler => {
     return device.createSampler(options);
 };
 
@@ -298,11 +305,17 @@ const getTextureDefaultDescriptor = (width: number, height: number): GPUTextureD
     };
 };
 
-export const createImageBitmapTexture = (
-    device: GPUDevice,
-    image: ImageBitmap,
-    options?: Omit<GPUTextureDescriptor, 'size'>,
-): GPUTexture => {
+export const createImageBitmapTexture = ({
+    device,
+    image,
+    ...options
+}: Omit<GPUTextureDescriptor, 'size' | 'dimension' | 'format' | 'usage'> & {
+    label: string;
+    device: GPUDevice;
+    image: ImageBitmap;
+    format?: GPUTextureFormat;
+    usage?: number;
+}): GPUTexture => {
     const descriptor = {
         ...getTextureDefaultDescriptor(image.width, image.height),
         ...options,
@@ -311,7 +324,7 @@ export const createImageBitmapTexture = (
     const texture = device.createTexture(descriptor);
 
     device.queue.copyExternalImageToTexture(
-        { source: image, flipY: true },
+        { source: image },
         { texture },
         { width: image.width, height: image.height },
     );
@@ -319,138 +332,136 @@ export const createImageBitmapTexture = (
     return texture;
 };
 
-export const createDataTexture = (
-    device: GPUDevice,
-    args: { data: BufferSource | SharedArrayBuffer; width: number; height: number },
-    options?: Omit<GPUTextureDescriptor, 'size'>,
-): GPUTexture => {
+const getTextureArrayDefaultDescriptor = (width: number, height: number, arrayLength: number): GPUTextureDescriptor => {
+    return {
+        format: 'rgba8unorm',
+        size: [width, height, arrayLength],
+        usage: GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.COPY_DST | GPUTextureUsage.RENDER_ATTACHMENT,
+        dimension: '2d',
+        textureBindingViewDimension: '2d-array',
+    };
+};
+
+export const createImageBitmapTextureArray = ({
+    device,
+    images,
+    ...options
+}: Omit<GPUTextureDescriptor, 'size' | 'dimension' | 'format' | 'usage' | 'textureBindingViewDimension'> & {
+    label: string;
+    device: GPUDevice;
+    images: ImageBitmap[];
+    format?: GPUTextureFormat;
+    usage?: number;
+}): GPUTexture => {
     const descriptor = {
-        ...getTextureDefaultDescriptor(args.width, args.height),
+        ...getTextureArrayDefaultDescriptor(images[0].width, images[0].height, images.length),
         ...options,
     };
 
     const texture = device.createTexture(descriptor);
 
-    device.queue.writeTexture(
-        { texture },
-        args.data,
-        { bytesPerRow: args.width * 4 },
-        { width: args.width, height: args.height },
-    );
+    for (let i = 0; i < images.length; i++) {
+        const image = images[i];
+
+        device.queue.copyExternalImageToTexture(
+            { source: image },
+            { texture, origin: { x: 0, y: 0, z: i } },
+            { width: image.width, height: image.height },
+        );
+    }
 
     return texture;
 };
 
-type CreateBufferDescriptorOptions = Pick<GPUBufferDescriptor, 'usage' | 'mappedAtCreation'>;
+export const createDataTexture = ({
+    device,
+    width,
+    height,
+    data,
+    ...options
+}: Omit<GPUTextureDescriptor, 'size'> & {
+    label: string;
+    data: BufferSource | SharedArrayBuffer;
+    width: number;
+    height: number;
+} & {
+    device: GPUDevice;
+}): GPUTexture => {
+    const descriptor = {
+        ...getTextureDefaultDescriptor(width, height),
+        ...options,
+    };
 
-const bufferDefaultDescriptor: CreateBufferDescriptorOptions = {
+    const texture = device.createTexture(descriptor);
+
+    device.queue.writeTexture({ texture }, data, { bytesPerRow: width * 4 }, { width: width, height: height });
+
+    return texture;
+};
+
+export const createDataTextureArray = ({
+    device,
+    width,
+    height,
+    dataArray,
+    ...options
+}: Omit<GPUTextureDescriptor, 'size'> & {
+    label: string;
+    device: GPUDevice;
+    width: number;
+    height: number;
+    dataArray: (BufferSource | SharedArrayBuffer)[];
+}): GPUTexture => {
+    const descriptor = {
+        ...getTextureArrayDefaultDescriptor(width, height, dataArray.length),
+        ...options,
+    };
+
+    const texture = device.createTexture(descriptor);
+
+    for (let i = 0; i < dataArray.length; i++) {
+        const data = dataArray[i];
+        device.queue.writeTexture({ texture }, data, { bytesPerRow: width * 4 }, { width: width, height: height });
+    }
+
+    return texture;
+};
+
+type CreateBufferDescriptorOptions = Omit<GPUBufferDescriptor, 'size'>;
+
+const uniformBufferDefaultDescriptor: CreateBufferDescriptorOptions = {
     usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
     mappedAtCreation: false,
 };
 
-export const createBufferDescriptor = (options?: CreateBufferDescriptorOptions): Omit<GPUBufferDescriptor, 'size'> => {
-    return { ...bufferDefaultDescriptor, ...options };
+const storageBufferDefaultDescriptor: CreateBufferDescriptorOptions = {
+    usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST,
+    mappedAtCreation: false,
 };
 
-// ===========================================================
+export const createUniformBufferDescriptor = (
+    options: Omit<GPUBufferDescriptor, 'size' | 'usage'> & { label: string },
+) => {
+    return { ...uniformBufferDefaultDescriptor, ...options };
+};
+
+export const createStorageBufferDescriptor = (
+    options: Omit<GPUBufferDescriptor, 'size' | 'usage'> & { label: string },
+) => {
+    return { ...storageBufferDefaultDescriptor, ...options };
+};
+
 // pipeline layout
 
 export const createPipelineLayout = <const Groups extends UniformGroup<number, Record<string, GenericBinding>>[]>({
-    device,
-    uniformGroups,
-}: CreatePipelineLayoutArgs<Groups>): CreatePipelineLayoutResult<Groups> => {
-    const bindGroupLayouts: GPUBindGroupLayout[] = [];
-
-    for (let i = 0; i < uniformGroups.length; i++) {
-        const uniformGroup = uniformGroups[i];
-        const layoutEntries: GPUBindGroupLayoutEntry[] = [];
-        const bindingKeys = Object.keys(uniformGroup.bindings);
-
-        for (let j = 0; j < bindingKeys.length; j++) {
-            const bindingKey = bindingKeys[j];
-            const bindingValue = uniformGroup.bindings[bindingKey];
-
-            if (bindingValue.type === 'sampler') {
-                layoutEntries.push(bindingValue.layout);
-            } else if (bindingValue.type === 'texture') {
-                layoutEntries.push(bindingValue.layout);
-            } else {
-                layoutEntries.push(bindingValue.layout);
-            }
-        }
-
-        const layout = device.createBindGroupLayout({
-            label: `bind group layout | group ${uniformGroup.group}`,
-            entries: layoutEntries,
-        });
-
-        bindGroupLayouts.push(layout);
-    }
-
-    const layout = device.createPipelineLayout({
-        label: `pipeline layout | groups: ${bindGroupLayouts.map((l) => l.label).join(', ')}`,
-        bindGroupLayouts,
-    });
-
-    const createBindGroups = <Group extends TupleIndices<Groups>>(
-        group: Group,
-        bindings: BindingsForGroup<Groups[Group]>,
-    ) => {
-        const bindgroupEntries: GPUBindGroupEntry[] = [];
-        const layout = bindGroupLayouts[group];
-        const bindingKeys = Object.keys(bindings);
-        const buffers: Record<string, GPUBuffer> = {};
-
-        for (let j = 0; j < bindingKeys.length; j++) {
-            const bindingKey = bindingKeys[j];
-            const binding = uniformGroups[group].bindings[bindingKey];
-            const bindgroupValue = bindings[bindingKey];
-
-            if (binding.type === 'sampler') {
-                bindgroupEntries.push({ binding: binding.layout.binding, resource: bindgroupValue as GPUSampler });
-            } else if (binding.type === 'texture') {
-                bindgroupEntries.push({
-                    binding: binding.layout.binding,
-                    resource: (bindgroupValue as GPUTexture).createView(),
-                });
-            } else {
-                const desc = bindgroupValue as ReturnType<typeof createBufferDescriptor>;
-
-                const buffer = device.createBuffer({
-                    size: binding.uniformType.bufferSize,
-                    ...desc,
-                });
-
-                buffers[bindingKey] = buffer;
-                bindgroupEntries.push({
-                    binding: binding.layout.binding,
-                    resource: { buffer },
-                });
-            }
-        }
-
-        const bindGroup = device.createBindGroup({
-            label: `bind group | group ${group}`,
-            layout,
-            entries: bindgroupEntries,
-        });
-
-        return { group, bindGroup, buffers: buffers as BuffersByBindingKey<Groups[Group]> };
-    };
-
-    return {
-        layout,
-        uniformGroups,
-        createBindGroups,
-    };
-};
-
-// TODO: Decide for one variant of the pipeline layout creation function
-export const createPipelineLayout2 = <const Groups extends UniformGroup<number, Record<string, GenericBinding>>[]>({
+    bindGroupLayoutLabel,
+    pipelineLayoutLabel,
     uniformGroups,
 }: {
+    bindGroupLayoutLabel: string;
+    pipelineLayoutLabel: string;
     uniformGroups: Groups;
-}): CreatePipelineLayoutResult2<Groups> => {
+}): CreatePipelineLayoutResult<Groups> => {
     const bindGroupLayoutEntries: GPUBindGroupLayoutEntry[][] = [];
 
     for (let i = 0; i < uniformGroups.length; i++) {
@@ -480,21 +491,27 @@ export const createPipelineLayout2 = <const Groups extends UniformGroup<number, 
         for (const entry of bindGroupLayoutEntries) {
             bindGroupLayouts.push(
                 device.createBindGroupLayout({
+                    label: bindGroupLayoutLabel,
                     entries: entry,
                 }),
             );
         }
 
         return device.createPipelineLayout({
+            label: pipelineLayoutLabel,
             bindGroupLayouts,
         });
     };
 
-    const createBindGroups = <Group extends TupleIndices<Groups>>(
-        device: GPUDevice,
-        group: Group,
-        bindings: BindingsForGroup<Groups[Group]>,
-    ) => {
+    const createBindGroups = <Group extends TupleIndices<Groups>>({
+        device,
+        group,
+        bindings,
+    }: {
+        device: GPUDevice;
+        group: Group;
+        bindings: BindingsForGroup<Groups[Group]>;
+    }) => {
         const bindgroupEntries: GPUBindGroupEntry[] = [];
         const layout = bindGroupLayouts[group];
         const bindingKeys = Object.keys(bindings);
@@ -513,7 +530,9 @@ export const createPipelineLayout2 = <const Groups extends UniformGroup<number, 
                     resource: (bindgroupValue as GPUTexture).createView(),
                 });
             } else {
-                const desc = bindgroupValue as ReturnType<typeof createBufferDescriptor>;
+                const desc = bindgroupValue as
+                    | ReturnType<typeof createUniformBufferDescriptor>
+                    | ReturnType<typeof createStorageBufferDescriptor>;
 
                 const buffer = device.createBuffer({
                     size: binding.uniformType.bufferSize,

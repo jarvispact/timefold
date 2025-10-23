@@ -50,19 +50,41 @@ export const texture = <Binding extends number>(
     };
 };
 
-const defaultBufferArgs: UniformBindingOptions & { buffer: GPUBufferBindingLayout } = {
+const defaultUniformBufferArgs: UniformBindingOptions & { buffer: GPUBufferBindingLayout } = {
     visibility: GPUShaderStage.VERTEX | GPUShaderStage.FRAGMENT,
     buffer: { type: 'uniform' },
 };
 
-export const buffer = <Binding extends number, Type extends GenericUniformType>(
+const defaultStorageBufferArgs: UniformBindingOptions & { buffer: GPUBufferBindingLayout } = {
+    visibility: GPUShaderStage.VERTEX | GPUShaderStage.FRAGMENT,
+    buffer: { type: 'read-only-storage' },
+};
+
+export const uniformBuffer = <Binding extends number, Type extends GenericUniformType>(
     binding: Binding,
     type: Type,
-    args?: Partial<UniformBindingOptions> & { buffer?: GPUBufferBindingLayout },
+    args?: Partial<UniformBindingOptions> & { buffer?: Omit<GPUBufferBindingLayout, 'type'> },
 ): BufferBinding<Binding, Type> => {
     const _args = {
-        visibility: args?.visibility ?? defaultBufferArgs.visibility,
-        buffer: { ...defaultBufferArgs.buffer, ...args?.buffer },
+        visibility: args?.visibility ?? defaultUniformBufferArgs.visibility,
+        buffer: { ...defaultUniformBufferArgs.buffer, ...args?.buffer },
+    };
+
+    return {
+        type: 'buffer',
+        uniformType: type,
+        layout: { binding, ..._args },
+    };
+};
+
+export const storageBuffer = <Binding extends number, Type extends GenericUniformType>(
+    binding: Binding,
+    type: Type,
+    args?: Partial<UniformBindingOptions> & { buffer?: Omit<GPUBufferBindingLayout, 'type'> },
+): BufferBinding<Binding, Type> => {
+    const _args = {
+        visibility: args?.visibility ?? defaultStorageBufferArgs.visibility,
+        buffer: { ...defaultStorageBufferArgs.buffer, ...args?.buffer },
     };
 
     return {
@@ -83,7 +105,7 @@ export const group = <G extends number, Bindings extends Record<string, GenericB
                 const samplerType = binding.layout.sampler.type === 'comparison' ? 'sampler_comparison' : 'sampler';
                 return `@group(${group}) @binding(${binding.layout.binding}) var ${key}: ${samplerType};`;
             } else if (binding.type === 'texture') {
-                const dimension = binding.layout.texture.viewDimension ?? '2d';
+                const dimension = (binding.layout.texture.viewDimension ?? '2d').replace(/-/g, '_');
                 const sampleType = binding.layout.texture.sampleType;
                 const multisampled = binding.layout.texture.multisampled;
 
