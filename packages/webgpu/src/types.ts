@@ -5,8 +5,8 @@ import {
     ArrayBufferMode,
     FormatMap,
     GenericMode,
+    GenericTypedArrayConstructor,
     GenericTypedArrayMode,
-    IndexFormatToTypedArray,
     NumberTupleMode,
     RemoveNever,
     SharedArrayBufferCastedToTupleMode,
@@ -266,9 +266,16 @@ export type CreateDeviceAndContextResult = {
 // ===========================================================
 // index buffer
 
+export type IndexFormatToTypedArray<
+    Format extends GPUIndexFormat,
+    T extends ArrayBufferLike = ArrayBufferLike,
+> = Format extends 'uint16' ? Uint16Array<T> : Uint32Array<T>;
+
+export type GenericIndexBufferTypedArray<T extends ArrayBufferLike = ArrayBufferLike> = Uint16Array<T> | Uint32Array<T>;
+
 export type CreateIndexBufferArgs<Format extends GPUIndexFormat> = {
     format: Format;
-    data: InstanceType<IndexFormatToTypedArray[Format]>;
+    data: IndexFormatToTypedArray<Format, ArrayBuffer>;
 };
 
 export type CreateIndexBufferResult<Format extends GPUIndexFormat = GPUIndexFormat> = {
@@ -299,6 +306,30 @@ export type InterleavedCreateBuffer = (
     device: GPUDevice,
     data: Float32Array,
 ) => { mode: InterleavedMode; slot: number; buffer: GPUBuffer; count: number };
+
+type TypedArrayWithBuffer<
+    TArray extends GenericTypedArrayConstructor,
+    TBuffer extends ArrayBufferLike,
+> = TArray extends Int8ArrayConstructor
+    ? Int8Array<TBuffer>
+    : TArray extends Uint8ArrayConstructor
+      ? Uint8Array<TBuffer>
+      : TArray extends Int16ArrayConstructor
+        ? Int16Array<TBuffer>
+        : TArray extends Uint16ArrayConstructor
+          ? Uint16Array<TBuffer>
+          : TArray extends Int32ArrayConstructor
+            ? Int32Array<TBuffer>
+            : TArray extends Uint32ArrayConstructor
+              ? Uint32Array<TBuffer>
+              : TArray extends Float32ArrayConstructor
+                ? Float32Array<TBuffer>
+                : never;
+
+export type AttribFormatToTypedArray<
+    Format extends SupportedFormat,
+    T extends ArrayBufferLike = ArrayBuffer,
+> = TypedArrayWithBuffer<FormatMap[Format]['View'], T>;
 
 type NonInterleavedCreateBuffers<Definition extends CreateVertexBufferLayoutDefinition<NonInterleavedMode>> = (
     device: GPUDevice,

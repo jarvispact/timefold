@@ -1,15 +1,18 @@
 import { Component, defineComponentTypes } from '@timefold/ecs';
 import { EasingFunction, QuatType, Vec2Type, Vec3Type } from '@timefold/math';
+import {
+    SupportedPositionFormat,
+    SupportedFormat,
+    GenericIndexBufferTypedArray,
+    AttribFormatToTypedArray,
+} from '@timefold/webgpu';
 
-const ComponentTypes = defineComponentTypes(['Position2D', 'Rotation2D', 'Scale2D', 'Animation']);
+const ComponentTypes = defineComponentTypes(['InterleavedPrimitive', 'NonInterleavedPrimitive', 'Animation']);
 
 export const EngineComponentType = ComponentTypes.T;
 export const EngineComponentTypeNames = ComponentTypes.typeNames;
 
-export type Position2DComponent = Component<typeof EngineComponentType.Position2D, Vec2Type>;
-export type Rotation2DComponent = Component<typeof EngineComponentType.Rotation2D, number>;
-export type Scale2DComponent = Component<typeof EngineComponentType.Scale2D, Vec2Type>;
-
+// #region Animation
 export type AnimationKeyframe<Value> = {
     time: number;
     value: Value;
@@ -53,5 +56,39 @@ export type AnimationData<Tracks extends Record<string, AnimationTrack> = Record
 
 export type AnimationComponent<Tracks extends Record<string, AnimationTrack> = Record<string, AnimationTrack>> =
     Component<typeof EngineComponentType.Animation, AnimationData<Tracks>>;
+// #endregion
 
-export type EngineComponent = Position2DComponent | Rotation2DComponent | AnimationComponent;
+// #region InterleavedPrimitive
+export type InterleavedLayout = {
+    position: { format: SupportedPositionFormat; stride: number };
+} & Record<string, { format: SupportedFormat; stride: number }>;
+
+export type InterleavedPrimitiveData = {
+    layout: InterleavedLayout;
+    primitive: GPUPrimitiveState;
+    vertices: Float32Array;
+    indices?: GenericIndexBufferTypedArray;
+};
+
+export type InterleavedPrimitiveComponent = Component<
+    typeof EngineComponentType.InterleavedPrimitive,
+    InterleavedPrimitiveData
+>;
+// #endregion
+
+// #region NonInterleavedPrimitive
+export type NonInterleavedAttributes = {
+    position: { format: SupportedPositionFormat; data: Float32Array };
+} & Record<string, { [K in SupportedFormat]: { format: K; data: AttribFormatToTypedArray<K> } }[SupportedFormat]>;
+
+export type NonInterleavedPrimitiveData<Attribs extends NonInterleavedAttributes = NonInterleavedAttributes> = {
+    primitive: GPUPrimitiveState;
+    attributes: Attribs;
+    indices?: GenericIndexBufferTypedArray;
+};
+
+export type NonInterleavedPrimitiveComponent<Attribs extends NonInterleavedAttributes = NonInterleavedAttributes> =
+    Component<typeof EngineComponentType.NonInterleavedPrimitive, NonInterleavedPrimitiveData<Attribs>>;
+// #endregion
+
+export type EngineComponent = InterleavedPrimitiveComponent | NonInterleavedPrimitiveComponent | AnimationComponent;

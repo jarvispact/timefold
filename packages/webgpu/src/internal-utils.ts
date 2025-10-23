@@ -238,10 +238,3 @@ export const formatMap = {
 >;
 
 export type FormatMap = typeof formatMap;
-
-// index
-
-export type IndexFormatToTypedArray = {
-    uint16: Uint16ArrayConstructor;
-    uint32: Uint32ArrayConstructor;
-};

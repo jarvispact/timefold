@@ -13,3 +13,9 @@ export function debounce<T extends unknown[]>(callback: (...args: T) => void, de
         }, delay);
     };
 }
+
+export const ensureFloat32Array = (array: number[] | Float32Array) =>
+    array instanceof Float32Array ? array : new Float32Array(array);
+
+export const ensureUint32Array = (array: number[] | Uint32Array) =>
+    array instanceof Uint32Array ? array : new Uint32Array(array);
