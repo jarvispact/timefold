@@ -1,4 +1,4 @@
-import { createComponent } from '@timefold/ecs';
+import { Component, createComponent } from '@timefold/ecs';
 import { GenericNonInterleavedObjPrimitive } from '@timefold/obj';
 import {
     NonInterleavedPrimitiveData,
@@ -9,6 +9,8 @@ import {
 import { ensureFloat32Array, ensureUint32Array } from '../internal';
 
 export const type = EngineComponentType.NonInterleavedPrimitive;
+
+export const is = (component: Component): component is NonInterleavedPrimitiveComponent => component.type === type;
 
 type Args<T extends NonInterleavedAttributes> = Omit<NonInterleavedPrimitiveData<T>, 'primitive'> & {
     primitive?: GPUPrimitiveState;

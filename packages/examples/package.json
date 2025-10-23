@@ -12,6 +12,8 @@
     "build:platformer": "sed 's/{example-folder}/platformer/g' index.html.template > index.html && vite build",
     "dev:webgpu": "sed 's/{example-folder}/webgpu/g' index.html.template > index.html && vite --port 9093",
     "build:webgpu": "sed 's/{example-folder}/webgpu/g' index.html.template > index.html && vite build",
+    "dev:engine": "sed 's/{example-folder}/engine/g' index.html.template > index.html && vite --port 9093",
+    "build:engine": "sed 's/{example-folder}/engine/g' index.html.template > index.html && vite build",
     "preview": "vite preview --port 9191"
   }
 }

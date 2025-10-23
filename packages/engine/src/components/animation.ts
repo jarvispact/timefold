@@ -1,4 +1,4 @@
-import { createComponent } from '@timefold/ecs';
+import { Component, createComponent } from '@timefold/ecs';
 import {
     AnimationComponent,
     AnimationData,
@@ -14,6 +14,8 @@ import { Easings, MathUtils, Quat, QuatType, Vec2, Vec2Type, Vec3, Vec3Type } fr
 import { objectKeys } from '../internal';
 
 export const type = EngineComponentType.Animation;
+
+export const is = (component: Component): component is AnimationComponent => component.type === type;
 
 type AnimationArgs<Tracks extends Record<string, AnimationTrack>> = {
     duration: number;

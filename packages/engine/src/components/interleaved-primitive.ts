@@ -1,4 +1,4 @@
-import { createComponent } from '@timefold/ecs';
+import { Component, createComponent } from '@timefold/ecs';
 import { GenericInterleavedObjPrimitive, InterleavedInfo } from '@timefold/obj';
 import {
     InterleavedLayout,
@@ -9,6 +9,8 @@ import {
 import { ensureFloat32Array, ensureUint32Array } from '../internal';
 
 export const type = EngineComponentType.InterleavedPrimitive;
+
+export const is = (component: Component): component is InterleavedPrimitiveComponent => component.type === type;
 
 type Args = Omit<InterleavedPrimitiveData, 'primitive'> & { primitive?: GPUPrimitiveState };
 

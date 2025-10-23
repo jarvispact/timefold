@@ -1,11 +1,4 @@
-import {
-    convertInterleavedToIndexed as _convertInterleavedToIndexed,
-    convertNonInterleavedToIndexed as _convertNonInterleavedToIndexed,
-    convertInterleavedToTypedArray as _convertInterleavedToTypedArray,
-    convertNonInterleavedToTypedArray as _convertNonInterleavedToTypedArray,
-    modeMap,
-    parseInfo,
-} from './internal-utils';
+import { modeMap, parseInfo } from './internal-utils';
 import { ObjParserResult, InterleavedInfo, ParserOptions } from './types';
 
 const splitObjectMap = {
@@ -117,8 +110,3 @@ export const createParser = <Options extends Partial<ParserOptions>>(options?: O
 };
 
 export const parse = (source: string) => createParser()(source);
-
-export const convertInterleavedToIndexed = _convertInterleavedToIndexed;
-export const convertNonInterleavedToIndexed = _convertNonInterleavedToIndexed;
-export const convertInterleavedToTypedArray = _convertInterleavedToTypedArray;
-export const convertNonInterleavedToTypedArray = _convertNonInterleavedToTypedArray;
