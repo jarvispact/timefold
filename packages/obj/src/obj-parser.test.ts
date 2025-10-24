@@ -182,7 +182,7 @@ f 1/1/1 2/2/1 4/4/1 3/3/1
 describe('obj-parser', () => {
     describe('return type', () => {
         it('should return a interleaved and indexed primitive type without any options', () => {
-            const parse = createParser();
+            const { parse } = createParser();
             const result = parse('');
 
             expectTypeOf(result).toMatchObjectType<{
@@ -205,7 +205,7 @@ describe('obj-parser', () => {
         });
 
         it('should return a interleaved and indexed primitive type with a empty options object', () => {
-            const parse = createParser({});
+            const { parse } = createParser({});
             const result = parse('');
 
             expectTypeOf(result).toMatchObjectType<{
@@ -228,7 +228,7 @@ describe('obj-parser', () => {
         });
 
         it('should return a interleaved and indexed primitive type with mode: "interleaved-typed-array-indexed"', () => {
-            const parse = createParser({ mode: 'interleaved-typed-array-indexed' });
+            const { parse } = createParser({ mode: 'interleaved-typed-array-indexed' });
             const result = parse('');
 
             expectTypeOf(result).toMatchObjectType<{
@@ -251,7 +251,7 @@ describe('obj-parser', () => {
         });
 
         it('should return a interleaved primitive type with mode: "interleaved-number-array"', () => {
-            const parse = createParser({ mode: 'interleaved-number-array' });
+            const { parse } = createParser({ mode: 'interleaved-number-array' });
             const result = parse('');
 
             expectTypeOf(result).toMatchObjectType<{
@@ -273,7 +273,7 @@ describe('obj-parser', () => {
         });
 
         it('should return a interleaved and indexed primitive type with mode: "interleaved-number-array-indexed"', () => {
-            const parse = createParser({ mode: 'interleaved-number-array-indexed' });
+            const { parse } = createParser({ mode: 'interleaved-number-array-indexed' });
             const result = parse('');
 
             expectTypeOf(result).toMatchObjectType<{
@@ -296,7 +296,7 @@ describe('obj-parser', () => {
         });
 
         it('should return a interleaved primitive type with mode: "interleaved-typed-array"', () => {
-            const parse = createParser({ mode: 'interleaved-typed-array' });
+            const { parse } = createParser({ mode: 'interleaved-typed-array' });
             const result = parse('');
 
             expectTypeOf(result).toMatchObjectType<{
@@ -318,7 +318,7 @@ describe('obj-parser', () => {
         });
 
         it('should return a interleaved and indexed primitive type with mode: "interleaved-typed-array-indexed"', () => {
-            const parse = createParser({ mode: 'interleaved-typed-array-indexed' });
+            const { parse } = createParser({ mode: 'interleaved-typed-array-indexed' });
             const result = parse('');
 
             expectTypeOf(result).toMatchObjectType<{
@@ -341,7 +341,7 @@ describe('obj-parser', () => {
         });
 
         it('should return a non-interleaved primitive type with mode: "non-interleaved-number-array"', () => {
-            const parse = createParser({ mode: 'non-interleaved-number-array' });
+            const { parse } = createParser({ mode: 'non-interleaved-number-array' });
             const result = parse('');
 
             expectTypeOf(result).toMatchObjectType<{
@@ -365,7 +365,7 @@ describe('obj-parser', () => {
         });
 
         it('should return a non-interleaved and indexed primitive type with mode: "non-interleaved-number-array-indexed"', () => {
-            const parse = createParser({ mode: 'non-interleaved-number-array-indexed' });
+            const { parse } = createParser({ mode: 'non-interleaved-number-array-indexed' });
             const result = parse('');
 
             expectTypeOf(result).toMatchObjectType<{
@@ -390,7 +390,7 @@ describe('obj-parser', () => {
         });
 
         it('should return a non-interleaved and indexed primitive type with mode: "non-interleaved-typed-array"', () => {
-            const parse = createParser({ mode: 'non-interleaved-typed-array' });
+            const { parse } = createParser({ mode: 'non-interleaved-typed-array' });
             const result = parse('');
 
             expectTypeOf(result).toMatchObjectType<{
@@ -414,7 +414,7 @@ describe('obj-parser', () => {
         });
 
         it('should return a non-interleaved and indexed primitive type with mode: "non-interleaved-typed-array-indexed"', () => {
-            const parse = createParser({ mode: 'non-interleaved-typed-array-indexed' });
+            const { parse } = createParser({ mode: 'non-interleaved-typed-array-indexed' });
             const result = parse('');
 
             expectTypeOf(result).toMatchObjectType<{
@@ -441,7 +441,7 @@ describe('obj-parser', () => {
 
     describe('mode: "interleaved-number-array"', () => {
         it('should parse the "position/uv/normal" format', () => {
-            const parse = createParser({ mode: 'interleaved-number-array' });
+            const { parse } = createParser({ mode: 'interleaved-number-array' });
             const { objects, info } = parse(positionUvNormalPlane);
 
             expect(objects.Plane.primitives.default).toEqual({
@@ -462,7 +462,7 @@ describe('obj-parser', () => {
         });
 
         it('should parse the "position/uv" format ', () => {
-            const parse = createParser({ mode: 'interleaved-number-array' });
+            const { parse } = createParser({ mode: 'interleaved-number-array' });
             const { objects, info } = parse(positionUvPlane);
 
             expect(objects.Plane.primitives.default).toEqual({
@@ -482,7 +482,7 @@ describe('obj-parser', () => {
         });
 
         it('should parse the "position//normal" format', () => {
-            const parse = createParser({ mode: 'interleaved-number-array' });
+            const { parse } = createParser({ mode: 'interleaved-number-array' });
             const { objects, info } = parse(positionNormalPlane);
 
             expect(objects.Plane.primitives.default).toEqual({
@@ -503,7 +503,7 @@ describe('obj-parser', () => {
         });
 
         it('should parse the "position" format', () => {
-            const parse = createParser({ mode: 'interleaved-number-array' });
+            const { parse } = createParser({ mode: 'interleaved-number-array' });
             const { objects, info } = parse(positionPlane);
 
             expect(objects.Plane.primitives.default).toEqual({
@@ -523,7 +523,7 @@ describe('obj-parser', () => {
 
     describe('mode: "interleaved-typed-array"', () => {
         it('should parse the "position/uv/normal" format', () => {
-            const parse = createParser({ mode: 'interleaved-typed-array' });
+            const { parse } = createParser({ mode: 'interleaved-typed-array' });
             const { objects, info } = parse(positionUvNormalPlane);
 
             expect(objects.Plane.primitives.default).toEqual({
@@ -544,7 +544,7 @@ describe('obj-parser', () => {
         });
 
         it('should parse the "position/uv" format ', () => {
-            const parse = createParser({ mode: 'interleaved-typed-array' });
+            const { parse } = createParser({ mode: 'interleaved-typed-array' });
             const { objects, info } = parse(positionUvPlane);
 
             expect(objects.Plane.primitives.default).toEqual({
@@ -564,7 +564,7 @@ describe('obj-parser', () => {
         });
 
         it('should parse the "position//normal" format', () => {
-            const parse = createParser({ mode: 'interleaved-typed-array' });
+            const { parse } = createParser({ mode: 'interleaved-typed-array' });
             const { objects, info } = parse(positionNormalPlane);
 
             expect(objects.Plane.primitives.default).toEqual({
@@ -585,7 +585,7 @@ describe('obj-parser', () => {
         });
 
         it('should parse the "position" format', () => {
-            const parse = createParser({ mode: 'interleaved-typed-array' });
+            const { parse } = createParser({ mode: 'interleaved-typed-array' });
             const { objects, info } = parse(positionPlane);
 
             expect(objects.Plane.primitives.default).toEqual({
@@ -605,7 +605,7 @@ describe('obj-parser', () => {
 
     describe('mode: "interleaved-number-array-indexed"', () => {
         it('should parse the "position/uv/normal" format', () => {
-            const parse = createParser({ mode: 'interleaved-number-array-indexed' });
+            const { parse } = createParser({ mode: 'interleaved-number-array-indexed' });
             const { objects, info } = parse(positionUvNormalPlane);
 
             expect(objects.Plane.primitives.default).toEqual({
@@ -627,7 +627,7 @@ describe('obj-parser', () => {
         });
 
         it('should parse the "position/uv" format ', () => {
-            const parse = createParser({ mode: 'interleaved-number-array-indexed' });
+            const { parse } = createParser({ mode: 'interleaved-number-array-indexed' });
             const { objects, info } = parse(positionUvPlane);
 
             expect(objects.Plane.primitives.default).toEqual({
@@ -646,7 +646,7 @@ describe('obj-parser', () => {
         });
 
         it('should parse the "position//normal" format', () => {
-            const parse = createParser({ mode: 'interleaved-number-array-indexed' });
+            const { parse } = createParser({ mode: 'interleaved-number-array-indexed' });
             const { objects, info } = parse(positionNormalPlane);
 
             expect(objects.Plane.primitives.default).toEqual({
@@ -665,7 +665,7 @@ describe('obj-parser', () => {
         });
 
         it('should parse the "position" format', () => {
-            const parse = createParser({ mode: 'interleaved-number-array-indexed' });
+            const { parse } = createParser({ mode: 'interleaved-number-array-indexed' });
             const { objects, info } = parse(positionPlane);
 
             expect(objects.Plane.primitives.default).toEqual({
@@ -686,7 +686,7 @@ describe('obj-parser', () => {
 
     describe('mode: "interleaved-typed-array-indexed"', () => {
         it('should parse the "position/uv/normal" format', () => {
-            const parse = createParser({ mode: 'interleaved-typed-array-indexed' });
+            const { parse } = createParser({ mode: 'interleaved-typed-array-indexed' });
             const { objects, info } = parse(positionUvNormalPlane);
 
             expect(objects.Plane.primitives.default).toEqual({
@@ -708,7 +708,7 @@ describe('obj-parser', () => {
         });
 
         it('should parse the "position/uv" format ', () => {
-            const parse = createParser({ mode: 'interleaved-typed-array-indexed' });
+            const { parse } = createParser({ mode: 'interleaved-typed-array-indexed' });
             const { objects, info } = parse(positionUvPlane);
 
             expect(objects.Plane.primitives.default).toEqual({
@@ -727,7 +727,7 @@ describe('obj-parser', () => {
         });
 
         it('should parse the "position//normal" format', () => {
-            const parse = createParser({ mode: 'interleaved-typed-array-indexed' });
+            const { parse } = createParser({ mode: 'interleaved-typed-array-indexed' });
             const { objects, info } = parse(positionNormalPlane);
 
             expect(objects.Plane.primitives.default).toEqual({
@@ -748,7 +748,7 @@ describe('obj-parser', () => {
         });
 
         it('should parse the "position" format', () => {
-            const parse = createParser({ mode: 'interleaved-typed-array-indexed' });
+            const { parse } = createParser({ mode: 'interleaved-typed-array-indexed' });
             const { objects, info } = parse(positionPlane);
 
             expect(objects.Plane.primitives.default).toEqual({
@@ -769,7 +769,7 @@ describe('obj-parser', () => {
 
     describe('mode: "non-interleaved-number-array"', () => {
         it('should parse the "position/uv/normal" format', () => {
-            const parse = createParser({ mode: 'non-interleaved-number-array' });
+            const { parse } = createParser({ mode: 'non-interleaved-number-array' });
             const { objects } = parse(positionUvNormalPlane);
 
             expect(objects.Plane.primitives.default).toEqual({
@@ -782,7 +782,7 @@ describe('obj-parser', () => {
         });
 
         it('should parse the "position/uv" format ', () => {
-            const parse = createParser({ mode: 'non-interleaved-number-array' });
+            const { parse } = createParser({ mode: 'non-interleaved-number-array' });
             const { objects } = parse(positionUvPlane);
 
             expect(objects.Plane.primitives.default).toEqual({
@@ -795,7 +795,7 @@ describe('obj-parser', () => {
         });
 
         it('should parse the "position//normal" format', () => {
-            const parse = createParser({ mode: 'non-interleaved-number-array' });
+            const { parse } = createParser({ mode: 'non-interleaved-number-array' });
             const { objects } = parse(positionNormalPlane);
 
             expect(objects.Plane.primitives.default).toEqual({
@@ -808,7 +808,7 @@ describe('obj-parser', () => {
         });
 
         it('should parse the "position" format', () => {
-            const parse = createParser({ mode: 'non-interleaved-number-array' });
+            const { parse } = createParser({ mode: 'non-interleaved-number-array' });
             const { objects } = parse(positionPlane);
 
             expect(objects.Plane.primitives.default).toEqual({
@@ -823,7 +823,7 @@ describe('obj-parser', () => {
 
     describe('mode: "non-interleaved-typed-array"', () => {
         it('should parse the "position/uv/normal" format', () => {
-            const parse = createParser({ mode: 'non-interleaved-typed-array' });
+            const { parse } = createParser({ mode: 'non-interleaved-typed-array' });
             const { objects } = parse(positionUvNormalPlane);
 
             expect(objects.Plane.primitives.default).toEqual({
@@ -836,7 +836,7 @@ describe('obj-parser', () => {
         });
 
         it('should parse the "position/uv" format ', () => {
-            const parse = createParser({ mode: 'non-interleaved-typed-array' });
+            const { parse } = createParser({ mode: 'non-interleaved-typed-array' });
             const { objects } = parse(positionUvPlane);
 
             expect(objects.Plane.primitives.default).toEqual({
@@ -849,7 +849,7 @@ describe('obj-parser', () => {
         });
 
         it('should parse the "position//normal" format', () => {
-            const parse = createParser({ mode: 'non-interleaved-typed-array' });
+            const { parse } = createParser({ mode: 'non-interleaved-typed-array' });
             const { objects } = parse(positionNormalPlane);
 
             expect(objects.Plane.primitives.default).toEqual({
@@ -862,7 +862,7 @@ describe('obj-parser', () => {
         });
 
         it('should parse the "position" format', () => {
-            const parse = createParser({ mode: 'non-interleaved-typed-array' });
+            const { parse } = createParser({ mode: 'non-interleaved-typed-array' });
             const { objects } = parse(positionPlane);
 
             expect(objects.Plane.primitives.default).toEqual({
@@ -877,7 +877,7 @@ describe('obj-parser', () => {
 
     describe('mode: "non-interleaved-number-array-indexed"', () => {
         it('should parse the "position/uv/normal" format', () => {
-            const parse = createParser({ mode: 'non-interleaved-number-array-indexed' });
+            const { parse } = createParser({ mode: 'non-interleaved-number-array-indexed' });
             const { objects } = parse(positionUvNormalPlane);
 
             expect(objects.Plane.primitives.default).toEqual({
@@ -891,7 +891,7 @@ describe('obj-parser', () => {
         });
 
         it('should parse the "position/uv" format ', () => {
-            const parse = createParser({ mode: 'non-interleaved-number-array-indexed' });
+            const { parse } = createParser({ mode: 'non-interleaved-number-array-indexed' });
             const { objects } = parse(positionUvPlane);
 
             expect(objects.Plane.primitives.default).toEqual({
@@ -905,7 +905,7 @@ describe('obj-parser', () => {
         });
 
         it('should parse the "position//normal" format', () => {
-            const parse = createParser({ mode: 'non-interleaved-number-array-indexed' });
+            const { parse } = createParser({ mode: 'non-interleaved-number-array-indexed' });
             const { objects } = parse(positionNormalPlane);
 
             expect(objects.Plane.primitives.default).toEqual({
@@ -919,7 +919,7 @@ describe('obj-parser', () => {
         });
 
         it('should parse the "position" format', () => {
-            const parse = createParser({ mode: 'non-interleaved-number-array-indexed' });
+            const { parse } = createParser({ mode: 'non-interleaved-number-array-indexed' });
             const { objects } = parse(positionPlane);
 
             expect(objects.Plane.primitives.default).toEqual({
@@ -935,7 +935,7 @@ describe('obj-parser', () => {
 
     describe('mode: "non-interleaved-typed-array-indexed"', () => {
         it('should parse the "position/uv/normal" format', () => {
-            const parse = createParser({ mode: 'non-interleaved-typed-array-indexed' });
+            const { parse } = createParser({ mode: 'non-interleaved-typed-array-indexed' });
             const { objects } = parse(positionUvNormalPlane);
 
             expect(objects.Plane.primitives.default).toEqual({
@@ -949,7 +949,7 @@ describe('obj-parser', () => {
         });
 
         it('should parse the "position/uv" format ', () => {
-            const parse = createParser({ mode: 'non-interleaved-typed-array-indexed' });
+            const { parse } = createParser({ mode: 'non-interleaved-typed-array-indexed' });
             const { objects } = parse(positionUvPlane);
 
             expect(objects.Plane.primitives.default).toEqual({
@@ -963,7 +963,7 @@ describe('obj-parser', () => {
         });
 
         it('should parse the "position//normal" format', () => {
-            const parse = createParser({ mode: 'non-interleaved-typed-array-indexed' });
+            const { parse } = createParser({ mode: 'non-interleaved-typed-array-indexed' });
             const { objects } = parse(positionNormalPlane);
 
             expect(objects.Plane.primitives.default).toEqual({
@@ -977,7 +977,7 @@ describe('obj-parser', () => {
         });
 
         it('should parse the "position" format', () => {
-            const parse = createParser({ mode: 'non-interleaved-typed-array-indexed' });
+            const { parse } = createParser({ mode: 'non-interleaved-typed-array-indexed' });
             const { objects } = parse(positionPlane);
 
             expect(objects.Plane.primitives.default).toEqual({
@@ -993,13 +993,13 @@ describe('obj-parser', () => {
 
     describe('usemtl', () => {
         it('should set the correct name for the primitive', () => {
-            const parse = createParser({ mode: 'non-interleaved-number-array' });
+            const { parse } = createParser({ mode: 'non-interleaved-number-array' });
             const { objects } = parse(planeWithUseMtl);
             expect(objects.Plane.primitives.Material.name).toEqual('Material');
         });
 
         it('should parse it into 2 primitives with the correct material', () => {
-            const parse = createParser({ mode: 'non-interleaved-number-array' });
+            const { parse } = createParser({ mode: 'non-interleaved-number-array' });
             const { objects } = parse(multiplePrimitives);
             expect(objects).toEqual({
                 Plane: {
@@ -1027,7 +1027,7 @@ describe('obj-parser', () => {
 
     describe('multiple objects', () => {
         it('should parse multiple objects correctly', () => {
-            const parse = createParser({ mode: 'non-interleaved-number-array' });
+            const { parse } = createParser({ mode: 'non-interleaved-number-array' });
             const { objects } = parse(multiplePlanes);
             expect(objects).toEqual({
                 'Plane.000': {
@@ -1084,7 +1084,7 @@ describe('obj-parser', () => {
 
     describe('groups', () => {
         it('should parse objects with "g" instead of "o"', () => {
-            const parse = createParser({ mode: 'non-interleaved-number-array', splitObjectMode: 'group' });
+            const { parse } = createParser({ mode: 'non-interleaved-number-array', splitObjectMode: 'group' });
             const { objects } = parse(groups);
             expect(objects['Plane_Plane'].primitives.default).toEqual({
                 name: 'default',

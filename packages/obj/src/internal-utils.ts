@@ -14,15 +14,15 @@ import {
 
 const parseToInt = (n: string) => Number.parseInt(n, 10);
 
-const getIndicesForSection = (section: string) => {
+function getIndicesForSection(section: string) {
     const [p, u, n] = section.split('/').map(parseToInt) as [number, number | undefined, number | undefined];
     const pp = (p - 1) * 3;
     const uu = Number.isNaN(u) || u === undefined ? undefined : (u - 1) * 2;
     const nn = Number.isNaN(n) || n === undefined ? undefined : (n - 1) * 3;
     return [pp, uu, nn] as const;
-};
+}
 
-const getMapKey = (
+function getMapKey(
     px: number,
     py: number,
     pz: number,
@@ -31,17 +31,19 @@ const getMapKey = (
     nx: number | undefined,
     ny: number | undefined,
     nz: number | undefined,
-) => `${px}/${py}/${pz}/${nx}/${ny}/${nz}/${u}/${v}`;
+) {
+    return `${px}/${py}/${pz}/${nx}/${ny}/${nz}/${u}/${v}`;
+}
 
-const createInterleavedPrimitive = (name: string): InterleavedObjPrimitive<number[]> => {
+function createInterleavedPrimitive(name: string): InterleavedObjPrimitive<number[]> {
     return {
         name: name,
         mode: 'interleaved',
         vertices: [],
     };
-};
+}
 
-const createNonInterleavedPrimitive = (name: string): NonInterleavedObjPrimitive<number[]> => {
+function createNonInterleavedPrimitive(name: string): NonInterleavedObjPrimitive<number[]> {
     return {
         name: name,
         mode: 'non-interleaved',
@@ -49,30 +51,30 @@ const createNonInterleavedPrimitive = (name: string): NonInterleavedObjPrimitive
         uvs: [],
         normals: [],
     };
-};
+}
 
-export const convertInterleavedToTypedArray = <
+export function convertInterleavedToTypedArray<
     Primitive extends InterleavedObjPrimitive<number[]> | InterleavedObjPrimitiveIndexed<number[], number[]>,
 >(
     primitive: Primitive,
 ): Primitive extends InterleavedObjPrimitiveIndexed<number[], number[]>
     ? InterleavedObjPrimitiveIndexed<Float32Array, Uint32Array>
-    : InterleavedObjPrimitive<Float32Array> => {
+    : InterleavedObjPrimitive<Float32Array> {
     return {
         name: primitive.name,
         mode: 'interleaved',
         vertices: new Float32Array(primitive.vertices),
         ...('indices' in primitive ? { indices: new Uint32Array(primitive.indices) } : {}),
     } as never;
-};
+}
 
-export const convertNonInterleavedToTypedArray = <
+export function convertNonInterleavedToTypedArray<
     Primitive extends NonInterleavedObjPrimitive<number[]> | NonInterleavedObjPrimitiveIndexed<number[], number[]>,
 >(
     primitive: Primitive,
 ): Primitive extends NonInterleavedObjPrimitiveIndexed<number[], number[]>
     ? NonInterleavedObjPrimitiveIndexed<Float32Array, Uint32Array>
-    : NonInterleavedObjPrimitive<Float32Array> => {
+    : NonInterleavedObjPrimitive<Float32Array> {
     return {
         name: primitive.name,
         mode: 'non-interleaved',
@@ -81,12 +83,12 @@ export const convertNonInterleavedToTypedArray = <
         normals: new Float32Array(primitive.normals),
         ...('indices' in primitive ? { indices: new Uint32Array(primitive.indices) } : {}),
     } as never;
-};
+}
 
-export const convertInterleavedToIndexed = (
+export function convertInterleavedToIndexed(
     primitive: InterleavedObjPrimitive<number[]>,
     info: InterleavedInfo,
-): InterleavedObjPrimitiveIndexed<number[], number[]> => {
+): InterleavedObjPrimitiveIndexed<number[], number[]> {
     const map: Record<string, number> = {};
     const vertices: number[] = [];
     const indices: number[] = [];
@@ -132,11 +134,11 @@ export const convertInterleavedToIndexed = (
         vertices,
         indices,
     };
-};
+}
 
-export const convertNonInterleavedToIndexed = (
+export function convertNonInterleavedToIndexed(
     primitive: NonInterleavedObjPrimitive<number[]>,
-): NonInterleavedObjPrimitiveIndexed<number[], number[]> => {
+): NonInterleavedObjPrimitiveIndexed<number[], number[]> {
     const map: Record<string, number> = {};
 
     const positions: number[] = [];
@@ -181,9 +183,9 @@ export const convertNonInterleavedToIndexed = (
         normals,
         indices,
     };
-};
+}
 
-export const parseInfo = (trimmedLine: string): InterleavedInfo => {
+export function parseInfo(trimmedLine: string): InterleavedInfo {
     const firstSection = trimmedLine.substring(2).split(' ')[0];
     const [, u, n] = getIndicesForSection(firstSection);
     const stride = 3;
@@ -196,7 +198,7 @@ export const parseInfo = (trimmedLine: string): InterleavedInfo => {
         uvOffset: uvCount === 0 ? -1 : 3,
         normalOffset: normalCount === 0 ? -1 : uvCount === 0 ? 3 : 5,
     };
-};
+}
 
 type PipelineArgument = {
     trimmedLine: string;
@@ -207,7 +209,7 @@ type PipelineArgument = {
     opts: ParserOptions;
 };
 
-const handleInterleavedFace = ({ trimmedLine, primitive, positions, uvs, normals, opts }: PipelineArgument) => {
+function handleInterleavedFace({ trimmedLine, primitive, positions, uvs, normals, opts }: PipelineArgument) {
     const sections = trimmedLine.substring(2).split(' ');
 
     for (let s = 1; s < sections.length - 1; s++) {
@@ -250,9 +252,9 @@ const handleInterleavedFace = ({ trimmedLine, primitive, positions, uvs, normals
             primitive.vertices.push(normals[n3 + 0], normals[n3 + 1], normals[n3 + 2]);
         }
     }
-};
+}
 
-const handleNonInterleavedFace = ({ trimmedLine, primitive, positions, uvs, normals, opts }: PipelineArgument) => {
+function handleNonInterleavedFace({ trimmedLine, primitive, positions, uvs, normals, opts }: PipelineArgument) {
     const sections = trimmedLine.substring(2).split(' ');
 
     for (let s = 1; s < sections.length - 1; s++) {
@@ -278,9 +280,11 @@ const handleNonInterleavedFace = ({ trimmedLine, primitive, positions, uvs, norm
             primitive.normals.push(normals[n3 + 0], normals[n3 + 1], normals[n3 + 2]);
         }
     }
-};
+}
 
-const identity = <Value>(value: Value) => value;
+function identity<Value>(value: Value) {
+    return value;
+}
 
 type ResultType<Primitive extends InterleavedObjPrimitive | NonInterleavedObjPrimitive> = {
     objects: Record<string, ObjObject<Primitive>>;

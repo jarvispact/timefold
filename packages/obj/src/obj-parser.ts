@@ -13,10 +13,10 @@ const defaultOptions = {
     flipUvY: false,
 } as const;
 
-export const createParser = <Options extends Partial<ParserOptions>>(options?: Options) => {
+export function createParser<Options extends Partial<ParserOptions>>(options?: Options) {
     const opts = { ...defaultOptions, ...options };
 
-    const parse = (source: string) => {
+    function parse(source: string) {
         const lines = source.trim().split('\n');
 
         const positions: number[] = [];
@@ -104,9 +104,11 @@ export const createParser = <Options extends Partial<ParserOptions>>(options?: O
         }
 
         return { objects, ...(info ? { info } : {}) } as ObjParserResult<Options>;
-    };
+    }
 
-    return parse;
-};
+    return { parse };
+}
 
-export const parse = (source: string) => createParser()(source);
+export function parse(source: string) {
+    return createParser().parse(source);
+}

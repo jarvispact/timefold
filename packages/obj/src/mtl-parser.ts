@@ -1,7 +1,19 @@
-import { MtlMaterial, MtlParserResult } from './types';
+import { MtlMaterial, MtlParserOptions, MtlParserResult } from './types';
 
-export const createParser = () => {
-    return (source: string): MtlParserResult => {
+async function loadImage(url: string, options?: ImageBitmapOptions) {
+    return fetch(url)
+        .then((res) => res.blob())
+        .then((blob) => createImageBitmap(blob, options));
+}
+
+const defaultParserOptions = {
+    resolveImageUrl: (uri) => uri,
+} satisfies MtlParserOptions;
+
+export function createParser(options?: MtlParserOptions) {
+    const opts = { ...defaultParserOptions, ...options };
+
+    async function parse(source: string): Promise<MtlParserResult> {
         const lines = source.trim().split('\n');
 
         const materials: Record<string, MtlMaterial> = {};
@@ -32,10 +44,10 @@ export const createParser = () => {
                     diffuseColor: [0, 0, 0],
                     specularColor: [0, 0, 0],
                     specularExponent: 512,
-                    ambientMapPath: undefined,
-                    diffuseMapPath: undefined,
-                    specularMapPath: undefined,
-                    normalMapPath: undefined,
+                    ambientMap: undefined,
+                    diffuseMap: undefined,
+                    specularMap: undefined,
+                    normalMap: undefined,
                 };
 
                 currentMaterialName = name;
@@ -69,27 +81,31 @@ export const createParser = () => {
 
             if (ambientMapPath) {
                 const path = trimmedLine.substring(6).trim();
-                materials[currentMaterialName].ambientMapPath = path;
+                materials[currentMaterialName].ambientMap = await loadImage(opts.resolveImageUrl(path));
             }
 
             if (diffuseMapPath) {
                 const path = trimmedLine.substring(6).trim();
-                materials[currentMaterialName].diffuseMapPath = path;
+                materials[currentMaterialName].diffuseMap = await loadImage(opts.resolveImageUrl(path));
             }
 
             if (specularMapPath) {
                 const path = trimmedLine.substring(6).trim();
-                materials[currentMaterialName].specularMapPath = path;
+                materials[currentMaterialName].specularMap = await loadImage(opts.resolveImageUrl(path));
             }
 
             if (normalMapPath) {
                 const path = trimmedLine.substring(8).trim();
-                materials[currentMaterialName].normalMapPath = path;
+                materials[currentMaterialName].normalMap = await loadImage(opts.resolveImageUrl(path));
             }
         }
 
         return { materials };
-    };
-};
+    }
 
-export const parse = (source: string) => createParser()(source);
+    return { parse };
+}
+
+export function parse(source: string) {
+    return createParser().parse(source);
+}

@@ -6,10 +6,14 @@ export type MtlMaterial = {
     diffuseColor: [number, number, number];
     specularColor: [number, number, number];
     specularExponent: number;
-    ambientMapPath: string | undefined;
-    diffuseMapPath: string | undefined;
-    specularMapPath: string | undefined;
-    normalMapPath: string | undefined;
+    ambientMap: ImageBitmap | undefined;
+    diffuseMap: ImageBitmap | undefined;
+    specularMap: ImageBitmap | undefined;
+    normalMap: ImageBitmap | undefined;
+};
+
+export type MtlParserOptions = {
+    resolveImageUrl?: (uri: string) => string;
 };
 
 export type MtlParserResult = { materials: Record<string, MtlMaterial> };

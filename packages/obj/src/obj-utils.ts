@@ -11,7 +11,7 @@ export const convertNonInterleavedToIndexed = _convertNonInterleavedToIndexed;
 export const convertInterleavedToTypedArray = _convertInterleavedToTypedArray;
 export const convertNonInterleavedToTypedArray = _convertNonInterleavedToTypedArray;
 
-export const indexPrimitivesByMaterial = <T extends Record<string, ObjObject>>(objects: T) => {
+export function indexPrimitivesByMaterial<T extends Record<string, ObjObject>>(objects: T) {
     const primitives = Object.values(objects).flatMap((o) => Object.values(o.primitives));
 
     const materialToPrimitives = primitives.reduce<Record<string, GenericObjPrimitive[]>>((accum, p) => {
@@ -22,4 +22,4 @@ export const indexPrimitivesByMaterial = <T extends Record<string, ObjObject>>(o
     }, {});
 
     return materialToPrimitives as Record<string, T[keyof T]['primitives'][keyof T[keyof T]['primitives']][]>;
-};
+}

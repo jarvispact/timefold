@@ -1,13 +1,17 @@
 import { createParser } from './mtl-parser';
+import { MtlParserOptions } from './types';
 
-export const createLoader = () => {
-    const parse = createParser();
-    return {
-        load: async (mtlUrl: string) => {
-            const mtlSource = await fetch(mtlUrl).then((response) => response.text());
-            return parse(mtlSource);
-        },
-    };
-};
+export function createLoader(options?: MtlParserOptions) {
+    const { parse } = createParser(options);
 
-export const load = (mtlUrl: string) => createLoader().load(mtlUrl);
+    async function load(mtlUrl: string) {
+        const mtlSource = await fetch(mtlUrl).then((response) => response.text());
+        return parse(mtlSource);
+    }
+
+    return { load };
+}
+
+export function load(mtlUrl: string) {
+    return createLoader().load(mtlUrl);
+}
