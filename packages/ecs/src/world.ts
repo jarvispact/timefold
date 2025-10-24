@@ -602,7 +602,7 @@ type WorldBuilderApi<
         ...rules: keyof S['systems'] extends never ? [] : [MergeRules<S, WSG>?]
     ) => WorldBuilderApi<C, E, R, Q, SystemGraph<S['systems'] & WSG['systems']>>;
     withPlugin: <PR extends GenericResources, PQ extends GenericQueries<C>, PS extends SystemGraph>(
-        plugin: Plugin<PR, PQ, PS>,
+        plugin: Plugin<C, E, PR, PQ, PS>,
         ...rules: keyof S['systems'] extends never ? [] : [MergeRules<S, PS>?]
     ) => WorldBuilderApi<C, E, R & PR, Q & PQ, SystemGraph<S['systems'] & PS['systems']>>;
     compile: () => World<C, E, R, Q, S>;
@@ -660,5 +660,5 @@ export function worldBuilder<
         },
     };
 
-    return api as WorldBuilderApi<C, E, R, Q, S>;
+    return api as unknown as WorldBuilderApi<C, E, R, Q, S>;
 }
