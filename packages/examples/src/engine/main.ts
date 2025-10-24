@@ -1,5 +1,24 @@
-import { MtlLoader, ObjLoader, ObjUtils } from '@timefold/obj';
-import { InterleavedPrimitive, InterleavedPrimitiveComponent } from '@timefold/engine';
+import { createEntitySequence, worldBuilder } from '@timefold/ecs';
+import {
+    createRenderPlugin,
+    DomUtils,
+    EngineComponent,
+    InterleavedPrimitive,
+    MainCameraTag,
+    PerspectiveCamera,
+    PhongMaterial,
+    Transform,
+    UnlitMaterial,
+} from '@timefold/engine';
+import { MtlLoader, ObjLoader } from '@timefold/obj';
+import { Vec3 } from '@timefold/math';
+
+const { nextId } = createEntitySequence();
+
+const canvas = DomUtils.getCanvasById('canvas');
+const RenderPlugin = createRenderPlugin({ canvas });
+
+const world = worldBuilder<EngineComponent>().withPlugin(RenderPlugin).compile();
 
 const run = async () => {
     const [{ materials }, obj] = await Promise.all([
@@ -7,16 +26,32 @@ const run = async () => {
         ObjLoader.load('./multi-material-test.obj'),
     ]);
 
-    const materialToObjPrimitives = ObjUtils.indexPrimitivesByMaterial(obj.objects);
+    const t = Transform.createAndLookAt({ translation: Vec3.create(0, 0, 5), target: Vec3.create(0, 0, 0) });
+    const c = PerspectiveCamera.createFromModelMatrix({
+        aspect: canvas.width / canvas.height,
+        modelMatrix: t.data.modelMatrix,
+    });
+    const m = MainCameraTag.create();
+    world.spawn(nextId(), [t, c, m]);
 
-    const materialToEnginePrimitives = Object.keys(materialToObjPrimitives).reduce<
-        Record<string, InterleavedPrimitiveComponent[]>
-    >((accum, key) => {
-        accum[key] = materialToObjPrimitives[key].map((p) => InterleavedPrimitive.fromObjPrimitive(p, obj.info));
-        return accum;
-    }, {});
+    for (const oKey of Object.keys(obj.objects)) {
+        for (const pKey of Object.keys(obj.objects[oKey].primitives)) {
+            const objPrimtive = obj.objects[oKey].primitives[pKey];
+            const mtlMaterial = materials[objPrimtive.name];
 
-    console.log({ materials, materialToObjPrimitives, materialToEnginePrimitives });
+            const primitive = InterleavedPrimitive.fromObjPrimitive(objPrimtive, obj.info);
+
+            const material = ['Unlit', 'Custom'].includes(mtlMaterial.name)
+                ? UnlitMaterial.create({ color: mtlMaterial.diffuseColor })
+                : PhongMaterial.fromMtlMaterial(mtlMaterial);
+
+            const transform = Transform.createFromTRS({ translation: Vec3.zero() });
+
+            world.spawn(nextId(), [primitive, material, transform]);
+        }
+    }
+
+    await world.start({ loop: false });
 };
 
 void run();
