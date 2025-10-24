@@ -5,7 +5,7 @@ describe('Wgsl.type', () => {
     it('should return the correct tuple type', () => {
         {
             const { view } = Wgsl.type('i32').create({ mode: 'number-tuple' });
-            expectTypeOf(view).toExtend<number>();
+            expectTypeOf(view).toExtend<[number]>();
         }
         {
             const { view } = Wgsl.type('vec2<f32>').create({ mode: 'number-tuple' });

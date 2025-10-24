@@ -57,19 +57,22 @@ export type ViewConfigEntry = {
     elements: number;
 };
 
-const isViewConfig = (value: unknown): value is ViewConfigEntry =>
-    typeof value === 'object' && !!value && 'elements' in value && 'byteOffset' in value && 'scalar' in value;
+function isViewConfig(value: unknown): value is ViewConfigEntry {
+    return typeof value === 'object' && !!value && 'elements' in value && 'byteOffset' in value && 'scalar' in value;
+}
 
-const roundUp = (k: number, n: number) => Math.ceil(n / k) * k;
+function roundUp(k: number, n: number) {
+    return Math.ceil(n / k) * k;
+}
 
-export const resolveViewConfigAndBufferSize = <ViewConfig extends Record<string, unknown> | unknown[]>(
+export function resolveViewConfigAndBufferSize<ViewConfig extends Record<string, unknown> | unknown[]>(
     viewConfig: ViewConfig,
     input: ViewConfig extends Record<string, unknown>
         ? { definition: GenericWgslStructDefinition }
         : { element: WgslArrayElement; size: number },
     bufferSize: number = 0,
     byteOffset: number = 0,
-) => {
+) {
     let maxAlignment = 0;
 
     const handleType = (wgslType: WgslPrimitive, isInArray: boolean): ViewConfigEntry => {
@@ -122,14 +125,14 @@ export const resolveViewConfigAndBufferSize = <ViewConfig extends Record<string,
     }
 
     return { bufferSize, viewConfig };
-};
+}
 
-export const createView = (
+export function createView(
     scalar: WgslScalar,
     buffer: ArrayBufferLike,
     byteOffset: number,
     elements: number,
-): Int32Array | Uint32Array | Float32Array => {
+): Int32Array | Uint32Array | Float32Array {
     switch (scalar) {
         case 'i32':
             return new Int32Array(buffer, byteOffset, elements);
@@ -138,7 +141,7 @@ export const createView = (
         case 'f32':
             return new Float32Array(buffer, byteOffset, elements);
     }
-};
+}
 
 type UnknownViewConfigEntry = ViewConfigEntry | Record<string, ViewConfigEntry> | ViewConfigEntry[];
 
@@ -150,11 +153,11 @@ const handleViewConfig = (entry: ViewConfigEntry, buffer: ArrayBufferLike | unde
     }
 };
 
-export const createViewsForConfig = <Views extends Record<string, unknown> | unknown[]>(
+export function createViewsForConfig<Views extends Record<string, unknown> | unknown[]>(
     views: Views,
     input: Views extends Record<string, unknown> ? Record<string, unknown> : unknown[],
     buffer: ArrayBufferLike | undefined,
-) => {
+) {
     if (Array.isArray(views) && Array.isArray(input)) {
         for (let i = 0; i < input.length; i++) {
             const entry = input[i] as UnknownViewConfigEntry;
@@ -179,7 +182,7 @@ export const createViewsForConfig = <Views extends Record<string, unknown> | unk
         }
     }
     return views;
-};
+}
 
 // vertex
 

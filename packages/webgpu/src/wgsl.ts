@@ -25,53 +25,61 @@ import {
 // ===========================================
 // type
 
-export const type = <T extends WgslPrimitive>(type: T): WgslType<T> => {
+export function type<T extends WgslPrimitive>(type: T): WgslType<T> {
     const entry = lookupTable[type];
     const bufferSize = entry.size;
     const viewConfig = { type, scalar: entry.type, byteOffset: 0, elements: entry.elements };
+
+    function create<Mode extends GenericMode>(args?: { mode?: Mode }) {
+        const mode = args?.mode ?? 'array-buffer';
+
+        if (mode === 'number-tuple') {
+            return { view: entry.create() } as unknown as WgslTypeCreateResult<Mode, T>;
+        }
+
+        const buffer = mode === 'shared-array-buffer' ? new SharedArrayBuffer(entry.size) : new ArrayBuffer(entry.size);
+
+        const view = createView(entry.type, buffer, 0, entry.elements);
+
+        return { buffer, view } as unknown as WgslTypeCreateResult<Mode, T>;
+    }
+
+    function fromBuffer<Buffer extends ArrayBufferLike>(buffer: Buffer) {
+        return createView(
+            entry.type,
+            buffer,
+            0,
+            entry.elements,
+        ) as ViewForViewConstructor<Buffer>[LookupTableEntry<T>['type']];
+    }
+
     return {
         type,
         wgsl: { type },
         bufferSize,
         viewConfig,
-        create: <Mode extends GenericMode>(args?: { mode?: Mode }) => {
-            const mode = args?.mode ?? 'array-buffer';
-
-            if (mode === 'number-tuple') {
-                return { view: entry.create() } as unknown as WgslTypeCreateResult<Mode, T>;
-            }
-
-            const buffer =
-                mode === 'shared-array-buffer' ? new SharedArrayBuffer(entry.size) : new ArrayBuffer(entry.size);
-
-            const view = createView(entry.type, buffer, 0, entry.elements);
-
-            return { buffer, view } as unknown as WgslTypeCreateResult<Mode, T>;
-        },
-        fromBuffer: <Buffer extends ArrayBufferLike>(buffer: Buffer) =>
-            createView(
-                entry.type,
-                buffer,
-                0,
-                entry.elements,
-            ) as ViewForViewConstructor<Buffer>[LookupTableEntry<T>['type']],
+        create,
+        fromBuffer,
     };
-};
+}
 
-export const isType = (value: unknown): value is WgslType<WgslPrimitive> =>
-    typeof value === 'object' &&
-    !!value &&
-    'type' in value &&
-    typeof value.type === 'string' &&
-    wgslTypes.includes(value.type);
+export function isType(value: unknown): value is WgslType<WgslPrimitive> {
+    return (
+        typeof value === 'object' &&
+        !!value &&
+        'type' in value &&
+        typeof value.type === 'string' &&
+        wgslTypes.includes(value.type)
+    );
+}
 
 // ===========================================
 // struct
 
-export const struct = <Name extends string, Definition extends GenericWgslStructDefinition>(
+export function struct<Name extends string, Definition extends GenericWgslStructDefinition>(
     name: Name,
     definition: Definition,
-): WgslStruct<Name, Definition> => {
+): WgslStruct<Name, Definition> {
     const wgslProperties = Object.keys(definition)
         .map((key) => {
             const value = definition[key];
@@ -93,53 +101,87 @@ export const struct = <Name extends string, Definition extends GenericWgslStruct
 
     const result = resolveViewConfigAndBufferSize({}, { definition });
 
+    function create<Mode extends GenericMode>(args?: { mode?: Mode }) {
+        const mode = args?.mode ?? 'array-buffer';
+
+        if (mode === 'number-tuple') {
+            const views = createViewsForConfig({}, result.viewConfig, undefined);
+            return { views } as unknown as WgslStructCreateResult<Definition, Mode>;
+        }
+
+        const buffer =
+            mode === 'shared-array-buffer'
+                ? new SharedArrayBuffer(result.bufferSize)
+                : new ArrayBuffer(result.bufferSize);
+
+        const views = createViewsForConfig({}, result.viewConfig, buffer);
+        return { buffer, views } as unknown as WgslStructCreateResult<Definition, Mode>;
+    }
+
+    function fromBuffer<Buffer extends ArrayBufferLike>(buffer: Buffer) {
+        return createViewsForConfig({}, result.viewConfig, buffer) as WgslStructViews<
+            Definition,
+            Buffer,
+            GenericTypedArrayMode
+        >;
+    }
+
     return {
         name,
         definition,
         wgsl: { type: name, declaration },
         bufferSize: result.bufferSize,
         viewConfig: result.viewConfig as WgslStructViewConfig,
-        create: <Mode extends GenericMode>(args?: { mode?: Mode }) => {
-            const mode = args?.mode ?? 'array-buffer';
-
-            if (mode === 'number-tuple') {
-                const views = createViewsForConfig({}, result.viewConfig, undefined);
-                return { views } as unknown as WgslStructCreateResult<Definition, Mode>;
-            }
-
-            const buffer =
-                mode === 'shared-array-buffer'
-                    ? new SharedArrayBuffer(result.bufferSize)
-                    : new ArrayBuffer(result.bufferSize);
-
-            const views = createViewsForConfig({}, result.viewConfig, buffer);
-            return { buffer, views } as unknown as WgslStructCreateResult<Definition, Mode>;
-        },
-        fromBuffer: <Buffer extends ArrayBufferLike>(buffer: Buffer) =>
-            createViewsForConfig({}, result.viewConfig, buffer) as WgslStructViews<
-                Definition,
-                Buffer,
-                GenericTypedArrayMode
-            >,
+        create,
+        fromBuffer,
     };
-};
+}
 
-export const isStruct = (value: unknown): value is WgslStruct<string, GenericWgslStructDefinition> =>
-    typeof value === 'object' &&
-    !!value &&
-    'name' in value &&
-    'definition' in value &&
-    typeof value.definition === 'object' &&
-    !Array.isArray(value.definition);
+export function isStruct(value: unknown): value is WgslStruct<string, GenericWgslStructDefinition> {
+    return (
+        typeof value === 'object' &&
+        !!value &&
+        'name' in value &&
+        'definition' in value &&
+        typeof value.definition === 'object' &&
+        !Array.isArray(value.definition)
+    );
+}
 
 // ===========================================
 // array
 
-export const array = <Element extends WgslArrayElement, Size extends number>(
+export function array<Element extends WgslArrayElement, Size extends number>(
     element: Element,
     size: Size,
-): WgslArray<Element, Size> => {
+): WgslArray<Element, Size> {
     const result = resolveViewConfigAndBufferSize([], { element, size });
+
+    function create<Mode extends GenericMode>(args?: { mode?: Mode }) {
+        const mode = args?.mode ?? 'array-buffer';
+
+        if (mode === 'number-tuple') {
+            const views = createViewsForConfig([], result.viewConfig, undefined);
+            return { views } as unknown as WgslArrayCreateResult<Element, Size, Mode>;
+        }
+
+        const buffer =
+            mode === 'shared-array-buffer'
+                ? new SharedArrayBuffer(result.bufferSize)
+                : new ArrayBuffer(result.bufferSize);
+
+        const views = createViewsForConfig([], result.viewConfig, buffer);
+        return { buffer, views } as unknown as WgslArrayCreateResult<Element, Size, Mode>;
+    }
+
+    function fromBuffer<Buffer extends ArrayBufferLike>(buffer: Buffer) {
+        return createViewsForConfig([], result.viewConfig, buffer) as WgslArrayViews<
+            Element,
+            Size,
+            Buffer,
+            GenericTypedArrayMode
+        >;
+    }
 
     return {
         element,
@@ -147,31 +189,13 @@ export const array = <Element extends WgslArrayElement, Size extends number>(
         wgsl: { type: `array<${element.wgsl.type}, ${size}>` },
         bufferSize: result.bufferSize,
         viewConfig: result.viewConfig as WgslArrayViewConfig<Size>,
-        create: <Mode extends GenericMode>(args?: { mode?: Mode }) => {
-            const mode = args?.mode ?? 'array-buffer';
-
-            if (mode === 'number-tuple') {
-                const views = createViewsForConfig([], result.viewConfig, undefined);
-                return { views } as unknown as WgslArrayCreateResult<Element, Size, Mode>;
-            }
-
-            const buffer =
-                mode === 'shared-array-buffer'
-                    ? new SharedArrayBuffer(result.bufferSize)
-                    : new ArrayBuffer(result.bufferSize);
-
-            const views = createViewsForConfig([], result.viewConfig, buffer);
-            return { buffer, views } as unknown as WgslArrayCreateResult<Element, Size, Mode>;
-        },
-        fromBuffer: <Buffer extends ArrayBufferLike>(buffer: Buffer) =>
-            createViewsForConfig([], result.viewConfig, buffer) as WgslArrayViews<
-                Element,
-                Size,
-                Buffer,
-                GenericTypedArrayMode
-            >,
+        create,
+        fromBuffer,
     };
-};
+}
 
-export const isArray = (value: unknown): value is WgslArray<WgslArrayElement, number> =>
-    typeof value === 'object' && !!value && 'element' in value && 'size' in value && typeof value.size === 'number';
+export function isArray(value: unknown): value is WgslArray<WgslArrayElement, number> {
+    return (
+        typeof value === 'object' && !!value && 'element' in value && 'size' in value && typeof value.size === 'number'
+    );
+}

@@ -27,12 +27,12 @@ const defaultColorAttachmentOptions = {
     storeOp: 'store',
 } satisfies Omit<GPURenderPassColorAttachment, 'view'>;
 
-export const createColorAttachmentFromView = (
+export function createColorAttachmentFromView(
     view: GPUTextureView,
     options?: Partial<Omit<GPURenderPassColorAttachment, 'view'>>,
-): GPURenderPassColorAttachment => {
+): GPURenderPassColorAttachment {
     return { ...defaultColorAttachmentOptions, ...options, view };
-};
+}
 
 const defaultDepthAttachmentOptions = {
     depthClearValue: 1.0,
@@ -40,12 +40,12 @@ const defaultDepthAttachmentOptions = {
     depthStoreOp: 'store',
 } satisfies Omit<GPURenderPassDepthStencilAttachment, 'view'>;
 
-export const createDepthAttachmentFromView = (
+export function createDepthAttachmentFromView(
     view: GPUTextureView,
     options?: Omit<GPURenderPassDepthStencilAttachment, 'view'>,
-): GPURenderPassDepthStencilAttachment => {
+): GPURenderPassDepthStencilAttachment {
     return { view, ...defaultDepthAttachmentOptions, ...options };
-};
+}
 
 // ===========================================================
 // device and context
@@ -55,7 +55,7 @@ const defaultAdapterOptions: GPURequestAdapterOptions = {
     forceFallbackAdapter: false,
 };
 
-export const createDevice = async (options: CreateDeviceOptions = {}) => {
+export async function createDevice(options: CreateDeviceOptions = {}) {
     const adapterOptions = { ...defaultAdapterOptions, ...options.adapter };
     const adapter = await navigator.gpu.requestAdapter(adapterOptions);
     if (!adapter) {
@@ -64,9 +64,9 @@ export const createDevice = async (options: CreateDeviceOptions = {}) => {
 
     const device = await adapter.requestDevice(options.device);
     return device;
-};
+}
 
-export const createContext = (options: CreateContextOptions) => {
+export function createContext(options: CreateContextOptions) {
     const context = options.canvas.getContext('webgpu');
     if (!context) {
         throw new Error('Webgpu not available');
@@ -81,21 +81,21 @@ export const createContext = (options: CreateContextOptions) => {
     });
 
     return context;
-};
+}
 
-export const createDeviceAndContext = async (
+export async function createDeviceAndContext(
     options: CreateDeviceAndContextOptions,
-): Promise<CreateDeviceAndContextResult> => {
+): Promise<CreateDeviceAndContextResult> {
     const device = await createDevice({ adapter: options.adapter, device: options.device });
     const context = createContext({ canvas: options.canvas, device, contextConfig: options.contextConfig });
     const format = navigator.gpu.getPreferredCanvasFormat();
     return { device, context, format };
-};
+}
 
 // ===========================================================
 // transparency
 
-export const getBlendState = (mode: 'opaque' | 'transparent'): GPUBlendState | undefined => {
+export function getBlendState(mode: 'opaque' | 'transparent'): GPUBlendState | undefined {
     if (mode === 'opaque') return undefined;
 
     return {
@@ -110,12 +110,12 @@ export const getBlendState = (mode: 'opaque' | 'transparent'): GPUBlendState | u
             dstFactor: 'one',
         },
     };
-};
+}
 
 // ===========================================================
 // vertex buffers
 
-export const createVertexBufferLayout = <
+export function createVertexBufferLayout<
     Mode extends CreateVertexBufferMode,
     Definition extends CreateVertexBufferLayoutDefinition<Mode>,
 >({
@@ -126,7 +126,7 @@ export const createVertexBufferLayout = <
     label: string;
     mode: Mode;
     definition: Definition;
-}): CreateVertexBufferLayoutResult<Mode, Definition> => {
+}): CreateVertexBufferLayoutResult<Mode, Definition> {
     const vertexDefinitionKeys = Object.keys(definition);
 
     const locationByName: Record<string, number> = {};
@@ -156,11 +156,11 @@ export const createVertexBufferLayout = <
         // https://toji.dev/webgpu-best-practices/buffer-uploads#:~:text=usage%3A%20GPUBufferUsage.VERTEX%2C%20//%20COPY_DST%20is%20not%20required!
 
         // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-parameters
-        const createBuffer = <Name extends keyof Definition>(
+        function createBuffer<Name extends keyof Definition>(
             device: GPUDevice,
             name: Name,
             data: InstanceType<GenericTypedArrayConstructor>,
-        ) => {
+        ) {
             const buffer = device.createBuffer({
                 label: `[${label}] ${name.toString()} vertex buffer`,
                 size: data.byteLength,
@@ -180,12 +180,12 @@ export const createVertexBufferLayout = <
                 buffer,
                 ...(name === 'position' ? { count: data.length / formatMap[definition.position.format].stride } : {}),
             };
-        };
+        }
 
-        const createBuffers = (
+        function createBuffers(
             device: GPUDevice,
             attribs: { [K in keyof Definition]: InstanceType<GenericTypedArrayConstructor> },
-        ) => {
+        ) {
             return {
                 mode,
                 attribs: Object.keys(attribs).reduce(
@@ -196,7 +196,7 @@ export const createVertexBufferLayout = <
                     {} as { [K in keyof Definition]: { slot: number; buffer: GPUBuffer; count?: number } },
                 ),
             };
-        };
+        }
 
         return {
             mode,
@@ -257,17 +257,17 @@ export const createVertexBufferLayout = <
         wgsl,
         createBuffer,
     } as CreateVertexBufferLayoutResult<Mode, Definition>;
-};
+}
 
 // ===========================================================
 // index buffer
 
-export const createIndexBuffer = <Format extends GPUIndexFormat>({
+export function createIndexBuffer<Format extends GPUIndexFormat>({
     device,
     label,
     format,
     data,
-}: CreateIndexBufferArgs<Format> & { label: string; device: GPUDevice }): CreateIndexBufferResult<Format> => {
+}: CreateIndexBufferArgs<Format> & { label: string; device: GPUDevice }): CreateIndexBufferResult<Format> {
     const buffer = device.createBuffer({
         label,
         size: Math.ceil(data.byteLength / 4) * 4,
@@ -284,28 +284,28 @@ export const createIndexBuffer = <Format extends GPUIndexFormat>({
         count: data.length,
         format: format,
     };
-};
+}
 
 // ===========================================================
 // uniform bindings
 
-export const createSampler = ({
+export function createSampler({
     device,
     ...options
-}: GPUSamplerDescriptor & { label: string; device: GPUDevice }): GPUSampler => {
+}: GPUSamplerDescriptor & { label: string; device: GPUDevice }): GPUSampler {
     return device.createSampler(options);
-};
+}
 
-const getTextureDefaultDescriptor = (width: number, height: number): GPUTextureDescriptor => {
+function getTextureDefaultDescriptor(width: number, height: number): GPUTextureDescriptor {
     return {
         format: 'rgba8unorm',
         size: [width, height],
         usage: GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.COPY_DST | GPUTextureUsage.RENDER_ATTACHMENT,
         dimension: '2d',
     };
-};
+}
 
-export const createImageBitmapTexture = ({
+export function createImageBitmapTexture({
     device,
     image,
     ...options
@@ -315,7 +315,7 @@ export const createImageBitmapTexture = ({
     image: ImageBitmap;
     format?: GPUTextureFormat;
     usage?: number;
-}): GPUTexture => {
+}): GPUTexture {
     const descriptor = {
         ...getTextureDefaultDescriptor(image.width, image.height),
         ...options,
@@ -330,9 +330,9 @@ export const createImageBitmapTexture = ({
     );
 
     return texture;
-};
+}
 
-const getTextureArrayDefaultDescriptor = (width: number, height: number, arrayLength: number): GPUTextureDescriptor => {
+function getTextureArrayDefaultDescriptor(width: number, height: number, arrayLength: number): GPUTextureDescriptor {
     return {
         format: 'rgba8unorm',
         size: [width, height, arrayLength],
@@ -340,9 +340,9 @@ const getTextureArrayDefaultDescriptor = (width: number, height: number, arrayLe
         dimension: '2d',
         textureBindingViewDimension: '2d-array',
     };
-};
+}
 
-export const createImageBitmapTextureArray = ({
+export function createImageBitmapTextureArray({
     device,
     images,
     ...options
@@ -352,7 +352,7 @@ export const createImageBitmapTextureArray = ({
     images: ImageBitmap[];
     format?: GPUTextureFormat;
     usage?: number;
-}): GPUTexture => {
+}): GPUTexture {
     const descriptor = {
         ...getTextureArrayDefaultDescriptor(images[0].width, images[0].height, images.length),
         ...options,
@@ -371,9 +371,9 @@ export const createImageBitmapTextureArray = ({
     }
 
     return texture;
-};
+}
 
-export const createDataTexture = ({
+export function createDataTexture({
     device,
     width,
     height,
@@ -386,7 +386,7 @@ export const createDataTexture = ({
     height: number;
 } & {
     device: GPUDevice;
-}): GPUTexture => {
+}): GPUTexture {
     const descriptor = {
         ...getTextureDefaultDescriptor(width, height),
         ...options,
@@ -397,9 +397,9 @@ export const createDataTexture = ({
     device.queue.writeTexture({ texture }, data, { bytesPerRow: width * 4 }, { width: width, height: height });
 
     return texture;
-};
+}
 
-export const createDataTextureArray = ({
+export function createDataTextureArray({
     device,
     width,
     height,
@@ -411,7 +411,7 @@ export const createDataTextureArray = ({
     width: number;
     height: number;
     dataArray: (BufferSource | SharedArrayBuffer)[];
-}): GPUTexture => {
+}): GPUTexture {
     const descriptor = {
         ...getTextureArrayDefaultDescriptor(width, height, dataArray.length),
         ...options,
@@ -425,7 +425,7 @@ export const createDataTextureArray = ({
     }
 
     return texture;
-};
+}
 
 type CreateBufferDescriptorOptions = Omit<GPUBufferDescriptor, 'size'>;
 
@@ -439,21 +439,21 @@ const storageBufferDefaultDescriptor: CreateBufferDescriptorOptions = {
     mappedAtCreation: false,
 };
 
-export const createUniformBufferDescriptor = (
+export function createUniformBufferDescriptor(
     options: Omit<GPUBufferDescriptor, 'size' | 'usage'> & { label: string },
-) => {
+) {
     return { ...uniformBufferDefaultDescriptor, ...options };
-};
+}
 
-export const createStorageBufferDescriptor = (
+export function createStorageBufferDescriptor(
     options: Omit<GPUBufferDescriptor, 'size' | 'usage'> & { label: string },
-) => {
+) {
     return { ...storageBufferDefaultDescriptor, ...options };
-};
+}
 
 // pipeline layout
 
-export const createPipelineLayout = <const Groups extends UniformGroup<number, Record<string, GenericBinding>>[]>({
+export function createPipelineLayout<const Groups extends UniformGroup<number, Record<string, GenericBinding>>[]>({
     bindGroupLayoutLabel,
     pipelineLayoutLabel,
     uniformGroups,
@@ -461,7 +461,7 @@ export const createPipelineLayout = <const Groups extends UniformGroup<number, R
     bindGroupLayoutLabel: string;
     pipelineLayoutLabel: string;
     uniformGroups: Groups;
-}): CreatePipelineLayoutResult<Groups> => {
+}): CreatePipelineLayoutResult<Groups> {
     const bindGroupLayoutEntries: GPUBindGroupLayoutEntry[][] = [];
 
     for (let i = 0; i < uniformGroups.length; i++) {
@@ -487,7 +487,7 @@ export const createPipelineLayout = <const Groups extends UniformGroup<number, R
 
     const bindGroupLayouts: GPUBindGroupLayout[] = [];
 
-    const createLayout = (device: GPUDevice) => {
+    function createLayout(device: GPUDevice) {
         for (const entry of bindGroupLayoutEntries) {
             bindGroupLayouts.push(
                 device.createBindGroupLayout({
@@ -501,9 +501,9 @@ export const createPipelineLayout = <const Groups extends UniformGroup<number, R
             label: pipelineLayoutLabel,
             bindGroupLayouts,
         });
-    };
+    }
 
-    const createBindGroups = <Group extends TupleIndices<Groups>>({
+    function createBindGroups<Group extends TupleIndices<Groups>>({
         device,
         group,
         bindings,
@@ -511,7 +511,7 @@ export const createPipelineLayout = <const Groups extends UniformGroup<number, R
         device: GPUDevice;
         group: Group;
         bindings: BindingsForGroup<Groups[Group]>;
-    }) => {
+    }) {
         const bindgroupEntries: GPUBindGroupEntry[] = [];
         const layout = bindGroupLayouts[group];
         const bindingKeys = Object.keys(bindings);
@@ -554,11 +554,11 @@ export const createPipelineLayout = <const Groups extends UniformGroup<number, R
         });
 
         return { group, bindGroup, buffers: buffers as BuffersByBindingKey<Groups[Group]> };
-    };
+    }
 
     return {
         uniformGroups,
         createLayout,
         createBindGroups,
     };
-};
+}

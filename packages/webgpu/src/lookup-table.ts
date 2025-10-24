@@ -1,6 +1,6 @@
 import { WgslScalar, Tuple } from './internal-utils';
 
-const create = <Size extends number>(size: Size): Tuple<number, Size> => {
+function create<Size extends number>(size: Size): Tuple<number, Size> {
     if (size === 1) return 0 as never;
     const array: number[] = [];
 
@@ -9,13 +9,13 @@ const create = <Size extends number>(size: Size): Tuple<number, Size> => {
     }
 
     return array as never;
-};
+}
 
 type WithCreateFn<T extends Record<string, { elements: number }>> = {
     [K in keyof T]: T[K] & { create: () => Tuple<number, T[K]['elements']> };
 };
 
-const createLookupTable = <
+function createLookupTable<
     const Lut extends Record<
         string,
         {
@@ -25,15 +25,13 @@ const createLookupTable = <
             type: WgslScalar;
         }
     >,
->(
-    lut: Lut,
-): WithCreateFn<Lut> => {
+>(lut: Lut): WithCreateFn<Lut> {
     for (const key of Object.keys(lut)) {
         (lut[key] as Lut[string] & { create: () => unknown }).create = () => create(lut[key].elements);
     }
 
     return lut as never;
-};
+}
 
 const lut = createLookupTable({
     i32: { elements: 1, align: 4, size: 4, type: 'i32' },

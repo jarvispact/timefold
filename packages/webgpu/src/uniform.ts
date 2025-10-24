@@ -15,10 +15,10 @@ const defaultSamplerArgs: UniformBindingOptions & { sampler: GPUSamplerBindingLa
     sampler: {},
 };
 
-export const sampler = <Binding extends number>(
+export function sampler<Binding extends number>(
     binding: Binding,
     args?: UniformBindingOptions & { sampler?: GPUSamplerBindingLayout },
-): SamplerBinding<Binding> => {
+): SamplerBinding<Binding> {
     const _args = {
         visibility: args?.visibility ?? defaultSamplerArgs.visibility,
         sampler: { ...defaultSamplerArgs.sampler, ...args?.sampler },
@@ -28,17 +28,17 @@ export const sampler = <Binding extends number>(
         type: 'sampler',
         layout: { binding, ..._args },
     };
-};
+}
 
 const defaultTextureArgs: UniformBindingOptions & { texture: GPUTextureBindingLayout } = {
     visibility: GPUShaderStage.FRAGMENT,
     texture: {},
 };
 
-export const texture = <Binding extends number>(
+export function texture<Binding extends number>(
     binding: Binding,
     args?: UniformBindingOptions & { texture?: GPUTextureBindingLayout },
-): TextureBinding<Binding> => {
+): TextureBinding<Binding> {
     const _args = {
         visibility: args?.visibility ?? defaultTextureArgs.visibility,
         texture: { ...defaultTextureArgs.texture, ...args?.texture },
@@ -48,7 +48,7 @@ export const texture = <Binding extends number>(
         type: 'texture',
         layout: { binding, ..._args },
     };
-};
+}
 
 const defaultUniformBufferArgs: UniformBindingOptions & { buffer: GPUBufferBindingLayout } = {
     visibility: GPUShaderStage.VERTEX | GPUShaderStage.FRAGMENT,
@@ -60,11 +60,11 @@ const defaultStorageBufferArgs: UniformBindingOptions & { buffer: GPUBufferBindi
     buffer: { type: 'read-only-storage' },
 };
 
-export const uniformBuffer = <Binding extends number, Type extends GenericUniformType>(
+export function uniformBuffer<Binding extends number, Type extends GenericUniformType>(
     binding: Binding,
     type: Type,
     args?: Partial<UniformBindingOptions> & { buffer?: Omit<GPUBufferBindingLayout, 'type'> },
-): BufferBinding<Binding, Type> => {
+): BufferBinding<Binding, Type> {
     const _args = {
         visibility: args?.visibility ?? defaultUniformBufferArgs.visibility,
         buffer: { ...defaultUniformBufferArgs.buffer, ...args?.buffer },
@@ -75,13 +75,13 @@ export const uniformBuffer = <Binding extends number, Type extends GenericUnifor
         uniformType: type,
         layout: { binding, ..._args },
     };
-};
+}
 
-export const storageBuffer = <Binding extends number, Type extends GenericUniformType>(
+export function storageBuffer<Binding extends number, Type extends GenericUniformType>(
     binding: Binding,
     type: Type,
     args?: Partial<UniformBindingOptions> & { buffer?: Omit<GPUBufferBindingLayout, 'type'> },
-): BufferBinding<Binding, Type> => {
+): BufferBinding<Binding, Type> {
     const _args = {
         visibility: args?.visibility ?? defaultStorageBufferArgs.visibility,
         buffer: { ...defaultStorageBufferArgs.buffer, ...args?.buffer },
@@ -92,12 +92,12 @@ export const storageBuffer = <Binding extends number, Type extends GenericUnifor
         uniformType: type,
         layout: { binding, ..._args },
     };
-};
+}
 
-export const group = <G extends number, Bindings extends Record<string, GenericBinding>>(
+export function group<G extends number, Bindings extends Record<string, GenericBinding>>(
     group: G,
     bindings: Bindings,
-): UniformGroup<G, Bindings> => {
+): UniformGroup<G, Bindings> {
     const uniformDeclarations = Object.keys(bindings)
         .map((key) => {
             const binding = bindings[key];
@@ -128,9 +128,9 @@ export const group = <G extends number, Bindings extends Record<string, GenericB
         bindings,
         uniformDeclarations,
     };
-};
+}
 
-const resolveUniqueStructs = (structsByName: Record<string, string>, definition: GenericWgslStructDefinition) => {
+function resolveUniqueStructs(structsByName: Record<string, string>, definition: GenericWgslStructDefinition) {
     const definitionValues = Object.values(definition);
 
     for (const definitionValue of definitionValues) {
@@ -144,9 +144,9 @@ const resolveUniqueStructs = (structsByName: Record<string, string>, definition:
             }
         }
     }
-};
+}
 
-export const getWgslFromGroups = (groups: UniformGroup<number, Record<string, GenericBinding>>[]) => {
+export function getWgslFromGroups(groups: UniformGroup<number, Record<string, GenericBinding>>[]) {
     const structsByName: Record<string, string> = {};
 
     for (const group of groups) {
@@ -170,4 +170,4 @@ export const getWgslFromGroups = (groups: UniformGroup<number, Record<string, Ge
     const uniformDeclarations = groups.map((g) => g.uniformDeclarations).join('\n');
 
     return `${uniqueStructDeclarations}\n\n${uniformDeclarations}`;
-};
+}

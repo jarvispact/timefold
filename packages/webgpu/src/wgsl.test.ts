@@ -9,7 +9,7 @@ describe('wgsl create args and result', () => {
             const result1 = Test.create();
             expectTypeOf(result1).toMatchObjectType<{
                 buffer: ArrayBuffer;
-                view: number;
+                view: [number];
             }>();
 
             const result2 = Test.create({ mode: 'array-buffer' });
@@ -26,7 +26,7 @@ describe('wgsl create args and result', () => {
 
             const result4 = Test.create({ mode: 'number-tuple' });
             expectTypeOf(result4).toMatchObjectType<{
-                view: number;
+                view: [number];
             }>();
         });
 
@@ -124,7 +124,7 @@ describe('wgsl create args and result', () => {
                 views: {
                     one: [number, number, number];
                     two: [number, number];
-                    three: number;
+                    three: [number];
                     four: [number, number, number, number];
                 };
             }>();
@@ -156,7 +156,7 @@ describe('wgsl create args and result', () => {
                 views: {
                     one: [number, number, number];
                     two: [number, number];
-                    three: number;
+                    three: [number];
                     four: [number, number, number, number];
                 };
             }>();
