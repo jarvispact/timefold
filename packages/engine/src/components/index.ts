@@ -1,4 +1,10 @@
 export * from './types';
 export * as Animation from './animation';
 export * as InterleavedPrimitive from './interleaved-primitive';
+export * as MainCameraTag from './main-camera-tag';
 export * as NonInterleavedPrimitive from './non-interleaved-primitive';
+export * as OrthographicCamera from './orthographic-camera';
+export * as PerspectiveCamera from './perspective-camera';
+export * as PhongMaterial from './phong-material';
+export * as Transform from './transform';
+export * as UnlitMaterial from './unlit-material';

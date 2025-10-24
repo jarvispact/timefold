@@ -10,7 +10,9 @@ import { ensureFloat32Array, ensureUint32Array } from '../internal';
 
 export const type = EngineComponentType.NonInterleavedPrimitive;
 
-export const is = (component: Component): component is NonInterleavedPrimitiveComponent => component.type === type;
+export function is(component: Component): component is NonInterleavedPrimitiveComponent {
+    return component.type === type;
+}
 
 type Args<T extends NonInterleavedAttributes> = Omit<NonInterleavedPrimitiveData<T>, 'primitive'> & {
     primitive?: GPUPrimitiveState;
@@ -21,11 +23,11 @@ const defaultPrimitive: GPUPrimitiveState = {
     topology: 'triangle-list',
 };
 
-export const create = <T extends NonInterleavedAttributes>(args: Args<T>): NonInterleavedPrimitiveComponent<T> => {
+export function create<T extends NonInterleavedAttributes>(args: Args<T>): NonInterleavedPrimitiveComponent<T> {
     return createComponent(type, { ...args, primitive: { ...defaultPrimitive, ...args.primitive } });
-};
+}
 
-export const fromObjPrimitive = (objPrimitive: GenericNonInterleavedObjPrimitive): NonInterleavedPrimitiveComponent => {
+export function fromObjPrimitive(objPrimitive: GenericNonInterleavedObjPrimitive): NonInterleavedPrimitiveComponent {
     const attributes: NonInterleavedAttributes = {
         position: { format: 'float32x3', data: ensureFloat32Array(objPrimitive.positions) },
         uv: { format: 'float32x2', data: ensureFloat32Array(objPrimitive.uvs) },
@@ -37,4 +39,4 @@ export const fromObjPrimitive = (objPrimitive: GenericNonInterleavedObjPrimitive
         attributes,
         indices: 'indices' in objPrimitive ? ensureUint32Array(objPrimitive.indices) : undefined,
     });
-};
+}

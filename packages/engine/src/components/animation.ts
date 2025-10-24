@@ -15,7 +15,9 @@ import { objectKeys } from '../internal';
 
 export const type = EngineComponentType.Animation;
 
-export const is = (component: Component): component is AnimationComponent => component.type === type;
+export function is(component: Component): component is AnimationComponent {
+    return component.type === type;
+}
 
 type AnimationArgs<Tracks extends Record<string, AnimationTrack>> = {
     duration: number;

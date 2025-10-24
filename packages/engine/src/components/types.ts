@@ -1,5 +1,5 @@
 import { Component, defineComponentTypes } from '@timefold/ecs';
-import { EasingFunction, QuatType, Vec2Type, Vec3Type } from '@timefold/math';
+import { EasingFunction, Mat4x4Type, QuatType, Vec2Type, Vec3Type } from '@timefold/math';
 import {
     SupportedPositionFormat,
     SupportedFormat,
@@ -7,10 +7,87 @@ import {
     AttribFormatToTypedArray,
 } from '@timefold/webgpu';
 
-const ComponentTypes = defineComponentTypes(['InterleavedPrimitive', 'NonInterleavedPrimitive', 'Animation']);
+const ComponentTypes = defineComponentTypes([
+    'Transform',
+    'UnlitMaterial',
+    'PhongMaterial',
+    'InterleavedPrimitive',
+    'NonInterleavedPrimitive',
+    'Animation',
+    'PerspectiveCamera',
+    'OrthographicCamera',
+    'MainCameraTag',
+]);
 
 export const EngineComponentType = ComponentTypes.T;
 export const EngineComponentTypeNames = ComponentTypes.typeNames;
+
+// #region Transform
+export type TransformData = {
+    translation: Vec3Type;
+    rotation: QuatType;
+    scale: Vec3Type;
+    modelMatrix: Mat4x4Type;
+};
+
+export type TransformComponent = Component<typeof EngineComponentType.Transform, TransformData>;
+// #endregion
+
+// #region UnlitMaterial
+export type UnlitMaterialData = {
+    color: Vec3Type;
+    opacity: number;
+    useColorMapAlpha: number;
+    colorMap?: ImageBitmap;
+};
+
+export type UnlitMaterialComponent = Component<typeof EngineComponentType.UnlitMaterial, UnlitMaterialData>;
+// #endregion
+
+// #region PhongMaterial
+export type PhongMaterialData = {
+    diffuseColor: Vec3Type;
+    specularColor: Vec3Type;
+    shininess: number;
+    opacity: number;
+    diffuseMap?: ImageBitmap;
+};
+
+export type PhongMaterialComponent = Component<typeof EngineComponentType.PhongMaterial, PhongMaterialData>;
+// #endregion
+
+// #region InterleavedPrimitive
+export type InterleavedLayout = {
+    position: { format: SupportedPositionFormat; stride: number };
+} & Record<string, { format: SupportedFormat; stride: number }>;
+
+export type InterleavedPrimitiveData = {
+    layout: InterleavedLayout;
+    primitive: GPUPrimitiveState;
+    vertices: Float32Array;
+    indices?: GenericIndexBufferTypedArray;
+};
+
+export type InterleavedPrimitiveComponent = Component<
+    typeof EngineComponentType.InterleavedPrimitive,
+    InterleavedPrimitiveData
+>;
+// #endregion
+
+// #region NonInterleavedPrimitive
+export type NonInterleavedAttributes = {
+    position: { format: SupportedPositionFormat; data: Float32Array };
+} & Record<string, { [K in SupportedFormat]: { format: K; data: AttribFormatToTypedArray<K> } }[SupportedFormat]>;
+
+export type NonInterleavedPrimitiveData<Attribs extends NonInterleavedAttributes = NonInterleavedAttributes> = {
+    primitive: GPUPrimitiveState;
+    attributes: Attribs;
+    indices?: GenericIndexBufferTypedArray;
+};
+
+export type NonInterleavedPrimitiveComponent<Attribs extends NonInterleavedAttributes = NonInterleavedAttributes> =
+    Component<typeof EngineComponentType.NonInterleavedPrimitive, NonInterleavedPrimitiveData<Attribs>>;
+// #endregion
 
 // #region Animation
 export type AnimationKeyframe<Value> = {
@@ -58,37 +135,48 @@ export type AnimationComponent<Tracks extends Record<string, AnimationTrack> = R
     Component<typeof EngineComponentType.Animation, AnimationData<Tracks>>;
 // #endregion
 
-// #region InterleavedPrimitive
-export type InterleavedLayout = {
-    position: { format: SupportedPositionFormat; stride: number };
-} & Record<string, { format: SupportedFormat; stride: number }>;
-
-export type InterleavedPrimitiveData = {
-    layout: InterleavedLayout;
-    primitive: GPUPrimitiveState;
-    vertices: Float32Array;
-    indices?: GenericIndexBufferTypedArray;
+// #region PerspectiveCamera
+export type PerspectiveCameraData = {
+    aspect: number;
+    fovy: number;
+    near: number;
+    far: number | undefined;
+    viewMatrix: Mat4x4Type;
+    projectionMatrix: Mat4x4Type;
+    viewProjectionMatrix: Mat4x4Type;
 };
 
-export type InterleavedPrimitiveComponent = Component<
-    typeof EngineComponentType.InterleavedPrimitive,
-    InterleavedPrimitiveData
+export type PerspectiveCameraComponent = Component<typeof EngineComponentType.PerspectiveCamera, PerspectiveCameraData>;
+// #endregion
+
+// #region OrthographicCamera
+export type OrthographicCameraData = {
+    left: number;
+    right: number;
+    bottom: number;
+    top: number;
+    near: number;
+    far: number;
+    viewMatrix: Mat4x4Type;
+    projectionMatrix: Mat4x4Type;
+    viewProjectionMatrix: Mat4x4Type;
+};
+
+export type OrthographicCameraComponent = Component<
+    typeof EngineComponentType.OrthographicCamera,
+    OrthographicCameraData
 >;
 // #endregion
 
-// #region NonInterleavedPrimitive
-export type NonInterleavedAttributes = {
-    position: { format: SupportedPositionFormat; data: Float32Array };
-} & Record<string, { [K in SupportedFormat]: { format: K; data: AttribFormatToTypedArray<K> } }[SupportedFormat]>;
+export type MainCameraTagComponent = Component<typeof EngineComponentType.MainCameraTag>;
 
-export type NonInterleavedPrimitiveData<Attribs extends NonInterleavedAttributes = NonInterleavedAttributes> = {
-    primitive: GPUPrimitiveState;
-    attributes: Attribs;
-    indices?: GenericIndexBufferTypedArray;
-};
-
-export type NonInterleavedPrimitiveComponent<Attribs extends NonInterleavedAttributes = NonInterleavedAttributes> =
-    Component<typeof EngineComponentType.NonInterleavedPrimitive, NonInterleavedPrimitiveData<Attribs>>;
-// #endregion
-
-export type EngineComponent = InterleavedPrimitiveComponent | NonInterleavedPrimitiveComponent | AnimationComponent;
+export type EngineComponent =
+    | TransformComponent
+    | UnlitMaterialComponent
+    | PhongMaterialComponent
+    | InterleavedPrimitiveComponent
+    | NonInterleavedPrimitiveComponent
+    | AnimationComponent
+    | PerspectiveCameraComponent
+    | OrthographicCameraComponent
+    | MainCameraTagComponent;

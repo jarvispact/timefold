@@ -10,7 +10,9 @@ import { ensureFloat32Array, ensureUint32Array } from '../internal';
 
 export const type = EngineComponentType.InterleavedPrimitive;
 
-export const is = (component: Component): component is InterleavedPrimitiveComponent => component.type === type;
+export function is(component: Component): component is InterleavedPrimitiveComponent {
+    return component.type === type;
+}
 
 type Args = Omit<InterleavedPrimitiveData, 'primitive'> & { primitive?: GPUPrimitiveState };
 
@@ -19,26 +21,26 @@ const defaultPrimitive: GPUPrimitiveState = {
     topology: 'triangle-list',
 };
 
-export const create = (args: Args): InterleavedPrimitiveComponent => {
+export function create(args: Args): InterleavedPrimitiveComponent {
     return createComponent(type, { ...args, primitive: { ...defaultPrimitive, ...args.primitive } });
-};
+}
 
-const layoutFromObjInfo = (info: InterleavedInfo): InterleavedLayout => {
+function layoutFromObjInfo(info: InterleavedInfo): InterleavedLayout {
     return {
         position: { format: 'float32x3', stride: info.positionOffset },
         uv: { format: 'float32x2', stride: info.uvOffset },
         normal: { format: 'float32x3', stride: info.normalOffset },
     };
-};
+}
 
-export const fromObjPrimitive = (
+export function fromObjPrimitive(
     objPrimitive: GenericInterleavedObjPrimitive,
     info: InterleavedInfo,
-): InterleavedPrimitiveComponent => {
+): InterleavedPrimitiveComponent {
     return createComponent(type, {
         layout: layoutFromObjInfo(info),
         primitive: { ...defaultPrimitive },
         vertices: ensureFloat32Array(objPrimitive.vertices),
         indices: 'indices' in objPrimitive ? ensureUint32Array(objPrimitive.indices) : undefined,
     });
-};
+}
