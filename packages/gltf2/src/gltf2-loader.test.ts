@@ -1,6 +1,6 @@
 import { it, describe, vi, expect, beforeAll, afterAll, afterEach } from 'vitest';
 import { setupServer } from 'msw/node';
-import { http, HttpResponse } from 'msw';
+import { http, HttpResponse, PathParams } from 'msw';
 import { readFile } from 'node:fs/promises';
 import { Gltf2Loader } from './gltf2';
 import {
@@ -18,7 +18,7 @@ const testServerPath = 'https://test-server.example/files/';
 const createTestServerPath = (uri: string) => `${testServerPath}${uri}`;
 
 export const handlers = [
-    http.get(`${testServerPath}*`, async ({ request }) => {
+    http.get<PathParams, ArrayBuffer | string>(`${testServerPath}*`, async ({ request }) => {
         const segments = request.url.split('/');
         const filename = segments[segments.length - 1];
         const fileExtension = filename.substring(filename.lastIndexOf('.'), filename.length);

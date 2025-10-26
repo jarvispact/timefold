@@ -328,7 +328,7 @@ type TypedArrayWithBuffer<
 
 export type AttribFormatToTypedArray<
     Format extends SupportedFormat,
-    T extends ArrayBufferLike = ArrayBuffer,
+    T extends ArrayBufferLike = ArrayBufferLike,
 > = TypedArrayWithBuffer<FormatMap[Format]['View'], T>;
 
 type NonInterleavedCreateBuffers<Definition extends CreateVertexBufferLayoutDefinition<NonInterleavedMode>> = (
