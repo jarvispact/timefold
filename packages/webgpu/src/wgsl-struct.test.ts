@@ -301,8 +301,8 @@ describe('Wgsl.type', () => {
         // arrays in structs
         {
             struct: Wgsl.struct('TestStruct', {
-                one: Wgsl.array(Wgsl.type('vec4<f32>'), 1),
-                two: Wgsl.array(Wgsl.type('mat4x4<f32>'), 1),
+                one: Wgsl.fixedSizeArray(Wgsl.type('vec4<f32>'), 1),
+                two: Wgsl.fixedSizeArray(Wgsl.type('mat4x4<f32>'), 1),
             }),
             expectedOutput: {
                 bufferSize: 80,
@@ -314,8 +314,8 @@ describe('Wgsl.type', () => {
         },
         {
             struct: Wgsl.struct('TestStruct', {
-                one: Wgsl.array(Wgsl.type('vec4<f32>'), 2),
-                two: Wgsl.array(Wgsl.type('mat4x4<f32>'), 2),
+                one: Wgsl.fixedSizeArray(Wgsl.type('vec4<f32>'), 2),
+                two: Wgsl.fixedSizeArray(Wgsl.type('mat4x4<f32>'), 2),
             }),
             expectedOutput: {
                 bufferSize: 160,
@@ -333,8 +333,8 @@ describe('Wgsl.type', () => {
         },
         {
             struct: Wgsl.struct('TestStruct', {
-                one: Wgsl.array(Wgsl.type('vec3<f32>'), 2),
-                two: Wgsl.array(Wgsl.type('mat4x4<f32>'), 2),
+                one: Wgsl.fixedSizeArray(Wgsl.type('vec3<f32>'), 2),
+                two: Wgsl.fixedSizeArray(Wgsl.type('mat4x4<f32>'), 2),
             }),
             expectedOutput: {
                 bufferSize: 160,

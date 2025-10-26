@@ -1,6 +1,6 @@
 import { lookupTable, LookupTableEntry, WgslPrimitive } from './lookup-table';
 import { GenericWgslStructDefinition, WgslArrayElement } from './types';
-import { isArray, isStruct, isType } from './wgsl';
+import { isFixedSizeArray, isStruct, isType } from './wgsl';
 
 // uniforms
 
@@ -98,7 +98,7 @@ export function resolveViewConfigAndBufferSize<ViewConfig extends Record<string,
                 viewConfig.push(handleType(input.element.type, true));
             } else if (isStruct(input.element)) {
                 viewConfig.push(handleStruct(input.element.definition));
-            } else if (isArray(input.element)) {
+            } else if (isFixedSizeArray(input.element)) {
                 const nestedResult = resolveViewConfigAndBufferSize([], input.element, bufferSize, byteOffset);
                 byteOffset = nestedResult.bufferSize;
                 bufferSize = Math.max(bufferSize, byteOffset);
@@ -113,7 +113,7 @@ export function resolveViewConfigAndBufferSize<ViewConfig extends Record<string,
                 viewConfig[definitionKey] = handleType(definitionValue.type, false);
             } else if (isStruct(definitionValue)) {
                 viewConfig[definitionKey] = handleStruct(definitionValue.definition);
-            } else if (isArray(definitionValue)) {
+            } else if (isFixedSizeArray(definitionValue)) {
                 const nestedResult = resolveViewConfigAndBufferSize([], definitionValue, bufferSize, byteOffset);
                 byteOffset = nestedResult.bufferSize;
                 bufferSize = Math.max(bufferSize, byteOffset);

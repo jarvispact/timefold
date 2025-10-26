@@ -15,7 +15,7 @@ const InstanceStruct = Wgsl.struct('InstanceData', {
     texture_index: Wgsl.type('u32'),
 });
 
-const InstanceStructArray = Wgsl.array(InstanceStruct, 4);
+const InstanceStructArray = Wgsl.runtimeSizedArray(InstanceStruct, 4000);
 
 const SceneUniformGroup = Uniform.group(0, {
     scene: Uniform.uniformBuffer(0, SceneStruct),
@@ -71,6 +71,8 @@ ${Uniform.getWgslFromGroups(PipelineLayout.uniformGroups)}
     return textureSample(color_map_textures, color_map_sampler, fsIn.uv, fsIn.texture_index);
 }
 `.trim();
+
+console.log(shaderCode);
 
 let then = 0;
 function getDelta(now: number) {

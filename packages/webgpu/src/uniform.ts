@@ -8,7 +8,7 @@ import {
     UniformBindingOptions,
     UniformGroup,
 } from './types';
-import { isArray, isStruct } from './wgsl';
+import { isFixedSizeArray, isRuntimeSizedArray, isStruct } from './wgsl';
 
 const defaultSamplerArgs: UniformBindingOptions & { sampler: GPUSamplerBindingLayout } = {
     visibility: GPUShaderStage.FRAGMENT,
@@ -137,7 +137,7 @@ function resolveUniqueStructs(structsByName: Record<string, string>, definition:
         if (isStruct(definitionValue)) {
             resolveUniqueStructs(structsByName, definitionValue.definition);
             structsByName[definitionValue.wgsl.type] = definitionValue.wgsl.declaration;
-        } else if (isArray(definitionValue)) {
+        } else if (isFixedSizeArray(definitionValue)) {
             if (isStruct(definitionValue.element)) {
                 resolveUniqueStructs(structsByName, definitionValue.element.definition);
                 structsByName[definitionValue.element.wgsl.type] = definitionValue.element.wgsl.declaration;
@@ -157,7 +157,12 @@ export function getWgslFromGroups(groups: UniformGroup<number, Record<string, Ge
             if (isStruct(binding.uniformType)) {
                 resolveUniqueStructs(structsByName, binding.uniformType.definition);
                 structsByName[binding.uniformType.wgsl.type] = binding.uniformType.wgsl.declaration;
-            } else if (isArray(binding.uniformType)) {
+            } else if (isFixedSizeArray(binding.uniformType)) {
+                if (isStruct(binding.uniformType.element)) {
+                    resolveUniqueStructs(structsByName, binding.uniformType.element.definition);
+                    structsByName[binding.uniformType.element.wgsl.type] = binding.uniformType.element.wgsl.declaration;
+                }
+            } else if (isRuntimeSizedArray(binding.uniformType)) {
                 if (isStruct(binding.uniformType.element)) {
                     resolveUniqueStructs(structsByName, binding.uniformType.element.definition);
                     structsByName[binding.uniformType.element.wgsl.type] = binding.uniformType.element.wgsl.declaration;

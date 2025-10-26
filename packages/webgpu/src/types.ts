@@ -59,7 +59,10 @@ export type InferWgslTypeResult<
 // ===========================================================
 // wgsl struct
 
-type StructDefinitionValue = WgslType<WgslPrimitive> | WgslArray<WgslArrayElement, any> | WgslStruct<string, any>;
+type StructDefinitionValue =
+    | WgslType<WgslPrimitive>
+    | FixedSizeWgslArray<WgslArrayElement, any>
+    | WgslStruct<string, any>;
 export type GenericWgslStructDefinition = Record<string, StructDefinitionValue>;
 
 export type WgslStructViews<
@@ -71,7 +74,7 @@ export type WgslStructViews<
         ? TypedArrayOrTuple<T, Buffer, Mode>
         : Definition[Key] extends WgslStruct<string, infer NestedDefinition>
           ? WgslStructViews<NestedDefinition, Buffer, Mode>
-          : Definition[Key] extends WgslArray<infer Element, infer Size>
+          : Definition[Key] extends FixedSizeWgslArray<infer Element, infer Size>
             ? WgslArrayViews<Element, Size, Buffer, Mode>
             : never;
 };
@@ -121,30 +124,38 @@ export type InferWgslStructResult<
 
 export type WgslArrayElement =
     | WgslType<WgslArrayType>
-    | WgslArray<WgslType<WgslArrayType> | WgslStruct<string, any>, any>
+    | FixedSizeWgslArray<WgslType<WgslArrayType> | WgslStruct<string, any>, any>
     | WgslStruct<string, any>;
 
 export type WgslArrayViews<
     Element extends WgslArrayElement,
-    Size extends number,
+    Size extends number | 'dynamic',
     Buffer extends ArrayBufferLike,
     Mode extends GenericMode,
 > =
     Element extends WgslType<WgslArrayType>
-        ? Tuple<TypedArrayOrTuple<Element['type'], Buffer, Mode>, Size>
-        : Element extends WgslArray<infer NestedElement, infer NestedSize extends number>
+        ? Size extends number
+            ? Tuple<TypedArrayOrTuple<Element['type'], Buffer, Mode>, Size>
+            : TypedArrayOrTuple<Element['type'], Buffer, Mode>[]
+        : Element extends FixedSizeWgslArray<infer NestedElement, infer NestedSize extends number>
           ? NestedElement extends WgslType<WgslArrayType>
-              ? Tuple<Tuple<TypedArrayOrTuple<NestedElement['type'], Buffer, Mode>, NestedSize>, Size>
+              ? Size extends number
+                  ? Tuple<Tuple<TypedArrayOrTuple<NestedElement['type'], Buffer, Mode>, NestedSize>, Size>
+                  : Tuple<TypedArrayOrTuple<NestedElement['type'], Buffer, Mode>, NestedSize>[]
               : NestedElement extends WgslStruct<string, infer NestedDefinition>
-                ? Tuple<Tuple<WgslStructViews<NestedDefinition, Buffer, Mode>, NestedSize>, Size>
+                ? Size extends number
+                    ? Tuple<Tuple<WgslStructViews<NestedDefinition, Buffer, Mode>, NestedSize>, Size>
+                    : Tuple<WgslStructViews<NestedDefinition, Buffer, Mode>, NestedSize>[]
                 : never
           : Element extends WgslStruct<string, infer Definition>
-            ? Tuple<WgslStructViews<Definition, Buffer, Mode>, Size>
+            ? Size extends number
+                ? Tuple<WgslStructViews<Definition, Buffer, Mode>, Size>
+                : WgslStructViews<Definition, Buffer, Mode>[]
             : never;
 
 export type WgslArrayCreateResult<
     Element extends WgslArrayElement,
-    Size extends number,
+    Size extends number | 'dynamic',
     Mode extends GenericMode,
 > = GenericMode extends Mode
     ? { buffer: ArrayBuffer; views: WgslArrayViews<Element, Size, ArrayBuffer, NumberTupleMode> }
@@ -175,7 +186,7 @@ export type WgslArrayViewConfig<Size extends number> = Tuple<
     Size
 >;
 
-export type WgslArray<Element extends WgslArrayElement, Size extends number> = {
+export type FixedSizeWgslArray<Element extends WgslArrayElement, Size extends number> = {
     element: Element;
     size: Size;
     wgsl: { type: string };
@@ -187,10 +198,26 @@ export type WgslArray<Element extends WgslArrayElement, Size extends number> = {
     ) => WgslArrayViews<Element, Size, Buffer, GenericTypedArrayMode>;
 };
 
+export type RuntimeSizedWgslArray<Element extends WgslArrayElement> = {
+    element: Element;
+    wgsl: { type: string };
+    bufferSize: number;
+    viewConfig: (ViewConfigEntry | Record<string, ViewConfigEntry> | ViewConfigEntry[])[];
+    create: <Mode extends GenericMode>(args?: { mode?: Mode }) => WgslArrayCreateResult<Element, 'dynamic', Mode>;
+    fromBuffer: <Buffer extends ArrayBufferLike>(
+        buffer: Buffer,
+    ) => WgslArrayViews<Element, 'dynamic', Buffer, GenericTypedArrayMode>;
+};
+
 export type InferWgslArrayResult<
-    T extends WgslArray<WgslArrayElement, any>,
+    T extends FixedSizeWgslArray<WgslArrayElement, any> | RuntimeSizedWgslArray<WgslArrayElement>,
     Mode extends GenericMode = 'array-buffer-casted-to-tuple',
-> = T extends WgslArray<infer Element, infer Size> ? WgslArrayCreateResult<Element, Size, Mode> : never;
+> =
+    T extends FixedSizeWgslArray<infer Element, infer Size>
+        ? WgslArrayCreateResult<Element, Size, Mode>
+        : T extends RuntimeSizedWgslArray<infer Element>
+          ? WgslArrayCreateResult<Element, 'dynamic', Mode>
+          : never;
 
 // ===========================================================
 // uniforms
@@ -210,7 +237,11 @@ export type TextureBinding<Binding extends number> = {
     layout: { binding: Binding } & UniformBindingOptions & { texture: GPUTextureBindingLayout };
 };
 
-export type GenericUniformType = WgslType<WgslPrimitive> | WgslArray<WgslArrayElement, any> | WgslStruct<string, any>;
+export type GenericUniformType =
+    | WgslType<WgslPrimitive>
+    | FixedSizeWgslArray<WgslArrayElement, any>
+    | RuntimeSizedWgslArray<WgslArrayElement>
+    | WgslStruct<string, any>;
 
 export type BufferBinding<Binding extends number, Type extends GenericUniformType> = {
     type: 'buffer';

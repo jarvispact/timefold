@@ -4,12 +4,13 @@ import {
     GenericMode,
     GenericTypedArrayMode,
     resolveViewConfigAndBufferSize,
+    ViewConfigEntry,
     ViewForViewConstructor,
 } from './internal-utils';
 import { lookupTable, LookupTableEntry, WgslPrimitive, wgslTypes } from './lookup-table';
 import {
     GenericWgslStructDefinition,
-    WgslArray,
+    FixedSizeWgslArray,
     WgslArrayCreateResult,
     WgslArrayElement,
     WgslArrayViewConfig,
@@ -20,6 +21,7 @@ import {
     WgslStructViews,
     WgslType,
     WgslTypeCreateResult,
+    RuntimeSizedWgslArray,
 } from './types';
 
 // ===========================================
@@ -87,7 +89,7 @@ export function struct<Name extends string, Definition extends GenericWgslStruct
                 return `  ${key}: ${value.type},`;
             } else if (isStruct(value)) {
                 return `  ${key}: ${value.name},`;
-            } else if (isArray(value)) {
+            } else if (isFixedSizeArray(value)) {
                 if (isType(value.element)) {
                     return `  ${key}: array<${value.element.type}, ${value.size}>,`;
                 } else if (isStruct(value.element)) {
@@ -149,12 +151,12 @@ export function isStruct(value: unknown): value is WgslStruct<string, GenericWgs
 }
 
 // ===========================================
-// array
+// fixed-size-array
 
-export function array<Element extends WgslArrayElement, Size extends number>(
+export function fixedSizeArray<Element extends WgslArrayElement, Size extends number>(
     element: Element,
     size: Size,
-): WgslArray<Element, Size> {
+): FixedSizeWgslArray<Element, Size> {
     const result = resolveViewConfigAndBufferSize([], { element, size });
 
     function create<Mode extends GenericMode>(args?: { mode?: Mode }) {
@@ -194,8 +196,57 @@ export function array<Element extends WgslArrayElement, Size extends number>(
     };
 }
 
-export function isArray(value: unknown): value is WgslArray<WgslArrayElement, number> {
+export function isFixedSizeArray(value: unknown): value is FixedSizeWgslArray<WgslArrayElement, number> {
     return (
         typeof value === 'object' && !!value && 'element' in value && 'size' in value && typeof value.size === 'number'
     );
+}
+
+// ===========================================
+// runtime-sized-array
+
+export function runtimeSizedArray<Element extends WgslArrayElement>(
+    element: Element,
+    maxSize: number,
+): RuntimeSizedWgslArray<Element> {
+    const result = resolveViewConfigAndBufferSize([], { element, size: maxSize });
+
+    function create<Mode extends GenericMode>(args?: { mode?: Mode }) {
+        const mode = args?.mode ?? 'array-buffer';
+
+        if (mode === 'number-tuple') {
+            const views = createViewsForConfig([], result.viewConfig, undefined);
+            return { views } as unknown as WgslArrayCreateResult<Element, 'dynamic', Mode>;
+        }
+
+        const buffer =
+            mode === 'shared-array-buffer'
+                ? new SharedArrayBuffer(result.bufferSize)
+                : new ArrayBuffer(result.bufferSize);
+
+        const views = createViewsForConfig([], result.viewConfig, buffer);
+        return { buffer, views } as unknown as WgslArrayCreateResult<Element, 'dynamic', Mode>;
+    }
+
+    function fromBuffer<Buffer extends ArrayBufferLike>(buffer: Buffer) {
+        return createViewsForConfig([], result.viewConfig, buffer) as unknown as WgslArrayViews<
+            Element,
+            'dynamic',
+            Buffer,
+            GenericTypedArrayMode
+        >;
+    }
+
+    return {
+        element,
+        wgsl: { type: `array<${element.wgsl.type}>` },
+        bufferSize: result.bufferSize,
+        viewConfig: result.viewConfig as (ViewConfigEntry | Record<string, ViewConfigEntry> | ViewConfigEntry[])[],
+        create,
+        fromBuffer,
+    };
+}
+
+export function isRuntimeSizedArray(value: unknown): value is FixedSizeWgslArray<WgslArrayElement, number> {
+    return typeof value === 'object' && !!value && 'element' in value;
 }

@@ -13,14 +13,14 @@ import {
 import { MtlLoader, ObjLoader } from '@timefold/obj';
 import { Vec3 } from '@timefold/math';
 
-const { nextId } = createEntitySequence();
-
-const canvas = DomUtils.getCanvasById('canvas');
-const RenderPlugin = createRenderPlugin({ canvas });
-
-const world = worldBuilder<EngineComponent>().withPlugin(RenderPlugin).compile();
-
 const run = async () => {
+    const { nextId } = createEntitySequence();
+
+    const canvas = DomUtils.getCanvasById('canvas');
+    const RenderPlugin = await createRenderPlugin({ canvas });
+
+    const world = worldBuilder<EngineComponent>().withPlugin(RenderPlugin).compile();
+
     const [{ materials }, obj] = await Promise.all([
         MtlLoader.load('./multi-material-test.mtl'),
         ObjLoader.load('./multi-material-test.obj'),
@@ -45,7 +45,9 @@ const run = async () => {
                 ? UnlitMaterial.create({ color: mtlMaterial.diffuseColor })
                 : PhongMaterial.fromMtlMaterial(mtlMaterial);
 
-            const transform = Transform.createFromTRS({ translation: Vec3.zero() });
+            const transform = Transform.createFromTRS({
+                translation: Vec3.create(Math.random() * 10 - 5, Math.random() * 10 - 5, 0),
+            });
 
             world.spawn(nextId(), [primitive, material, transform]);
         }

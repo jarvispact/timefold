@@ -1,21 +1,21 @@
 import { it, describe, expect, expectTypeOf } from 'vitest';
 import * as Wgsl from './wgsl';
 
-describe('Wgsl.array(Wgsl.type, number)', () => {
+describe('Wgsl.fixedSizeArray(Wgsl.type, number)', () => {
     it('should return the correct tuple type', () => {
         {
-            const { views } = Wgsl.array(Wgsl.type('vec3<u32>'), 2).create({ mode: 'number-tuple' });
+            const { views } = Wgsl.fixedSizeArray(Wgsl.type('vec3<u32>'), 2).create({ mode: 'number-tuple' });
             expectTypeOf(views).toExtend<[[number, number, number], [number, number, number]]>();
         }
         {
-            const { views } = Wgsl.array(Wgsl.type('vec4<f32>'), 2).create({ mode: 'number-tuple' });
+            const { views } = Wgsl.fixedSizeArray(Wgsl.type('vec4<f32>'), 2).create({ mode: 'number-tuple' });
             expectTypeOf(views).toExtend<[[number, number, number, number], [number, number, number, number]]>();
         }
     });
 
     it.each([
         {
-            type: Wgsl.array(Wgsl.type('vec3<i32>'), 2),
+            type: Wgsl.fixedSizeArray(Wgsl.type('vec3<i32>'), 2),
             expectedBufferSize: 32,
             expectedWgsl: 'array<vec3<i32>, 2>',
             expectedBuffer: new ArrayBuffer(32),
@@ -28,7 +28,7 @@ describe('Wgsl.array(Wgsl.type, number)', () => {
             ],
         },
         {
-            type: Wgsl.array(Wgsl.type('vec4<i32>'), 2),
+            type: Wgsl.fixedSizeArray(Wgsl.type('vec4<i32>'), 2),
             expectedBufferSize: 32,
             expectedWgsl: 'array<vec4<i32>, 2>',
             expectedBuffer: new ArrayBuffer(32),
@@ -85,7 +85,7 @@ describe('Wgsl.array(Wgsl.type, number)', () => {
 
     it.each([
         {
-            type: Wgsl.array(Wgsl.type('vec3<u32>'), 2),
+            type: Wgsl.fixedSizeArray(Wgsl.type('vec3<u32>'), 2),
             expectedBufferSize: 32,
             expectedWgsl: 'array<vec3<u32>, 2>',
             expectedBuffer: new ArrayBuffer(32),
@@ -98,7 +98,7 @@ describe('Wgsl.array(Wgsl.type, number)', () => {
             ],
         },
         {
-            type: Wgsl.array(Wgsl.type('vec4<u32>'), 2),
+            type: Wgsl.fixedSizeArray(Wgsl.type('vec4<u32>'), 2),
             expectedBufferSize: 32,
             expectedWgsl: 'array<vec4<u32>, 2>',
             expectedBuffer: new ArrayBuffer(32),
@@ -155,7 +155,7 @@ describe('Wgsl.array(Wgsl.type, number)', () => {
 
     it.each([
         {
-            type: Wgsl.array(Wgsl.type('vec3<f32>'), 2),
+            type: Wgsl.fixedSizeArray(Wgsl.type('vec3<f32>'), 2),
             expectedBufferSize: 32,
             expectedWgsl: 'array<vec3<f32>, 2>',
             expectedBuffer: new ArrayBuffer(32),
@@ -168,7 +168,7 @@ describe('Wgsl.array(Wgsl.type, number)', () => {
             ],
         },
         {
-            type: Wgsl.array(Wgsl.type('vec4<f32>'), 2),
+            type: Wgsl.fixedSizeArray(Wgsl.type('vec4<f32>'), 2),
             expectedBufferSize: 32,
             expectedWgsl: 'array<vec4<f32>, 2>',
             expectedBuffer: new ArrayBuffer(32),
@@ -181,7 +181,7 @@ describe('Wgsl.array(Wgsl.type, number)', () => {
             ],
         },
         {
-            type: Wgsl.array(Wgsl.type('mat4x4<f32>'), 2),
+            type: Wgsl.fixedSizeArray(Wgsl.type('mat4x4<f32>'), 2),
             expectedBufferSize: 128,
             expectedWgsl: 'array<mat4x4<f32>, 2>',
             expectedBuffer: new ArrayBuffer(128),
@@ -244,7 +244,7 @@ describe('Wgsl.array(Wgsl.type, number)', () => {
 
     it.each([
         {
-            type: Wgsl.array(Wgsl.type('vec3<f32>'), 2),
+            type: Wgsl.fixedSizeArray(Wgsl.type('vec3<f32>'), 2),
             expectedViewConfig: [
                 {
                     type: 'vec3<f32>',
@@ -261,7 +261,7 @@ describe('Wgsl.array(Wgsl.type, number)', () => {
             ],
         },
         {
-            type: Wgsl.array(Wgsl.type('mat4x4<f32>'), 2),
+            type: Wgsl.fixedSizeArray(Wgsl.type('mat4x4<f32>'), 2),
             expectedViewConfig: [
                 {
                     type: 'mat4x4<f32>',
@@ -278,7 +278,7 @@ describe('Wgsl.array(Wgsl.type, number)', () => {
             ],
         },
         {
-            type: Wgsl.array(
+            type: Wgsl.fixedSizeArray(
                 Wgsl.struct('Test', {
                     one: Wgsl.type('u32'),
                     two: Wgsl.type('vec2<i32>'),

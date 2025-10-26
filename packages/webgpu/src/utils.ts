@@ -379,7 +379,7 @@ export function createDataTexture({
     height,
     data,
     ...options
-}: Omit<GPUTextureDescriptor, 'size'> & {
+}: Omit<GPUTextureDescriptor, 'size' | 'dimension' | 'format' | 'usage'> & {
     label: string;
     data: BufferSource | SharedArrayBuffer;
     width: number;
@@ -405,7 +405,7 @@ export function createDataTextureArray({
     height,
     dataArray,
     ...options
-}: Omit<GPUTextureDescriptor, 'size'> & {
+}: Omit<GPUTextureDescriptor, 'size' | 'dimension' | 'format' | 'usage' | 'textureBindingViewDimension'> & {
     label: string;
     device: GPUDevice;
     width: number;

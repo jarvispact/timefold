@@ -70,9 +70,9 @@ describe('wgsl create args and result', () => {
         });
     });
 
-    describe("Wgsl.array(type('vec3<f32>'), 2)", () => {
+    describe("Wgsl.fixedSizeArray(type('vec3<f32>'), 2)", () => {
         it('[create] should return the correct view type depending on the `mode` parameter', () => {
-            const Test = Wgsl.array(Wgsl.type('vec3<f32>'), 2);
+            const Test = Wgsl.fixedSizeArray(Wgsl.type('vec3<f32>'), 2);
 
             const result1 = Test.create();
             expectTypeOf(result1).toExtend<{
@@ -99,7 +99,7 @@ describe('wgsl create args and result', () => {
         });
 
         it('[fromBuffer] should return the correct view type', () => {
-            const Test = Wgsl.array(Wgsl.type('vec3<f32>'), 2);
+            const Test = Wgsl.fixedSizeArray(Wgsl.type('vec3<f32>'), 2);
 
             const result1 = Test.fromBuffer(new ArrayBuffer(Test.bufferSize));
             expectTypeOf(result1).toExtend<[Float32Array<ArrayBuffer>, Float32Array<ArrayBuffer>]>();
