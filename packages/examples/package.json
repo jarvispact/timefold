@@ -16,6 +16,8 @@
     "build:engine": "sed 's/{example-folder}/engine/g' index.html.template > index.html && vite build",
     "dev:sdf": "sed 's/{example-folder}/sdf/g' index.html.template > index.html && vite --port 9093",
     "build:sdf": "sed 's/{example-folder}/sdf/g' index.html.template > index.html && vite build",
+    "dev:perf": "sed 's/{example-folder}/perf/g' index.html.template > index.html && vite --port 9093",
+    "build:perf": "sed 's/{example-folder}/perf/g' index.html.template > index.html && vite build",
     "preview": "vite preview --port 9191"
   }
 }
