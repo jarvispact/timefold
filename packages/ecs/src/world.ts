@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/await-thenable */
 import { Component } from './component';
 import { Entity } from './entity';
 import {

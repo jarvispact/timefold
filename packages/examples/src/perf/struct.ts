@@ -11,8 +11,9 @@ import { Mat4x4, MathUtils, Vec3, Vec3Type } from '@timefold/math';
 import { WebgpuUtils } from '@timefold/webgpu';
 import {
     canvas,
-    Entity,
+    Entities,
     ENTITY_COUNT,
+    EntityType,
     PipelineLayout,
     quadIndices,
     quadVertices,
@@ -26,12 +27,17 @@ import {
     WorldComponent,
 } from './common';
 
-const createStructEntity = (args: { position: Vec3Type; color: Vec3Type }) => {
-    const entity = Entity.create();
-    Vec3.copy(entity.views.transform.position, args.position);
-    Mat4x4.fromTranslation(entity.views.transform.model_matrix, args.position);
-    Vec3.copy(entity.views.material.color, args.color);
-    return { buffer: entity.buffer, entity: entity.views };
+const entityData = Entities.create();
+
+let i = 0;
+
+const createStructEntity = (args: { position: Vec3Type; color: Vec3Type }): { entity: EntityType['views'] } => {
+    Vec3.copy(entityData.views[i].transform.position, args.position);
+    Mat4x4.fromTranslation(entityData.views[i].transform.model_matrix, args.position);
+    Vec3.copy(entityData.views[i].material.color, args.color);
+    const entity = entityData.views[i];
+    i++;
+    return { entity };
 };
 
 const run = async () => {
@@ -93,6 +99,14 @@ const run = async () => {
         label: 'Simple Quad Index Buffer',
     });
 
+    const E = PipelineLayout.createBindGroups({
+        device,
+        group: 1,
+        bindings: {
+            instance_data: WebgpuUtils.createStorageBufferDescriptor({ label: 'Entity 1 Uniform Buffer' }),
+        },
+    });
+
     const world = worldBuilder<WorldComponent>()
         .withQueries(
             defineQueries({
@@ -100,15 +114,8 @@ const run = async () => {
                     .with(T.TransformStruct)
                     .with(T.MaterialStruct)
                     .map(([t, m]) => {
-                        const E = PipelineLayout.createBindGroups({
-                            device,
-                            group: 1,
-                            bindings: {
-                                entity: WebgpuUtils.createUniformBufferDescriptor({ label: 'Entity 1 Uniform Buffer' }),
-                            },
-                        });
                         const e = createStructEntity({ position: t.data.position, color: m.data.color });
-                        return { ...e, ...E };
+                        return { data: e.entity };
                     })
                     .compile(),
             }),
@@ -117,6 +124,7 @@ const run = async () => {
             defineSystemGraph({
                 systems: {
                     spawn: defineSystem({ stage: 'startup' }),
+                    rotate: defineSystem({ stage: 'update' }),
                     render: defineSystem({ stage: 'render' }),
                 },
             }),
@@ -144,7 +152,13 @@ const run = async () => {
         }
     };
 
-    const render = (delta: number) => {
+    const rotate = (delta: number) => {
+        for (const e of renderableStructQuery) {
+            Mat4x4.rotateY(e.data.transform.model_matrix, MathUtils.degreesToRadians(Math.random() * 180) * delta);
+        }
+    };
+
+    const render = () => {
         renderPassDescriptor.colorAttachments[0].resolveTarget = context.getCurrentTexture().createView();
         const encoder = device.createCommandEncoder();
         const pass = encoder.beginRenderPass(renderPassDescriptor);
@@ -152,27 +166,42 @@ const run = async () => {
         pass.setBindGroup(Scene.group, Scene.bindGroup);
         device.queue.writeBuffer(Scene.buffers.scene, 0, sceneData);
 
+        pass.setBindGroup(E.group, E.bindGroup);
+        device.queue.writeBuffer(E.buffers.instance_data, 0, entityData.buffer);
+
         pass.setPipeline(pipeline);
         pass.setVertexBuffer(P.slot, P.buffer);
         pass.setIndexBuffer(I.buffer, I.format);
 
-        for (const entity of renderableStructQuery) {
-            Mat4x4.rotateY(
-                entity.entity.transform.model_matrix,
-                MathUtils.degreesToRadians(Math.random() * 180) * delta,
-            );
-            pass.setBindGroup(entity.group, entity.bindGroup);
-            device.queue.writeBuffer(entity.buffers.entity, 0, entity.buffer);
-            pass.drawIndexed(I.count);
-        }
+        pass.drawIndexed(I.count, ENTITY_COUNT);
 
         pass.end();
         device.queue.submit([encoder.finish()]);
     };
 
-    world.insertSystems({ spawn, render });
+    world.insertSystems({ spawn, rotate, render });
 
-    await world.start();
+    await world.startup();
+
+    let fps = 0;
+    let timeToPrintFps = performance.now() + 1000;
+
+    const tick = async (time: number) => {
+        fps++;
+
+        if (performance.now() >= timeToPrintFps) {
+            console.log(`FPS: ${fps}`);
+            fps = 0;
+            timeToPrintFps = performance.now() + 1000;
+        }
+
+        await world.update(time);
+        // eslint-disable-next-line @typescript-eslint/no-misused-promises
+        window.requestAnimationFrame(tick);
+    };
+
+    // eslint-disable-next-line @typescript-eslint/no-misused-promises
+    window.requestAnimationFrame(tick);
 };
 
 void run();

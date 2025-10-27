@@ -350,7 +350,7 @@ export function mergeSystemOrder(
         for (const itemB of flatB) {
             if (processedB.has(itemB.name)) continue;
 
-            const rule = rules[itemB.name.toString()];
+            const rule = rules[itemB.name];
             if (isMergeRuleBefore(rule) && rule.before === itemA.name) {
                 merged.push(itemB.name);
                 processedB.add(itemB.name);
@@ -364,7 +364,7 @@ export function mergeSystemOrder(
         for (const itemB of flatB) {
             if (processedB.has(itemB.name)) continue;
 
-            const rule = rules[itemB.name.toString()];
+            const rule = rules[itemB.name];
             if (isMergeRuleAfter(rule) && rule.after === itemA.name) {
                 merged.push(itemB.name);
                 processedB.add(itemB.name);

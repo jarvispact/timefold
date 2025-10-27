@@ -1,6 +1,6 @@
 import { Component, defineComponentTypes } from '@timefold/ecs';
 import { DomUtils } from '@timefold/engine';
-import { InferWgslStructResult, Uniform, WebgpuUtils, Wgsl } from '@timefold/webgpu';
+import { InferWgslArrayResult, InferWgslStructResult, Uniform, WebgpuUtils, Wgsl } from '@timefold/webgpu';
 import { Mat4x4, MathUtils, Vec3 } from '@timefold/math';
 
 /* eslint-disable prettier/prettier */
@@ -34,8 +34,12 @@ const Transform = Wgsl.struct('Transform', {
 type TransformType = InferWgslStructResult<typeof Transform>;
 const Material = Wgsl.struct('Material', { color: Wgsl.type('vec3<f32>') });
 type MaterialType = InferWgslStructResult<typeof Material>;
-export const Entity = Wgsl.struct('Entity', { transform: Transform, material: Material });
+const Entity = Wgsl.struct('Entity', { transform: Transform, material: Material });
 export type EntityType = InferWgslStructResult<typeof Entity>;
+
+export const ENTITY_COUNT = 200_000;
+export const Entities = Wgsl.runtimeSizedArray(Entity, ENTITY_COUNT);
+export type EntitiesType = InferWgslArrayResult<typeof Entities>;
 
 type TransformTuple = Component<typeof T.TransformTuple, TransformType['views']>;
 type TransformStruct = Component<typeof T.TransformStruct, TransformType['views']>;
@@ -44,8 +48,8 @@ type MaterialStruct = Component<typeof T.MaterialStruct, MaterialType['views']>;
 
 export type WorldComponent = TransformTuple | TransformStruct | MaterialTuple | MaterialStruct;
 
-const EntityUniformGroup = Uniform.group(1, {
-    entity: Uniform.uniformBuffer(0, Entity),
+const EntitiesUniformGroup = Uniform.group(1, {
+    instance_data: Uniform.storageBuffer(0, Entities),
 });
 
 // pipeline layout
@@ -53,7 +57,7 @@ const EntityUniformGroup = Uniform.group(1, {
 export const PipelineLayout = WebgpuUtils.createPipelineLayout({
     bindGroupLayoutLabel: 'Entity Pipeline BGL',
     pipelineLayoutLabel: 'Entity Pipeline PL',
-    uniformGroups: [SceneUniformGroup, EntityUniformGroup],
+    uniformGroups: [SceneUniformGroup, EntitiesUniformGroup],
 });
 
 export const VertexInterleaved = WebgpuUtils.createVertexBufferLayout({
@@ -71,27 +75,29 @@ export const shaderCode = /* wgsl */ `
     struct VsOut {
         @builtin(position) position: vec4f,
         @location(0) uv: vec2f,
+        @location(1) color: vec3f,
     }
     
     ${Uniform.getWgslFromGroups(PipelineLayout.uniformGroups)}
     
-    @vertex fn vs(vert: Vertex) -> VsOut {
+    @vertex fn vs(vert: Vertex, @builtin(instance_index) instance_id: u32) -> VsOut {
+        let instance = instance_data[instance_id];
+
         var vsOut: VsOut;
-        vsOut.position = scene.view_projection_matrix * entity.transform.model_matrix * vec4f(vert.position, 1.0);
+        vsOut.position = scene.view_projection_matrix * instance.transform.model_matrix * vec4f(vert.position, 1.0);
         vsOut.uv = vert.uv;
+        vsOut.color = instance.material.color;
         return vsOut;
     }
     
     @fragment fn fs(fsIn: VsOut) -> @location(0) vec4f {
-        return vec4f(entity.material.color, 1.0);
+        return vec4f(fsIn.color, 1.0);
     }
 `.trim();
 
 export const { buffer: sceneData, views } = SceneStruct.create();
-export const view = Mat4x4.createLookAt([0, 0, 100], Vec3.zero(), Vec3.up());
+export const view = Mat4x4.createLookAt([300, 500, 1000], Vec3.zero(), Vec3.up());
 export const proj = Mat4x4.createPerspective(MathUtils.degreesToRadians(65), canvas.width / canvas.height, 0);
 Mat4x4.multiplication(views.view_projection_matrix, proj, view);
 
-export const rp = () => Math.random() * 200 - 100;
-
-export const ENTITY_COUNT = 5000;
+export const rp = () => Math.random() * 1000 - 500;
