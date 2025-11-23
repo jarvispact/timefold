@@ -1,4 +1,4 @@
-import { it, describe, expect } from 'vitest';
+import { it, describe, expect, expectTypeOf } from 'vitest';
 import { createWorld } from './world';
 import { Component, createComponent } from './component';
 
@@ -57,6 +57,26 @@ describe('world', () => {
         });
     });
 
+    describe('getComponent', () => {
+        it('should return the correct component for an entity', () => {
+            const world = createWorld<WorldComponent>();
+            const e0 = world.createEntity();
+            const e1 = world.createEntity();
+
+            world.spawn(e0, [createA(), createB(1, 2)]);
+            world.spawn(e1, [createB(3, 4), createC(5, 6, 7)]);
+
+            expect(world.getComponent(e0, 'A')).toEqual({ type: 'A' });
+            expect(world.getComponent(e0, 'B')).toEqual({ type: 'B', data: [1, 2] });
+            expect(world.getComponent(e1, 'B')).toEqual({ type: 'B', data: [3, 4] });
+            expect(world.getComponent(e1, 'C')).toEqual({ type: 'C', data: [5, 6, 7] });
+
+            expectTypeOf(world.getComponent(e0, 'A')).toEqualTypeOf<A | undefined>();
+            expectTypeOf(world.getComponent(e0, 'B')).toEqualTypeOf<B | undefined>();
+            expectTypeOf(world.getComponent(e1, 'C')).toEqualTypeOf<C | undefined>();
+        });
+    });
+
     describe('serialize/deserialize', () => {
         it('should serialize and deserialize the world state', () => {
             const world = createWorld<WorldComponent>();
@@ -89,6 +109,8 @@ C=2
             expect(newWorld.getComponent(e0, 'B')).toEqual({ type: 'B', data: [1.1, 2.02] });
             expect(newWorld.getComponent(e1, 'B')).toEqual({ type: 'B', data: [-3, -4.4] });
             expect(newWorld.getComponent(e1, 'C')).toEqual({ type: 'C', data: [5.005, 6.0006, 7.00007] });
+
+            expect(newWorld.createEntity()).toEqual(2);
         });
 
         it('should handle serialization and deserialization of non JSON-serializable components via custom functions', () => {
@@ -139,6 +161,7 @@ D=0
             });
 
             expect(newWorld.getComponent(e0, 'D')).toEqual({ type: 'D', data: new Float32Array([1.5, 2.5, 3.5, 4.5]) });
+            expect(newWorld.createEntity()).toEqual(1);
         });
     });
 });
