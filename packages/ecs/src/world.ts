@@ -16,6 +16,8 @@ type DeserializeOptions<WorldComponent extends Component> = {
     deserializeComponent?: (serialized: string) => WorldComponent;
 };
 
+const SERIALIZATION_FORMAT_VERSION = 1;
+
 export function createWorld<WorldComponent extends Component>() {
     let entityCounter = 0;
     const entities: Record<string, EntityMapEntry | undefined> = {};
@@ -43,8 +45,23 @@ export function createWorld<WorldComponent extends Component>() {
             const serializeComponent =
                 options.serializeComponent || ((component: WorldComponent) => JSON.stringify(component));
 
-            const lines: string[] = [];
+            const sections: string[] = [];
 
+            // [meta] section
+            sections.push('[meta]');
+            sections.push(`version=${SERIALIZATION_FORMAT_VERSION}`);
+
+            // [componentTypes] section
+            sections.push('[componentTypes]');
+            for (const componentType in componentTypeToInt) {
+                const int = componentTypeToInt[componentType];
+                if (int !== undefined) {
+                    sections.push(`${componentType}=${int}`);
+                }
+            }
+
+            // [entities] section
+            sections.push('[entities]');
             for (const entityId in entities) {
                 const entityEntry = entities[entityId];
                 if (!entityEntry) continue;
@@ -58,36 +75,71 @@ export function createWorld<WorldComponent extends Component>() {
                 }
 
                 if (parts.length > 0) {
-                    lines.push(`${entityId}|${parts.join('|')}`);
+                    sections.push(`${entityId}|${parts.join('|')}`);
                 }
             }
 
-            return lines.join('\n');
+            return sections.join('\n');
         },
         deserialize(serialized: string, options: DeserializeOptions<WorldComponent> = {}) {
             const deserializeComponent =
                 options.deserializeComponent || ((serialized: string) => JSON.parse(serialized) as WorldComponent);
 
             const lines = serialized.split('\n');
+            let currentSection: 'meta' | 'componentTypes' | 'entities' | null = null;
+            let version: number | null = null;
 
             for (let i = 0; i < lines.length; i++) {
                 const line = lines[i].trim();
                 if (!line) continue;
 
-                const parts = line.split('|');
-                if (parts.length < 2) continue;
-
-                const entityId = Number.parseInt(parts[0], 10);
-                const components: WorldComponent[] = [];
-
-                for (let j = 1; j < parts.length; j++) {
-                    const component = deserializeComponent(parts[j]);
-                    components.push(component);
+                // Check for section headers
+                if (line === '[meta]') {
+                    currentSection = 'meta';
+                    continue;
+                } else if (line === '[componentTypes]') {
+                    currentSection = 'componentTypes';
+                    continue;
+                } else if (line === '[entities]') {
+                    currentSection = 'entities';
+                    continue;
                 }
 
-                if (components.length > 0) {
-                    world.spawn(entityId, components);
+                // Process content based on current section
+                if (currentSection === 'meta') {
+                    if (line.startsWith('version=')) {
+                        version = Number.parseInt(line.split('=')[1], 10);
+                    }
+                } else if (currentSection === 'componentTypes') {
+                    const [componentType, intStr] = line.split('=');
+                    if (componentType && intStr) {
+                        const int = Number.parseInt(intStr, 10);
+                        componentTypeToInt[componentType] = int;
+                        if (int >= componentTypeCounter) {
+                            componentTypeCounter = int + 1;
+                        }
+                    }
+                } else if (currentSection === 'entities') {
+                    const parts = line.split('|');
+                    if (parts.length < 2) continue;
+
+                    const entityId = Number.parseInt(parts[0], 10);
+                    const components: WorldComponent[] = [];
+
+                    for (let j = 1; j < parts.length; j++) {
+                        const component = deserializeComponent(parts[j]);
+                        components.push(component);
+                    }
+
+                    if (components.length > 0) {
+                        world.spawn(entityId, components);
+                    }
                 }
+            }
+
+            // You can use version here to perform migrations if needed
+            if (version !== null && version !== 1) {
+                console.warn(`Deserializing world data version ${version}, current version is 1`);
             }
         },
         spawn(entity: Entity, components: WorldComponent[]) {

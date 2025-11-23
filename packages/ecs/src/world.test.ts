@@ -69,6 +69,13 @@ describe('world', () => {
             const serialized = world.serialize();
 
             const expectedState = `
+[meta]
+version=1
+[componentTypes]
+A=0
+B=1
+C=2
+[entities]
 0|{"type":"A"}|{"type":"B","data":[1.1,2.02]}
 1|{"type":"B","data":[-3,-4.4]}|{"type":"C","data":[5.005,6.0006,7.00007]}
 `.trim();
@@ -105,6 +112,11 @@ describe('world', () => {
             });
 
             const expectedState = `
+[meta]
+version=1
+[componentTypes]
+D=0
+[entities]
 0|{"type":"D","data":[1.5,2.5,3.5,4.5]}
 `.trim();
 
