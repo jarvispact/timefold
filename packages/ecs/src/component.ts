@@ -1,31 +1,8 @@
-import { Range, Increment, ComponentTypes } from './type-helpers';
-
-const MAX_COMPONENT_TYPES = 128;
-type MaxComponentTypes = typeof MAX_COMPONENT_TYPES;
-type MaxComponentTypesRange = Range<Increment<MaxComponentTypes>>;
-
-export function defineComponentTypes<const T extends string[]>(
-    typeNames: T,
-): T['length'] extends MaxComponentTypesRange
-    ? { T: ComponentTypes<T>; typeNames: T }
-    : `ERR: Only ${MaxComponentTypes} component types supported.` {
-    if (typeNames.length > MAX_COMPONENT_TYPES) return { T: {}, typeNames: [] } as never;
-
-    const T: Record<string, number> = {};
-
-    for (let i = 0; i < typeNames.length; i++) {
-        const key = typeNames[i];
-        T[key] = i;
-    }
-
-    return { T, typeNames } as never;
-}
-
-export type Component<ComponentType extends number = number, Data = undefined> = Data extends undefined
+export type Component<ComponentType extends string = string, Data = undefined> = Data extends undefined
     ? { type: ComponentType }
     : { type: ComponentType; data: Data };
 
-export function createComponent<ComponentType extends number = number, Data = undefined>(
+export function createComponent<ComponentType extends string = string, Data = undefined>(
     type: ComponentType,
     data?: Data,
 ) {
