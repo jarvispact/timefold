@@ -1,6 +1,8 @@
-import { it, describe, expect, expectTypeOf } from 'vitest';
+/* eslint-disable @typescript-eslint/no-unused-vars */
+import { it, describe, expect, expectTypeOf, vitest } from 'vitest';
 import { createWorld } from './world';
 import { Component, createComponent } from './component';
+import { DefineEcsEvent, EcsEvent } from './event';
 
 type Vec2 = [number, number];
 type Vec3 = [number, number, number];
@@ -10,6 +12,11 @@ type B = Component<'B', Vec2>;
 type C = Component<'C', Vec3>;
 type D = Component<'D', Float32Array>;
 type WorldComponent = A | B | C | D;
+
+type EventA = DefineEcsEvent<'E1'>;
+type EventB = DefineEcsEvent<'E2', { a: string }>;
+type EventC = DefineEcsEvent<'E3', { b: number }>;
+type WorldEvent = EventA | EventB | EventC;
 
 function createA(): A {
     return createComponent('A');
@@ -162,6 +169,88 @@ D=0
 
             expect(newWorld.getComponent(e0, 'D')).toEqual({ type: 'D', data: new Float32Array([1.5, 2.5, 3.5, 4.5]) });
             expect(newWorld.createEntity()).toEqual(1);
+        });
+    });
+
+    describe('events', () => {
+        it('should return the correct type when no event type was passed', () => {
+            const world = createWorld<WorldComponent>();
+            type World = typeof world;
+            type Emit = Parameters<World['emit']>[0];
+            type On = Parameters<World['on']>[0];
+
+            expectTypeOf<Emit>().toExtend<{ type: string }>();
+            expectTypeOf<On>().toExtend<EcsEvent<WorldComponent>['type']>();
+
+            expectTypeOf<{ type: string }>().toExtend<Emit>();
+            expectTypeOf<EcsEvent<WorldComponent>['type']>().toExtend<On>();
+        });
+
+        it('should return the correct type when passed as generic', () => {
+            const world = createWorld<WorldComponent, WorldEvent>();
+            type World = typeof world;
+            type Emit = Parameters<World['emit']>[0];
+            type On = Parameters<World['on']>[0];
+
+            expectTypeOf<Emit>().toExtend<WorldEvent>();
+            expectTypeOf<On>().toExtend<(WorldEvent | EcsEvent<WorldComponent>)['type']>();
+
+            expectTypeOf<WorldEvent>().toExtend<Emit>();
+            expectTypeOf<(WorldEvent | EcsEvent<WorldComponent>)['type']>().toExtend<On>();
+        });
+
+        it('should call all event handlers', () => {
+            const world = createWorld<WorldComponent, WorldEvent>();
+
+            const mockA = vitest.fn();
+            world.on('E1', mockA);
+
+            const mockB = vitest.fn();
+            world.on('E2', mockB);
+
+            const mockC = vitest.fn();
+            world.on('E3', mockC);
+
+            const mockSpawn = vitest.fn();
+            world.on('ecs/spawn-entity', mockSpawn);
+
+            const mockAdd = vitest.fn();
+            world.on('ecs/add-component', mockAdd);
+
+            const mockRemove = vitest.fn();
+            world.on('ecs/remove-component', mockRemove);
+
+            const mockDespawn = vitest.fn();
+            world.on('ecs/despawn-entity', mockDespawn);
+
+            const mockSetResource = vitest.fn();
+            world.on('ecs/set-resource', mockSetResource);
+
+            const mockRemoveResource = vitest.fn();
+            world.on('ecs/remove-resource', mockRemoveResource);
+
+            world.emit({ type: 'E1' });
+            world.emit({ type: 'E2', payload: { a: 'foo' } });
+            world.emit({ type: 'E3', payload: { b: 42 } });
+
+            world.spawn(0, [{ type: 'A' }]);
+            world.addComponent(0, { type: 'B', data: [0, 0] });
+            world.removeComponent(0, 'B');
+            world.despawn(0);
+
+            world.setResource('deltaTime', 0.16);
+            world.removeResource('deltaTime');
+
+            expect(mockA.mock.lastCall).toEqual([undefined]);
+            expect(mockB.mock.lastCall).toEqual([{ a: 'foo' }]);
+            expect(mockC.mock.lastCall).toEqual([{ b: 42 }]);
+
+            expect(mockSpawn.mock.lastCall).toEqual([{ entity: 0, components: [{ type: 'A' }] }]);
+            expect(mockAdd.mock.lastCall).toEqual([{ entity: 0, component: { type: 'B', data: [0, 0] } }]);
+            expect(mockRemove.mock.lastCall).toEqual([{ entity: 0, component: { type: 'B', data: [0, 0] } }]);
+            expect(mockDespawn.mock.lastCall).toEqual([{ entity: 0 }]);
+            expect(mockSetResource.mock.lastCall).toEqual([{ name: 'deltaTime', data: 0.16 }]);
+            expect(mockRemoveResource.mock.lastCall).toEqual([{ name: 'deltaTime', data: 0.16 }]);
         });
     });
 });

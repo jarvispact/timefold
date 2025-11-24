@@ -1,0 +1,54 @@
+import { Component } from './component';
+import { Entity } from './entity';
+
+export type GenericEcsEvent = { type: string };
+
+export type DefineEcsEvent<Type extends GenericEcsEvent['type'], Payload = undefined> = Payload extends undefined
+    ? {
+          type: Type;
+      }
+    : {
+          type: Type;
+          payload: Payload;
+      };
+
+export type SpawnEntityEcsEvent<C extends Component> = {
+    type: 'ecs/spawn-entity';
+    payload: { entity: Entity; components: C[] };
+};
+
+export type DespawnEntityEcsEvent = {
+    type: 'ecs/despawn-entity';
+    payload: { entity: Entity };
+};
+
+export type AddComponentEcsEvent<C extends Component> = {
+    type: 'ecs/add-component';
+    payload: { entity: Entity; component: C };
+};
+
+export type RemoveComponentEcsEvent<C extends Component> = {
+    type: 'ecs/remove-component';
+    payload: { entity: Entity; component: C };
+};
+
+export type SetResourceEcsEvent<Resources extends Record<string, unknown>, K extends keyof Resources> = {
+    type: 'ecs/set-resource';
+    payload: { name: K; data: Resources[K] };
+};
+
+export type RemoveResourceEcsEvent<Resources extends Record<string, unknown>, K extends keyof Resources> = {
+    type: 'ecs/remove-resource';
+    payload: { name: K; data: Resources[K] };
+};
+
+export type EcsEvent<
+    C extends Component = Component,
+    Resources extends Record<string, unknown> = Record<string, unknown>,
+> =
+    | SpawnEntityEcsEvent<C>
+    | DespawnEntityEcsEvent
+    | AddComponentEcsEvent<C>
+    | RemoveComponentEcsEvent<C>
+    | SetResourceEcsEvent<Resources, keyof Resources>
+    | RemoveResourceEcsEvent<Resources, keyof Resources>;

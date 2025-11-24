@@ -62,9 +62,10 @@ export function serializeWorld(
     return sections.join('\n');
 }
 
-export function deserializeWorld(
+// eslint-disable-next-line @typescript-eslint/no-unnecessary-type-parameters
+export function deserializeWorld<WorldComponent extends Component>(
     world: { componentTypeToInt: Record<Component['type'], number | undefined>; componentTypeCounter: number },
-    spawn: (entityId: number, components: Component[]) => void,
+    spawn: (entityId: number, components: WorldComponent[]) => void,
     options: DeserializeOptions = {},
     serialized: string,
 ) {
@@ -119,7 +120,7 @@ export function deserializeWorld(
             }
 
             if (components.length > 0) {
-                spawn(entityId, components);
+                spawn(entityId, components as WorldComponent[]);
             }
         }
     }
