@@ -398,5 +398,299 @@ D=0
             expect(onAddEBCMock).toHaveBeenLastCalledWith(e1, [e1, be1, ce1]);
             expect(onAddEACMock).toHaveBeenLastCalledWith(e2, { id: e2, a: ae2, c: ce2.data });
         });
+
+        it('should return the correct query result when adding components to entities', () => {
+            const world = createWorld<WorldComponent>();
+
+            const onAddBCMock = vitest.fn();
+            const onAddACMock = vitest.fn();
+            const onAddEBCMock = vitest.fn();
+            const onAddEACMock = vitest.fn();
+
+            // without includeEntity
+
+            const queryAB = world.createQuery({
+                query: {
+                    tuple: ['A', 'B'],
+                },
+            });
+
+            const queryBC = world.createQuery({
+                query: {
+                    tuple: ['B', 'C'],
+                },
+                onAdd: onAddBCMock,
+            });
+
+            const queryAC = world.createQuery({
+                query: {
+                    tuple: ['A', 'C'],
+                },
+                map: ([a, c]) => ({ a, c: c.data }),
+                onAdd: onAddACMock,
+            });
+
+            // with includeEntity
+
+            const queryEAB = world.createQuery({
+                query: {
+                    includeEntity: true,
+                    tuple: ['A', 'B'],
+                },
+            });
+
+            const queryEBC = world.createQuery({
+                query: {
+                    includeEntity: true,
+                    tuple: ['B', 'C'],
+                },
+                onAdd: onAddEBCMock,
+            });
+
+            const queryEAC = world.createQuery({
+                query: {
+                    includeEntity: true,
+                    tuple: ['A', 'C'],
+                },
+                map: ([id, a, c]) => ({ id, a, c: c.data }),
+                onAdd: onAddEACMock,
+            });
+
+            const e0 = world.createEntity();
+            const e1 = world.createEntity();
+            const e2 = world.createEntity();
+
+            const ae0 = createA();
+            const be0 = createB(1, 2);
+            const be1 = createB(3, 4);
+            const ce1 = createC(5, 6, 7);
+            const ae2 = createA();
+            const ce2 = createC(8, 9, 10);
+
+            world.spawn(e0, [ae0]);
+            world.spawn(e1, [be1]);
+            world.spawn(e2, [ae2]);
+
+            expect(queryAB).toEqual([]);
+            expect(queryBC).toEqual([]);
+            expect(queryAC).toEqual([]);
+
+            expect(queryEAB).toEqual([]);
+            expect(queryEBC).toEqual([]);
+            expect(queryEAC).toEqual([]);
+
+            world.addComponent(e0, be0);
+            world.addComponent(e1, ce1);
+            world.addComponent(e2, ce2);
+
+            expect(queryAB).toEqual([[ae0, be0]]);
+            expect(queryBC).toEqual([[be1, ce1]]);
+            expect(queryAC).toEqual([{ a: ae2, c: ce2.data }]);
+
+            expect(queryEAB).toEqual([[e0, ae0, be0]]);
+            expect(queryEBC).toEqual([[e1, be1, ce1]]);
+            expect(queryEAC).toEqual([{ id: e2, a: ae2, c: ce2.data }]);
+
+            expect(onAddBCMock).toHaveBeenLastCalledWith(e1, [be1, ce1]);
+            expect(onAddACMock).toHaveBeenLastCalledWith(e2, { a: ae2, c: ce2.data });
+            expect(onAddEBCMock).toHaveBeenLastCalledWith(e1, [e1, be1, ce1]);
+            expect(onAddEACMock).toHaveBeenLastCalledWith(e2, { id: e2, a: ae2, c: ce2.data });
+        });
+
+        it('should return the correct query result when removing components from entities', () => {
+            const world = createWorld<WorldComponent>();
+
+            const onRemoveBCMock = vitest.fn();
+            const onRemoveACMock = vitest.fn();
+            const onRemoveEBCMock = vitest.fn();
+            const onRemoveEACMock = vitest.fn();
+
+            // without includeEntity
+
+            const queryAB = world.createQuery({
+                query: {
+                    tuple: ['A', 'B'],
+                },
+            });
+
+            const queryBC = world.createQuery({
+                query: {
+                    tuple: ['B', 'C'],
+                },
+                onRemove: onRemoveBCMock,
+            });
+
+            const queryAC = world.createQuery({
+                query: {
+                    tuple: ['A', 'C'],
+                },
+                map: ([a, c]) => ({ a, c: c.data }),
+                onRemove: onRemoveACMock,
+            });
+
+            // with includeEntity
+
+            const queryEAB = world.createQuery({
+                query: {
+                    includeEntity: true,
+                    tuple: ['A', 'B'],
+                },
+            });
+
+            const queryEBC = world.createQuery({
+                query: {
+                    includeEntity: true,
+                    tuple: ['B', 'C'],
+                },
+                onRemove: onRemoveEBCMock,
+            });
+
+            const queryEAC = world.createQuery({
+                query: {
+                    includeEntity: true,
+                    tuple: ['A', 'C'],
+                },
+                map: ([id, a, c]) => ({ id, a, c: c.data }),
+                onRemove: onRemoveEACMock,
+            });
+
+            const e0 = world.createEntity();
+            const e1 = world.createEntity();
+            const e2 = world.createEntity();
+
+            const ae0 = createA();
+            const be0 = createB(1, 2);
+            const be1 = createB(3, 4);
+            const ce1 = createC(5, 6, 7);
+            const ae2 = createA();
+            const ce2 = createC(8, 9, 10);
+
+            world.spawn(e0, [ae0, be0]);
+            world.spawn(e1, [be1, ce1]);
+            world.spawn(e2, [ae2, ce2]);
+
+            expect(queryAB).toEqual([[ae0, be0]]);
+            expect(queryBC).toEqual([[be1, ce1]]);
+            expect(queryAC).toEqual([{ a: ae2, c: ce2.data }]);
+
+            expect(queryEAB).toEqual([[e0, ae0, be0]]);
+            expect(queryEBC).toEqual([[e1, be1, ce1]]);
+            expect(queryEAC).toEqual([{ id: e2, a: ae2, c: ce2.data }]);
+
+            world.removeComponent(e0, 'B');
+            world.removeComponent(e1, 'C');
+            world.removeComponent(e2, 'C');
+
+            expect(queryAB).toEqual([]);
+            expect(queryBC).toEqual([]);
+            expect(queryAC).toEqual([]);
+
+            expect(queryEAB).toEqual([]);
+            expect(queryEBC).toEqual([]);
+            expect(queryEAC).toEqual([]);
+
+            expect(onRemoveBCMock).toHaveBeenLastCalledWith(e1);
+            expect(onRemoveACMock).toHaveBeenLastCalledWith(e2);
+            expect(onRemoveEBCMock).toHaveBeenLastCalledWith(e1);
+            expect(onRemoveEACMock).toHaveBeenLastCalledWith(e2);
+        });
+
+        it('should return the correct query result when despawning entities', () => {
+            const world = createWorld<WorldComponent>();
+
+            const onRemoveBCMock = vitest.fn();
+            const onRemoveACMock = vitest.fn();
+            const onRemoveEBCMock = vitest.fn();
+            const onRemoveEACMock = vitest.fn();
+
+            // without includeEntity
+
+            const queryAB = world.createQuery({
+                query: {
+                    tuple: ['A', 'B'],
+                },
+            });
+
+            const queryBC = world.createQuery({
+                query: {
+                    tuple: ['B', 'C'],
+                },
+                onRemove: onRemoveBCMock,
+            });
+
+            const queryAC = world.createQuery({
+                query: {
+                    tuple: ['A', 'C'],
+                },
+                map: ([a, c]) => ({ a, c: c.data }),
+                onRemove: onRemoveACMock,
+            });
+
+            // with includeEntity
+
+            const queryEAB = world.createQuery({
+                query: {
+                    includeEntity: true,
+                    tuple: ['A', 'B'],
+                },
+            });
+
+            const queryEBC = world.createQuery({
+                query: {
+                    includeEntity: true,
+                    tuple: ['B', 'C'],
+                },
+                onRemove: onRemoveEBCMock,
+            });
+
+            const queryEAC = world.createQuery({
+                query: {
+                    includeEntity: true,
+                    tuple: ['A', 'C'],
+                },
+                map: ([id, a, c]) => ({ id, a, c: c.data }),
+                onRemove: onRemoveEACMock,
+            });
+
+            const e0 = world.createEntity();
+            const e1 = world.createEntity();
+            const e2 = world.createEntity();
+
+            const ae0 = createA();
+            const be0 = createB(1, 2);
+            const be1 = createB(3, 4);
+            const ce1 = createC(5, 6, 7);
+            const ae2 = createA();
+            const ce2 = createC(8, 9, 10);
+
+            world.spawn(e0, [ae0, be0]);
+            world.spawn(e1, [be1, ce1]);
+            world.spawn(e2, [ae2, ce2]);
+
+            expect(queryAB).toEqual([[ae0, be0]]);
+            expect(queryBC).toEqual([[be1, ce1]]);
+            expect(queryAC).toEqual([{ a: ae2, c: ce2.data }]);
+
+            expect(queryEAB).toEqual([[e0, ae0, be0]]);
+            expect(queryEBC).toEqual([[e1, be1, ce1]]);
+            expect(queryEAC).toEqual([{ id: e2, a: ae2, c: ce2.data }]);
+
+            world.despawn(e0);
+            world.despawn(e1);
+            world.despawn(e2);
+
+            expect(queryAB).toEqual([]);
+            expect(queryBC).toEqual([]);
+            expect(queryAC).toEqual([]);
+
+            expect(queryEAB).toEqual([]);
+            expect(queryEBC).toEqual([]);
+            expect(queryEAC).toEqual([]);
+
+            expect(onRemoveBCMock).toHaveBeenLastCalledWith(e1);
+            expect(onRemoveACMock).toHaveBeenLastCalledWith(e2);
+            expect(onRemoveEBCMock).toHaveBeenLastCalledWith(e1);
+            expect(onRemoveEACMock).toHaveBeenLastCalledWith(e2);
+        });
     });
 });

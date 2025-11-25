@@ -1,4 +1,4 @@
-import { addComponentToBitmask, createBitmask } from './bitmask';
+import { addComponentToBitmask, createBitmask, removeComponentFromBitmask } from './bitmask';
 import { Component } from './component';
 import { Entity } from './entity';
 import {
@@ -18,6 +18,8 @@ import {
     InternalQuery,
     SerializeOptions,
     serializeWorld,
+    updateQueriesForDespawn,
+    updateQueriesForRemoveComponent,
     updateQueriesForSpawnAndAddComponent,
 } from './internal';
 import { CreateQueryArgs, CreateQueryResultItem, GenericQueryDefinition } from './query';
@@ -188,6 +190,8 @@ export function createWorld<
 
         entities[entity] = undefined;
         deletedEntityIdPool.push(entity);
+
+        updateQueriesForDespawn(queries, entity);
     }
 
     function addComponent(entity: Entity, component: WorldComponent) {
@@ -207,6 +211,8 @@ export function createWorld<
         };
 
         emit(event as never);
+
+        updateQueriesForSpawnAndAddComponent(queries, entity, entityEntry);
     }
 
     function removeComponent(entity: Entity, componentType: Component['type']) {
@@ -222,6 +228,8 @@ export function createWorld<
             return;
         }
 
+        removeComponentFromBitmask(entityEntry.bitmask, ensureIntForComponentType(componentType));
+
         const event: RemoveComponentEcsEvent<WorldComponent> = {
             type: 'ecs/remove-component',
             payload: { entity, component },
@@ -230,6 +238,8 @@ export function createWorld<
         emit(event as never);
 
         entityEntry.components[componentType] = undefined;
+
+        updateQueriesForRemoveComponent(queries, entity, entityEntry.bitmask);
     }
 
     function getComponent(entity: Entity, componentType: Component['type']) {

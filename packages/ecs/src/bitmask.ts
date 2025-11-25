@@ -24,16 +24,6 @@ export function removeComponentFromBitmask(bitmask: Bitmask, componentType: numb
     }
 }
 
-export function hasComponentInBitmask(bitmask: Bitmask, componentType: number) {
-    const index = Math.floor(componentType / DIVISOR);
-
-    if (index >= bitmask.length) {
-        return false;
-    }
-
-    return (bitmask[index] & (1 << componentType % DIVISOR)) !== 0;
-}
-
 export function satisfiesBitmask(queryBitmask: Bitmask, entityBitmask: Bitmask) {
     for (let i = 0; i < queryBitmask.length; i++) {
         const queryMask = queryBitmask[i];

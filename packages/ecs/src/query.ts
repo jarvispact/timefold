@@ -31,6 +31,7 @@ export type CreateQueryArgs<
     query: Definition;
     map?: (args: QueryTupleItem<WorldComponent, Definition>) => MapResult;
     onAdd?: (entity: number, item: CreateQueryResultItem<WorldComponent, Definition, MapResult>) => void;
+    onRemove?: (entity: number) => void;
 };
 
 export type CreateQueryResultItem<

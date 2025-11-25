@@ -166,3 +166,54 @@ export function updateQueriesForSpawnAndAddComponent(
         qry.entityToResultIdx.set(entity, qry.result.length - 1);
     }
 }
+
+function arraySwapDelete<Item>(arr: Item[], idx: number) {
+    arr[idx] = arr[arr.length - 1];
+    return arr.pop();
+}
+
+export function updateQueriesForDespawn(queries: InternalQuery[], entity: Entity) {
+    for (let i = 0; i < queries.length; i++) {
+        const qry = queries[i];
+
+        const idx = qry.entityToResultIdx.get(entity);
+        if (idx === undefined) continue;
+
+        const lastIdx = qry.result.length - 1;
+        const swappedEntity = qry.entities[lastIdx];
+
+        arraySwapDelete(qry.result, idx);
+        arraySwapDelete(qry.entities, idx);
+        qry.entityToResultIdx.delete(entity);
+
+        if (idx !== lastIdx) {
+            qry.entityToResultIdx.set(swappedEntity, idx);
+        }
+
+        if (qry.queryArgs.onRemove) qry.queryArgs.onRemove(entity);
+    }
+}
+
+export function updateQueriesForRemoveComponent(queries: InternalQuery[], entity: Entity, entityBitmask: Bitmask) {
+    for (let i = 0; i < queries.length; i++) {
+        const qry = queries[i];
+
+        if (!satisfiesBitmask(qry.bitmask, entityBitmask)) {
+            const idx = qry.entityToResultIdx.get(entity);
+            if (idx === undefined) continue;
+
+            const lastIdx = qry.result.length - 1;
+            const swappedEntity = qry.entities[lastIdx];
+
+            arraySwapDelete(qry.result, idx);
+            arraySwapDelete(qry.entities, idx);
+            qry.entityToResultIdx.delete(entity);
+
+            if (idx !== lastIdx) {
+                qry.entityToResultIdx.set(swappedEntity, idx);
+            }
+
+            if (qry.queryArgs.onRemove) qry.queryArgs.onRemove(entity);
+        }
+    }
+}
