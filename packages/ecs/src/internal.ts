@@ -1,5 +1,7 @@
-import { Bitmask } from './bitmask';
+import { Bitmask, satisfiesBitmask } from './bitmask';
 import { Component } from './component';
+import { Entity } from './entity';
+import { CreateQueryArgs } from './query';
 
 export type EntityMapEntry = {
     bitmask: Bitmask;
@@ -126,4 +128,41 @@ export function deserializeWorld<WorldComponent extends Component>(
     }
 
     return { componentTypeCounter: world.componentTypeCounter };
+}
+
+export type InternalQuery = {
+    queryArgs: CreateQueryArgs;
+    bitmask: Bitmask;
+    entityToResultIdx: Map<Entity, number>;
+    entities: Entity[];
+    result: unknown[];
+};
+
+export function updateQueriesForSpawnAndAddComponent(
+    queries: InternalQuery[],
+    entity: Entity,
+    entityEntry: EntityMapEntry,
+) {
+    for (let i = 0; i < queries.length; i++) {
+        const qry = queries[i];
+        if (qry.entityToResultIdx.has(entity)) continue;
+        if (!satisfiesBitmask(qry.bitmask, entityEntry.bitmask)) continue;
+        const tuple: unknown[] = [];
+
+        if (qry.queryArgs.query.includeEntity) {
+            tuple.push(entity);
+        }
+
+        for (let j = 0; j < qry.queryArgs.query.tuple.length; j++) {
+            const item = qry.queryArgs.query.tuple[j];
+            const c = entityEntry.components[item];
+            if (c) tuple.push(c);
+        }
+
+        qry.entities.push(entity);
+        const item = (qry.queryArgs.map ? qry.queryArgs.map(tuple as never) : tuple) as never;
+        qry.result.push(item);
+        if (qry.queryArgs.onAdd) qry.queryArgs.onAdd(entity, item);
+        qry.entityToResultIdx.set(entity, qry.result.length - 1);
+    }
 }

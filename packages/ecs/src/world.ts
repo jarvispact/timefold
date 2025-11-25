@@ -1,4 +1,4 @@
-import { addBitToBitmask, createBitmask } from './bitmask';
+import { addComponentToBitmask, createBitmask } from './bitmask';
 import { Component } from './component';
 import { Entity } from './entity';
 import {
@@ -11,8 +11,16 @@ import {
     SetResourceEcsEvent,
     SpawnEntityEcsEvent,
 } from './event';
-import { DeserializeOptions, deserializeWorld, EntityMapEntry, SerializeOptions, serializeWorld } from './internal';
-import { GenericQueryDefinition } from './query';
+import {
+    DeserializeOptions,
+    deserializeWorld,
+    EntityMapEntry,
+    InternalQuery,
+    SerializeOptions,
+    serializeWorld,
+    updateQueriesForSpawnAndAddComponent,
+} from './internal';
+import { CreateQueryArgs, CreateQueryResultItem, GenericQueryDefinition } from './query';
 
 type EventSubscriber = (payload: unknown) => void;
 
@@ -21,8 +29,8 @@ export type World<
     CustomEvent extends GenericEcsEvent = never,
     WorldResources extends Record<string, unknown> = Record<string, unknown>,
 > = {
-    serialize(options?: SerializeOptions<WorldComponent>): string;
-    deserialize(serialized: string, options?: DeserializeOptions<WorldComponent>): void;
+    serialize: (options?: SerializeOptions<WorldComponent>) => string;
+    deserialize: (serialized: string, options?: DeserializeOptions<WorldComponent>) => void;
 
     emit: (
         event: CustomEvent['type'] extends never ? GenericEcsEvent : CustomEvent,
@@ -38,21 +46,23 @@ export type World<
         ) => void,
     ) => World<WorldComponent, CustomEvent, WorldResources>;
 
-    createEntity(): Entity;
-    spawn(entity: Entity, components: WorldComponent[]): void;
-    despawn(entity: Entity): void;
-    addComponent(entity: Entity, component: WorldComponent): void;
-    removeComponent(entity: Entity, componentType: WorldComponent['type']): void;
-    getComponent<Type extends WorldComponent['type']>(
+    createEntity: () => Entity;
+    spawn: (entity: Entity, components: WorldComponent[]) => void;
+    despawn: (entity: Entity) => void;
+    addComponent: (entity: Entity, component: WorldComponent) => void;
+    removeComponent: (entity: Entity, componentType: WorldComponent['type']) => void;
+    getComponent: <Type extends WorldComponent['type']>(
         entity: Entity,
         componentType: Type,
-    ): Extract<WorldComponent, { type: Type }> | undefined;
+    ) => Extract<WorldComponent, { type: Type }> | undefined;
 
-    setResource<Name extends keyof WorldResources>(name: Name, data: WorldResources[Name]): void;
-    getResource<Name extends keyof WorldResources>(name: Name): WorldResources[Name];
-    removeResource(name: keyof WorldResources): void;
+    setResource: <Name extends keyof WorldResources>(name: Name, data: WorldResources[Name]) => void;
+    getResource: <Name extends keyof WorldResources>(name: Name) => WorldResources[Name];
+    removeResource: (name: keyof WorldResources) => void;
 
-    createQuery<const Definition extends GenericQueryDefinition<WorldComponent>>(definition: Definition): Definition;
+    createQuery: <const Definition extends GenericQueryDefinition<WorldComponent>, MapResult>(
+        args: CreateQueryArgs<WorldComponent, Definition, MapResult>,
+    ) => CreateQueryResultItem<WorldComponent, Definition, MapResult>[];
 };
 
 export function createWorld<
@@ -61,16 +71,23 @@ export function createWorld<
     WorldResources extends Record<string, unknown> = Record<string, unknown>,
 >(): World<WorldComponent, CustomEvent, WorldResources> {
     const subscribersByEventType: Record<string, EventSubscriber[] | undefined> = {};
+    const resources: Record<string, unknown> = {};
 
     let entityCounter = 0;
     const entities: Record<string, EntityMapEntry | undefined> = {};
     const deletedEntityIdPool: Entity[] = [];
 
+    // TODO: We could move the update of the queries to the end of a tick
+    // that could save some computations when multiple actions are taken on a entity within the same frame.
+    // This comes at the cost that a query is not up to date immediately. But thats maybe ok???
+
     let componentTypeCounter = 0;
     const componentTypeToInt: Record<Component['type'], number | undefined> = {};
 
-    const resources: Record<string, unknown> = {};
+    const queries: InternalQuery[] = [];
 
+    // TODO: Should we register component types upfront?
+    // Can we just create ints based on the component types on demand or can this cause issues?
     function ensureIntForComponentType(type: Component['type']): number {
         if (componentTypeToInt[type] !== undefined) return componentTypeToInt[type];
         componentTypeToInt[type] = componentTypeCounter++;
@@ -140,7 +157,7 @@ export function createWorld<
 
         for (const component of components) {
             const int = ensureIntForComponentType(component.type);
-            addBitToBitmask(entityMapEntry.bitmask, int);
+            addComponentToBitmask(entityMapEntry.bitmask, int);
             entityMapEntry.components[component.type] = component;
         }
 
@@ -152,6 +169,8 @@ export function createWorld<
         };
 
         emit(event as never);
+
+        updateQueriesForSpawnAndAddComponent(queries, entity, entityMapEntry);
     }
 
     function despawn(entity: Entity) {
@@ -179,7 +198,7 @@ export function createWorld<
         }
 
         const int = ensureIntForComponentType(component.type);
-        addBitToBitmask(entityEntry.bitmask, int);
+        addComponentToBitmask(entityEntry.bitmask, int);
         entityEntry.components[component.type] = component;
 
         const event: AddComponentEcsEvent<WorldComponent> = {
@@ -251,8 +270,24 @@ export function createWorld<
         resources[name] = undefined;
     }
 
-    function createQuery(definition: GenericQueryDefinition<WorldComponent>) {
-        return definition;
+    function createQuery(args: { query: GenericQueryDefinition<WorldComponent>; map?: () => unknown }) {
+        const bitmask = createBitmask();
+
+        for (const item of args.query.tuple) {
+            const int = ensureIntForComponentType(item);
+            addComponentToBitmask(bitmask, int);
+        }
+
+        const query: InternalQuery = {
+            bitmask,
+            entities: [],
+            entityToResultIdx: new Map(),
+            queryArgs: args,
+            result: [],
+        };
+
+        queries.push(query);
+        return query.result;
     }
 
     const world = {

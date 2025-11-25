@@ -3,6 +3,7 @@ import { it, describe, expect, expectTypeOf, vitest } from 'vitest';
 import { createWorld } from './world';
 import { Component, createComponent } from './component';
 import { DefineEcsEvent, EcsEvent } from './event';
+import { Entity } from './entity';
 
 type Vec2 = [number, number];
 type Vec3 = [number, number, number];
@@ -251,6 +252,151 @@ D=0
             expect(mockDespawn.mock.lastCall).toEqual([{ entity: 0 }]);
             expect(mockSetResource.mock.lastCall).toEqual([{ name: 'deltaTime', data: 0.16 }]);
             expect(mockRemoveResource.mock.lastCall).toEqual([{ name: 'deltaTime', data: 0.16 }]);
+        });
+    });
+
+    describe('queries', () => {
+        it('should return the correct query result types', () => {
+            const world = createWorld<WorldComponent>();
+
+            // without includeEntity
+
+            const queryAB = world.createQuery({
+                query: {
+                    tuple: ['A', 'B'],
+                },
+            });
+
+            const queryBC = world.createQuery({
+                query: {
+                    tuple: ['B', 'C'],
+                },
+            });
+
+            const queryAC = world.createQuery({
+                query: {
+                    tuple: ['A', 'C'],
+                },
+                map: ([a, c]) => ({ a, c: c.data }),
+            });
+
+            // with includeEntity
+
+            const queryEAB = world.createQuery({
+                query: {
+                    includeEntity: true,
+                    tuple: ['A', 'B'],
+                },
+            });
+
+            const queryEBC = world.createQuery({
+                query: {
+                    includeEntity: true,
+                    tuple: ['B', 'C'],
+                },
+            });
+
+            const queryEAC = world.createQuery({
+                query: {
+                    includeEntity: true,
+                    tuple: ['A', 'C'],
+                },
+                map: ([id, a, c]) => ({ id, a, c: c.data }),
+            });
+
+            expectTypeOf(queryAB).toEqualTypeOf<[A, B][]>();
+            expectTypeOf(queryBC).toEqualTypeOf<[B, C][]>();
+            expectTypeOf(queryAC).toEqualTypeOf<{ a: A; c: C['data'] }[]>();
+
+            expectTypeOf(queryEAB).toEqualTypeOf<[Entity, A, B][]>();
+            expectTypeOf(queryEBC).toEqualTypeOf<[Entity, B, C][]>();
+            expectTypeOf(queryEAC).toEqualTypeOf<{ id: Entity; a: A; c: C['data'] }[]>();
+        });
+
+        it('should return the correct query result when spawning entities', () => {
+            const world = createWorld<WorldComponent>();
+
+            const onAddBCMock = vitest.fn();
+            const onAddACMock = vitest.fn();
+            const onAddEBCMock = vitest.fn();
+            const onAddEACMock = vitest.fn();
+
+            // without includeEntity
+
+            const queryAB = world.createQuery({
+                query: {
+                    tuple: ['A', 'B'],
+                },
+            });
+
+            const queryBC = world.createQuery({
+                query: {
+                    tuple: ['B', 'C'],
+                },
+                onAdd: onAddBCMock,
+            });
+
+            const queryAC = world.createQuery({
+                query: {
+                    tuple: ['A', 'C'],
+                },
+                map: ([a, c]) => ({ a, c: c.data }),
+                onAdd: onAddACMock,
+            });
+
+            // with includeEntity
+
+            const queryEAB = world.createQuery({
+                query: {
+                    includeEntity: true,
+                    tuple: ['A', 'B'],
+                },
+            });
+
+            const queryEBC = world.createQuery({
+                query: {
+                    includeEntity: true,
+                    tuple: ['B', 'C'],
+                },
+                onAdd: onAddEBCMock,
+            });
+
+            const queryEAC = world.createQuery({
+                query: {
+                    includeEntity: true,
+                    tuple: ['A', 'C'],
+                },
+                map: ([id, a, c]) => ({ id, a, c: c.data }),
+                onAdd: onAddEACMock,
+            });
+
+            const e0 = world.createEntity();
+            const e1 = world.createEntity();
+            const e2 = world.createEntity();
+
+            const ae0 = createA();
+            const be0 = createB(1, 2);
+            const be1 = createB(3, 4);
+            const ce1 = createC(5, 6, 7);
+            const ae2 = createA();
+            const ce2 = createC(8, 9, 10);
+
+            world.spawn(e0, [ae0, be0]);
+            world.spawn(e1, [be1, ce1]);
+            world.spawn(e2, [ae2, ce2]);
+
+            expect(queryAB).toEqual([[ae0, be0]]);
+            expect(queryBC).toEqual([[be1, ce1]]);
+            expect(queryAC).toEqual([{ a: ae2, c: ce2.data }]);
+
+            expect(queryEAB).toEqual([[e0, ae0, be0]]);
+            expect(queryEBC).toEqual([[e1, be1, ce1]]);
+            expect(queryEAC).toEqual([{ id: e2, a: ae2, c: ce2.data }]);
+
+            expect(onAddBCMock).toHaveBeenLastCalledWith(e1, [be1, ce1]);
+            expect(onAddACMock).toHaveBeenLastCalledWith(e2, { a: ae2, c: ce2.data });
+            expect(onAddEBCMock).toHaveBeenLastCalledWith(e1, [e1, be1, ce1]);
+            expect(onAddEACMock).toHaveBeenLastCalledWith(e2, { id: e2, a: ae2, c: ce2.data });
         });
     });
 });
