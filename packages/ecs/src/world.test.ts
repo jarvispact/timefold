@@ -692,5 +692,69 @@ D=0
             expect(onRemoveEBCMock).toHaveBeenLastCalledWith(e1);
             expect(onRemoveEACMock).toHaveBeenLastCalledWith(e2);
         });
+
+        it('should update queries correctly across different actions', () => {
+            const world = createWorld<WorldComponent>();
+
+            const queryAB = world.createQuery({ query: { tuple: ['A', 'B'] } });
+            const queryBC = world.createQuery({ query: { tuple: ['B', 'C'] } });
+            const queryCD = world.createQuery({ query: { tuple: ['C', 'D'] } });
+
+            const e0 = world.createEntity();
+
+            const a = createA();
+            const b = createB(0, 1);
+            const c = createC(1, 2, 3);
+            const d = createD(new Float32Array([4, 5, 6]));
+
+            world.spawn(e0, [a]);
+
+            expect(queryAB).toEqual([]);
+            expect(queryBC).toEqual([]);
+            expect(queryCD).toEqual([]);
+
+            world.addComponent(e0, b);
+
+            expect(queryAB).toEqual([[a, b]]);
+            expect(queryBC).toEqual([]);
+            expect(queryCD).toEqual([]);
+
+            world.addComponent(e0, c);
+
+            expect(queryAB).toEqual([[a, b]]);
+            expect(queryBC).toEqual([[b, c]]);
+            expect(queryCD).toEqual([]);
+
+            world.addComponent(e0, d);
+
+            expect(queryAB).toEqual([[a, b]]);
+            expect(queryBC).toEqual([[b, c]]);
+            expect(queryCD).toEqual([[c, d]]);
+
+            world.removeComponent(e0, 'A');
+
+            expect(queryAB).toEqual([]);
+            expect(queryBC).toEqual([[b, c]]);
+            expect(queryCD).toEqual([[c, d]]);
+
+            world.removeComponent(e0, 'B');
+
+            expect(queryAB).toEqual([]);
+            expect(queryBC).toEqual([]);
+            expect(queryCD).toEqual([[c, d]]);
+
+            world.addComponent(e0, a);
+            world.addComponent(e0, b);
+
+            expect(queryAB).toEqual([[a, b]]);
+            expect(queryBC).toEqual([[b, c]]);
+            expect(queryCD).toEqual([[c, d]]);
+
+            world.despawn(e0);
+
+            expect(queryAB).toEqual([]);
+            expect(queryBC).toEqual([]);
+            expect(queryCD).toEqual([]);
+        });
     });
 });
