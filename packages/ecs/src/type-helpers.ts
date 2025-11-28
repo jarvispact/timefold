@@ -2,11 +2,11 @@ type BuildTuple<N extends number, Result extends unknown[] = []> = Result['lengt
     ? Result
     : BuildTuple<N, [...Result, unknown]>;
 
-export type Increment<N extends number> = [...BuildTuple<N>, unknown]['length'] extends number
+type Increment<N extends number> = [...BuildTuple<N>, unknown]['length'] extends number
     ? [...BuildTuple<N>, unknown]['length']
     : never;
 
-export type Prettyfy<T extends Record<string, unknown>> = { [K in keyof T]: T[K] } & {};
+type Prettyfy<T extends Record<string, unknown>> = { [K in keyof T]: T[K] } & {};
 
 export type ComponentTypes<
     T extends string[],
