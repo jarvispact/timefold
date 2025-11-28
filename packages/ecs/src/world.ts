@@ -76,34 +76,21 @@ export function createWorld<
     const resources: Record<string, unknown> = {};
 
     let entityCounter = 0;
-    const entities: Record<string, EntityMapEntry | undefined> = {};
+    const entities = new Map<number, EntityMapEntry>();
     const deletedEntityIdPool: Entity[] = [];
 
     // TODO: We could move the update of the queries to the end of a tick
     // that could save some computations when multiple actions are taken on a entity within the same frame.
     // This comes at the cost that a query is not up to date immediately. But thats maybe ok???
-
-    let componentTypeCounter = 0;
-    const componentTypeToInt: Record<Component['type'], number | undefined> = {};
-
     const queries: InternalQuery[] = [];
 
-    // TODO: Should we register component types upfront?
-    // Can we just create ints based on the component types on demand or can this cause issues?
-    function ensureIntForComponentType(type: Component['type']): number {
-        if (componentTypeToInt[type] !== undefined) return componentTypeToInt[type];
-        componentTypeToInt[type] = componentTypeCounter++;
-        return componentTypeToInt[type];
-    }
-
     function serialize(options: SerializeOptions = {}): string {
-        return serializeWorld({ entities, componentTypeToInt }, options);
+        return serializeWorld(entities, options);
     }
 
     function deserialize(serialized: string, options: DeserializeOptions = {}) {
-        const result = deserializeWorld({ componentTypeToInt, componentTypeCounter }, spawn, options, serialized);
-        componentTypeCounter = result.componentTypeCounter;
-        entityCounter = Object.keys(entities).length;
+        deserializeWorld(spawn, options, serialized);
+        entityCounter = entities.size;
     }
 
     function emit(event: EcsEvent) {
@@ -147,23 +134,22 @@ export function createWorld<
     }
 
     function spawn(entity: Entity, components: WorldComponent[]) {
-        if (entities[entity]) {
+        if (entities.has(entity)) {
             console.error(`Entity ${entity} already exists in the world.`);
             return;
         }
 
         const entityMapEntry: EntityMapEntry = {
             bitmask: createBitmask(),
-            components: {},
+            components: new Map(),
         };
 
         for (const component of components) {
-            const int = ensureIntForComponentType(component.type);
-            addComponentToBitmask(entityMapEntry.bitmask, int);
-            entityMapEntry.components[component.type] = component;
+            addComponentToBitmask(entityMapEntry.bitmask, component.type);
+            entityMapEntry.components.set(component.type, component);
         }
 
-        entities[entity] = entityMapEntry;
+        entities.set(entity, entityMapEntry);
 
         const event: SpawnEntityEcsEvent<WorldComponent> = {
             type: 'ecs/spawn-entity',
@@ -176,7 +162,7 @@ export function createWorld<
     }
 
     function despawn(entity: Entity) {
-        if (!entities[entity]) {
+        if (!entities.has(entity)) {
             console.error(`Entity ${entity} does not exist in the world.`);
             return;
         }
@@ -188,22 +174,21 @@ export function createWorld<
 
         emit(event as never);
 
-        entities[entity] = undefined;
+        entities.delete(entity);
         deletedEntityIdPool.push(entity);
 
         updateQueriesForDespawn(queries, entity);
     }
 
     function addComponent(entity: Entity, component: WorldComponent) {
-        const entityEntry = entities[entity];
+        const entityEntry = entities.get(entity);
         if (!entityEntry) {
             console.error(`Entity ${entity} does not exist in the world.`);
             return;
         }
 
-        const int = ensureIntForComponentType(component.type);
-        addComponentToBitmask(entityEntry.bitmask, int);
-        entityEntry.components[component.type] = component;
+        addComponentToBitmask(entityEntry.bitmask, component.type);
+        entityEntry.components.set(component.type, component);
 
         const event: AddComponentEcsEvent<WorldComponent> = {
             type: 'ecs/add-component',
@@ -216,19 +201,19 @@ export function createWorld<
     }
 
     function removeComponent(entity: Entity, componentType: Component['type']) {
-        const entityEntry = entities[entity];
+        const entityEntry = entities.get(entity);
         if (!entityEntry) {
             console.error(`Entity ${entity} does not exist in the world.`);
             return;
         }
 
-        const component = entityEntry.components[componentType] as WorldComponent | undefined;
+        const component = entityEntry.components.get(componentType) as WorldComponent | undefined;
         if (!component) {
             console.error(`Entity ${entity} does not have component of type ${componentType}.`);
             return;
         }
 
-        removeComponentFromBitmask(entityEntry.bitmask, ensureIntForComponentType(componentType));
+        removeComponentFromBitmask(entityEntry.bitmask, componentType);
 
         const event: RemoveComponentEcsEvent<WorldComponent> = {
             type: 'ecs/remove-component',
@@ -237,19 +222,19 @@ export function createWorld<
 
         emit(event as never);
 
-        entityEntry.components[componentType] = undefined;
+        entityEntry.components.delete(componentType);
 
         updateQueriesForRemoveComponent(queries, entity, entityEntry.bitmask);
     }
 
     function getComponent(entity: Entity, componentType: Component['type']) {
-        const entityEntry = entities[entity];
+        const entityEntry = entities.get(entity);
         if (!entityEntry) {
             console.error(`Entity ${entity} does not exist in the world.`);
             return undefined;
         }
 
-        return entityEntry.components[componentType];
+        return entityEntry.components.get(componentType);
     }
 
     function setResource(name: string, data: unknown) {
@@ -284,8 +269,7 @@ export function createWorld<
         const bitmask = createBitmask();
 
         for (const item of args.query.tuple) {
-            const int = ensureIntForComponentType(item);
-            addComponentToBitmask(bitmask, int);
+            addComponentToBitmask(bitmask, item);
         }
 
         const query: InternalQuery = {

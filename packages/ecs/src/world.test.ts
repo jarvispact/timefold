@@ -1,17 +1,19 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
 import { it, describe, expect, expectTypeOf, vitest } from 'vitest';
 import { createWorld } from './world';
-import { Component, createComponent } from './component';
+import { Component, createComponent, defineComponentTypes } from './component';
 import { DefineEcsEvent, EcsEvent } from './event';
 import { Entity } from './entity';
+
+const { T } = defineComponentTypes(['A', 'B', 'C', 'D']);
 
 type Vec2 = [number, number];
 type Vec3 = [number, number, number];
 
-type A = Component<'A'>;
-type B = Component<'B', Vec2>;
-type C = Component<'C', Vec3>;
-type D = Component<'D', Float32Array>;
+type A = Component<typeof T.A>;
+type B = Component<typeof T.B, Vec2>;
+type C = Component<typeof T.C, Vec3>;
+type D = Component<typeof T.D, Float32Array>;
 type WorldComponent = A | B | C | D;
 
 type EventA = DefineEcsEvent<'E1'>;
@@ -20,19 +22,19 @@ type EventC = DefineEcsEvent<'E3', { b: number }>;
 type WorldEvent = EventA | EventB | EventC;
 
 function createA(): A {
-    return createComponent('A');
+    return createComponent(T.A);
 }
 
 function createB(x: number, y: number): B {
-    return createComponent('B', [x, y]);
+    return createComponent(T.B, [x, y]);
 }
 
 function createC(x: number, y: number, z: number): C {
-    return createComponent('C', [x, y, z]);
+    return createComponent(T.C, [x, y, z]);
 }
 
 function createD(data: Float32Array): D {
-    return createComponent('D', data);
+    return createComponent(T.D, data);
 }
 
 describe('world', () => {
@@ -74,14 +76,14 @@ describe('world', () => {
             world.spawn(e0, [createA(), createB(1, 2)]);
             world.spawn(e1, [createB(3, 4), createC(5, 6, 7)]);
 
-            expect(world.getComponent(e0, 'A')).toEqual({ type: 'A' });
-            expect(world.getComponent(e0, 'B')).toEqual({ type: 'B', data: [1, 2] });
-            expect(world.getComponent(e1, 'B')).toEqual({ type: 'B', data: [3, 4] });
-            expect(world.getComponent(e1, 'C')).toEqual({ type: 'C', data: [5, 6, 7] });
+            expect(world.getComponent(e0, T.A)).toEqual({ type: T.A });
+            expect(world.getComponent(e0, T.B)).toEqual({ type: T.B, data: [1, 2] });
+            expect(world.getComponent(e1, T.B)).toEqual({ type: T.B, data: [3, 4] });
+            expect(world.getComponent(e1, T.C)).toEqual({ type: T.C, data: [5, 6, 7] });
 
-            expectTypeOf(world.getComponent(e0, 'A')).toEqualTypeOf<A | undefined>();
-            expectTypeOf(world.getComponent(e0, 'B')).toEqualTypeOf<B | undefined>();
-            expectTypeOf(world.getComponent(e1, 'C')).toEqualTypeOf<C | undefined>();
+            expectTypeOf(world.getComponent(e0, T.A)).toEqualTypeOf<A | undefined>();
+            expectTypeOf(world.getComponent(e0, T.B)).toEqualTypeOf<B | undefined>();
+            expectTypeOf(world.getComponent(e1, T.C)).toEqualTypeOf<C | undefined>();
         });
     });
 
@@ -99,13 +101,9 @@ describe('world', () => {
             const expectedState = `
 [meta]
 version=1
-[componentTypes]
-A=0
-B=1
-C=2
 [entities]
-0|{"type":"A"}|{"type":"B","data":[1.1,2.02]}
-1|{"type":"B","data":[-3,-4.4]}|{"type":"C","data":[5.005,6.0006,7.00007]}
+0|{"type":${T.A}}|{"type":${T.B},"data":[1.1,2.02]}
+1|{"type":${T.B},"data":[-3,-4.4]}|{"type":${T.C},"data":[5.005,6.0006,7.00007]}
 `.trim();
 
             expect(serialized).toEqual(expectedState);
@@ -113,10 +111,10 @@ C=2
             const newWorld = createWorld<WorldComponent>();
             newWorld.deserialize(serialized);
 
-            expect(newWorld.getComponent(e0, 'A')).toEqual({ type: 'A' });
-            expect(newWorld.getComponent(e0, 'B')).toEqual({ type: 'B', data: [1.1, 2.02] });
-            expect(newWorld.getComponent(e1, 'B')).toEqual({ type: 'B', data: [-3, -4.4] });
-            expect(newWorld.getComponent(e1, 'C')).toEqual({ type: 'C', data: [5.005, 6.0006, 7.00007] });
+            expect(newWorld.getComponent(e0, T.A)).toEqual({ type: T.A });
+            expect(newWorld.getComponent(e0, T.B)).toEqual({ type: T.B, data: [1.1, 2.02] });
+            expect(newWorld.getComponent(e1, T.B)).toEqual({ type: T.B, data: [-3, -4.4] });
+            expect(newWorld.getComponent(e1, T.C)).toEqual({ type: T.C, data: [5.005, 6.0006, 7.00007] });
 
             expect(newWorld.createEntity()).toEqual(2);
         });
@@ -130,7 +128,7 @@ C=2
             const serialized = world.serialize({
                 serializeComponent: (component) => {
                     switch (component.type) {
-                        case 'D':
+                        case T.D:
                             return JSON.stringify({
                                 type: component.type,
                                 data: Array.from(component.data),
@@ -144,10 +142,8 @@ C=2
             const expectedState = `
 [meta]
 version=1
-[componentTypes]
-D=0
 [entities]
-0|{"type":"D","data":[1.5,2.5,3.5,4.5]}
+0|{"type":${T.D},"data":[1.5,2.5,3.5,4.5]}
 `.trim();
 
             expect(serialized).toEqual(expectedState);
@@ -157,9 +153,9 @@ D=0
                 deserializeComponent: (serialized) => {
                     const parsed = JSON.parse(serialized) as WorldComponent;
                     switch (parsed.type) {
-                        case 'D':
+                        case T.D:
                             return {
-                                type: 'D',
+                                type: T.D,
                                 data: new Float32Array(parsed.data),
                             };
                         default:
@@ -168,7 +164,7 @@ D=0
                 },
             });
 
-            expect(newWorld.getComponent(e0, 'D')).toEqual({ type: 'D', data: new Float32Array([1.5, 2.5, 3.5, 4.5]) });
+            expect(newWorld.getComponent(e0, T.D)).toEqual({ type: T.D, data: new Float32Array([1.5, 2.5, 3.5, 4.5]) });
             expect(newWorld.createEntity()).toEqual(1);
         });
     });
@@ -234,9 +230,9 @@ D=0
             world.emit({ type: 'E2', payload: { a: 'foo' } });
             world.emit({ type: 'E3', payload: { b: 42 } });
 
-            world.spawn(0, [{ type: 'A' }]);
-            world.addComponent(0, { type: 'B', data: [0, 0] });
-            world.removeComponent(0, 'B');
+            world.spawn(0, [{ type: T.A }]);
+            world.addComponent(0, { type: T.B, data: [0, 0] });
+            world.removeComponent(0, T.B);
             world.despawn(0);
 
             world.setResource('deltaTime', 0.16);
@@ -246,9 +242,9 @@ D=0
             expect(mockB.mock.lastCall).toEqual([{ a: 'foo' }]);
             expect(mockC.mock.lastCall).toEqual([{ b: 42 }]);
 
-            expect(mockSpawn.mock.lastCall).toEqual([{ entity: 0, components: [{ type: 'A' }] }]);
-            expect(mockAdd.mock.lastCall).toEqual([{ entity: 0, component: { type: 'B', data: [0, 0] } }]);
-            expect(mockRemove.mock.lastCall).toEqual([{ entity: 0, component: { type: 'B', data: [0, 0] } }]);
+            expect(mockSpawn.mock.lastCall).toEqual([{ entity: 0, components: [{ type: T.A }] }]);
+            expect(mockAdd.mock.lastCall).toEqual([{ entity: 0, component: { type: T.B, data: [0, 0] } }]);
+            expect(mockRemove.mock.lastCall).toEqual([{ entity: 0, component: { type: T.B, data: [0, 0] } }]);
             expect(mockDespawn.mock.lastCall).toEqual([{ entity: 0 }]);
             expect(mockSetResource.mock.lastCall).toEqual([{ name: 'deltaTime', data: 0.16 }]);
             expect(mockRemoveResource.mock.lastCall).toEqual([{ name: 'deltaTime', data: 0.16 }]);
@@ -263,19 +259,19 @@ D=0
 
             const queryAB = world.createQuery({
                 query: {
-                    tuple: ['A', 'B'],
+                    tuple: [T.A, T.B],
                 },
             });
 
             const queryBC = world.createQuery({
                 query: {
-                    tuple: ['B', 'C'],
+                    tuple: [T.B, T.C],
                 },
             });
 
             const queryAC = world.createQuery({
                 query: {
-                    tuple: ['A', 'C'],
+                    tuple: [T.A, T.C],
                 },
                 map: ([a, c]) => ({ a, c: c.data }),
             });
@@ -285,21 +281,21 @@ D=0
             const queryEAB = world.createQuery({
                 query: {
                     includeEntity: true,
-                    tuple: ['A', 'B'],
+                    tuple: [T.A, T.B],
                 },
             });
 
             const queryEBC = world.createQuery({
                 query: {
                     includeEntity: true,
-                    tuple: ['B', 'C'],
+                    tuple: [T.B, T.C],
                 },
             });
 
             const queryEAC = world.createQuery({
                 query: {
                     includeEntity: true,
-                    tuple: ['A', 'C'],
+                    tuple: [T.A, T.C],
                 },
                 map: ([id, a, c]) => ({ id, a, c: c.data }),
             });
@@ -325,20 +321,20 @@ D=0
 
             const queryAB = world.createQuery({
                 query: {
-                    tuple: ['A', 'B'],
+                    tuple: [T.A, T.B],
                 },
             });
 
             const queryBC = world.createQuery({
                 query: {
-                    tuple: ['B', 'C'],
+                    tuple: [T.B, T.C],
                 },
                 onAdd: onAddBCMock,
             });
 
             const queryAC = world.createQuery({
                 query: {
-                    tuple: ['A', 'C'],
+                    tuple: [T.A, T.C],
                 },
                 map: ([a, c]) => ({ a, c: c.data }),
                 onAdd: onAddACMock,
@@ -349,14 +345,14 @@ D=0
             const queryEAB = world.createQuery({
                 query: {
                     includeEntity: true,
-                    tuple: ['A', 'B'],
+                    tuple: [T.A, T.B],
                 },
             });
 
             const queryEBC = world.createQuery({
                 query: {
                     includeEntity: true,
-                    tuple: ['B', 'C'],
+                    tuple: [T.B, T.C],
                 },
                 onAdd: onAddEBCMock,
             });
@@ -364,7 +360,7 @@ D=0
             const queryEAC = world.createQuery({
                 query: {
                     includeEntity: true,
-                    tuple: ['A', 'C'],
+                    tuple: [T.A, T.C],
                 },
                 map: ([id, a, c]) => ({ id, a, c: c.data }),
                 onAdd: onAddEACMock,
@@ -411,20 +407,20 @@ D=0
 
             const queryAB = world.createQuery({
                 query: {
-                    tuple: ['A', 'B'],
+                    tuple: [T.A, T.B],
                 },
             });
 
             const queryBC = world.createQuery({
                 query: {
-                    tuple: ['B', 'C'],
+                    tuple: [T.B, T.C],
                 },
                 onAdd: onAddBCMock,
             });
 
             const queryAC = world.createQuery({
                 query: {
-                    tuple: ['A', 'C'],
+                    tuple: [T.A, T.C],
                 },
                 map: ([a, c]) => ({ a, c: c.data }),
                 onAdd: onAddACMock,
@@ -435,14 +431,14 @@ D=0
             const queryEAB = world.createQuery({
                 query: {
                     includeEntity: true,
-                    tuple: ['A', 'B'],
+                    tuple: [T.A, T.B],
                 },
             });
 
             const queryEBC = world.createQuery({
                 query: {
                     includeEntity: true,
-                    tuple: ['B', 'C'],
+                    tuple: [T.B, T.C],
                 },
                 onAdd: onAddEBCMock,
             });
@@ -450,7 +446,7 @@ D=0
             const queryEAC = world.createQuery({
                 query: {
                     includeEntity: true,
-                    tuple: ['A', 'C'],
+                    tuple: [T.A, T.C],
                 },
                 map: ([id, a, c]) => ({ id, a, c: c.data }),
                 onAdd: onAddEACMock,
@@ -509,20 +505,20 @@ D=0
 
             const queryAB = world.createQuery({
                 query: {
-                    tuple: ['A', 'B'],
+                    tuple: [T.A, T.B],
                 },
             });
 
             const queryBC = world.createQuery({
                 query: {
-                    tuple: ['B', 'C'],
+                    tuple: [T.B, T.C],
                 },
                 onRemove: onRemoveBCMock,
             });
 
             const queryAC = world.createQuery({
                 query: {
-                    tuple: ['A', 'C'],
+                    tuple: [T.A, T.C],
                 },
                 map: ([a, c]) => ({ a, c: c.data }),
                 onRemove: onRemoveACMock,
@@ -533,14 +529,14 @@ D=0
             const queryEAB = world.createQuery({
                 query: {
                     includeEntity: true,
-                    tuple: ['A', 'B'],
+                    tuple: [T.A, T.B],
                 },
             });
 
             const queryEBC = world.createQuery({
                 query: {
                     includeEntity: true,
-                    tuple: ['B', 'C'],
+                    tuple: [T.B, T.C],
                 },
                 onRemove: onRemoveEBCMock,
             });
@@ -548,7 +544,7 @@ D=0
             const queryEAC = world.createQuery({
                 query: {
                     includeEntity: true,
-                    tuple: ['A', 'C'],
+                    tuple: [T.A, T.C],
                 },
                 map: ([id, a, c]) => ({ id, a, c: c.data }),
                 onRemove: onRemoveEACMock,
@@ -577,9 +573,9 @@ D=0
             expect(queryEBC).toEqual([[e1, be1, ce1]]);
             expect(queryEAC).toEqual([{ id: e2, a: ae2, c: ce2.data }]);
 
-            world.removeComponent(e0, 'B');
-            world.removeComponent(e1, 'C');
-            world.removeComponent(e2, 'C');
+            world.removeComponent(e0, T.B);
+            world.removeComponent(e1, T.C);
+            world.removeComponent(e2, T.C);
 
             expect(queryAB).toEqual([]);
             expect(queryBC).toEqual([]);
@@ -607,20 +603,20 @@ D=0
 
             const queryAB = world.createQuery({
                 query: {
-                    tuple: ['A', 'B'],
+                    tuple: [T.A, T.B],
                 },
             });
 
             const queryBC = world.createQuery({
                 query: {
-                    tuple: ['B', 'C'],
+                    tuple: [T.B, T.C],
                 },
                 onRemove: onRemoveBCMock,
             });
 
             const queryAC = world.createQuery({
                 query: {
-                    tuple: ['A', 'C'],
+                    tuple: [T.A, T.C],
                 },
                 map: ([a, c]) => ({ a, c: c.data }),
                 onRemove: onRemoveACMock,
@@ -631,14 +627,14 @@ D=0
             const queryEAB = world.createQuery({
                 query: {
                     includeEntity: true,
-                    tuple: ['A', 'B'],
+                    tuple: [T.A, T.B],
                 },
             });
 
             const queryEBC = world.createQuery({
                 query: {
                     includeEntity: true,
-                    tuple: ['B', 'C'],
+                    tuple: [T.B, T.C],
                 },
                 onRemove: onRemoveEBCMock,
             });
@@ -646,7 +642,7 @@ D=0
             const queryEAC = world.createQuery({
                 query: {
                     includeEntity: true,
-                    tuple: ['A', 'C'],
+                    tuple: [T.A, T.C],
                 },
                 map: ([id, a, c]) => ({ id, a, c: c.data }),
                 onRemove: onRemoveEACMock,
@@ -696,9 +692,9 @@ D=0
         it('should update queries correctly across different actions', () => {
             const world = createWorld<WorldComponent>();
 
-            const queryAB = world.createQuery({ query: { tuple: ['A', 'B'] } });
-            const queryBC = world.createQuery({ query: { tuple: ['B', 'C'] } });
-            const queryCD = world.createQuery({ query: { tuple: ['C', 'D'] } });
+            const queryAB = world.createQuery({ query: { tuple: [T.A, T.B] } });
+            const queryBC = world.createQuery({ query: { tuple: [T.B, T.C] } });
+            const queryCD = world.createQuery({ query: { tuple: [T.C, T.D] } });
 
             const e0 = world.createEntity();
 
@@ -731,13 +727,13 @@ D=0
             expect(queryBC).toEqual([[b, c]]);
             expect(queryCD).toEqual([[c, d]]);
 
-            world.removeComponent(e0, 'A');
+            world.removeComponent(e0, T.A);
 
             expect(queryAB).toEqual([]);
             expect(queryBC).toEqual([[b, c]]);
             expect(queryCD).toEqual([[c, d]]);
 
-            world.removeComponent(e0, 'B');
+            world.removeComponent(e0, T.B);
 
             expect(queryAB).toEqual([]);
             expect(queryBC).toEqual([]);

@@ -25,9 +25,17 @@ export function removeComponentFromBitmask(bitmask: Bitmask, componentType: numb
 }
 
 export function satisfiesBitmask(queryBitmask: Bitmask, entityBitmask: Bitmask) {
-    for (let i = 0; i < queryBitmask.length; i++) {
+    const queryLen = queryBitmask.length;
+    const entityLen = entityBitmask.length;
+
+    // Early exit if entity bitmask is shorter than query
+    if (entityLen < queryLen && queryBitmask[entityLen] !== 0) {
+        return false;
+    }
+
+    for (let i = 0; i < queryLen; i++) {
         const queryMask = queryBitmask[i];
-        const entityMask = i < entityBitmask.length ? entityBitmask[i] : 0;
+        const entityMask = i < entityLen ? entityBitmask[i] : 0;
         if ((entityMask & queryMask) !== queryMask) {
             return false;
         }

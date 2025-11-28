@@ -5,7 +5,7 @@ import { CreateQueryArgs } from './query';
 
 export type EntityMapEntry = {
     bitmask: Bitmask;
-    components: Record<Component['type'], Component | undefined>;
+    components: Map<Component['type'], Component>;
 };
 
 export type SerializeOptions<WorldComponent extends Component = Component> = {
@@ -18,13 +18,7 @@ export type DeserializeOptions<WorldComponent extends Component = Component> = {
 
 const SERIALIZATION_FORMAT_VERSION = 1;
 
-export function serializeWorld(
-    world: {
-        entities: Record<string, EntityMapEntry | undefined>;
-        componentTypeToInt: Record<Component['type'], number | undefined>;
-    },
-    options: SerializeOptions = {},
-): string {
+export function serializeWorld(entities: Map<number, EntityMapEntry>, options: SerializeOptions = {}): string {
     const serializeComponent = options.serializeComponent || ((component: Component) => JSON.stringify(component));
 
     const sections: string[] = [];
@@ -33,24 +27,17 @@ export function serializeWorld(
     sections.push('[meta]');
     sections.push(`version=${SERIALIZATION_FORMAT_VERSION}`);
 
-    // [componentTypes] section
-    sections.push('[componentTypes]');
-    for (const componentType in world.componentTypeToInt) {
-        const int = world.componentTypeToInt[componentType];
-        if (int !== undefined) {
-            sections.push(`${componentType}=${int}`);
-        }
-    }
-
     // [entities] section
     sections.push('[entities]');
-    for (const entityId in world.entities) {
-        const entityEntry = world.entities[entityId];
+    const entityIds = entities.keys();
+    for (const entityId of entityIds) {
+        const entityEntry = entities.get(entityId);
         if (!entityEntry) continue;
 
         const parts: string[] = [];
-        for (const componentType in entityEntry.components) {
-            const component = entityEntry.components[componentType];
+        const componentTypes = entityEntry.components.keys();
+        for (const componentType of componentTypes) {
+            const component = entityEntry.components.get(componentType);
             if (!component) continue;
 
             parts.push(serializeComponent(component));
@@ -66,7 +53,6 @@ export function serializeWorld(
 
 // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-parameters
 export function deserializeWorld<WorldComponent extends Component>(
-    world: { componentTypeToInt: Record<Component['type'], number | undefined>; componentTypeCounter: number },
     spawn: (entityId: number, components: WorldComponent[]) => void,
     options: DeserializeOptions = {},
     serialized: string,
@@ -102,15 +88,6 @@ export function deserializeWorld<WorldComponent extends Component>(
                 // eslint-disable-next-line @typescript-eslint/no-unused-vars
                 version = Number.parseInt(line.split('=')[1], 10);
             }
-        } else if (currentSection === 'componentTypes') {
-            const [componentType, intStr] = line.split('=');
-            if (componentType && intStr) {
-                const int = Number.parseInt(intStr, 10);
-                world.componentTypeToInt[componentType] = int;
-                if (int >= world.componentTypeCounter) {
-                    world.componentTypeCounter = int + 1;
-                }
-            }
         } else if (currentSection === 'entities') {
             const parts = line.split('|');
             if (parts.length < 2) continue;
@@ -128,8 +105,6 @@ export function deserializeWorld<WorldComponent extends Component>(
             }
         }
     }
-
-    return { componentTypeCounter: world.componentTypeCounter };
 }
 
 export type InternalQuery = {
@@ -145,7 +120,8 @@ export function updateQueriesForSpawnAndAddComponent(
     entity: Entity,
     entityEntry: EntityMapEntry,
 ) {
-    for (let i = 0; i < queries.length; i++) {
+    const queryLength = queries.length;
+    for (let i = 0; i < queryLength; i++) {
         const qry = queries[i];
         if (qry.entityToResultIdx.has(entity)) continue;
         if (!satisfiesBitmask(qry.bitmask, entityEntry.bitmask)) continue;
@@ -155,9 +131,10 @@ export function updateQueriesForSpawnAndAddComponent(
             tuple.push(entity);
         }
 
-        for (let j = 0; j < qry.queryArgs.query.tuple.length; j++) {
+        const tupleLength = qry.queryArgs.query.tuple.length;
+        for (let j = 0; j < tupleLength; j++) {
             const item = qry.queryArgs.query.tuple[j];
-            const c = entityEntry.components[item];
+            const c = entityEntry.components.get(item);
             if (c) tuple.push(c);
         }
 
@@ -169,35 +146,34 @@ export function updateQueriesForSpawnAndAddComponent(
     }
 }
 
-function arraySwapDelete<Item>(arr: Item[], idx: number) {
-    arr[idx] = arr[arr.length - 1];
-    return arr.pop();
-}
-
 export function updateQueriesForDespawn(queries: InternalQuery[], entity: Entity) {
-    for (let i = 0; i < queries.length; i++) {
+    const queryLength = queries.length;
+    for (let i = 0; i < queryLength; i++) {
         const qry = queries[i];
 
         const idx = qry.entityToResultIdx.get(entity);
         if (idx === undefined) continue;
 
         const lastIdx = qry.result.length - 1;
-        const swappedEntity = qry.entities[lastIdx];
-
-        arraySwapDelete(qry.result, idx);
-        arraySwapDelete(qry.entities, idx);
-        qry.entityToResultIdx.delete(entity);
 
         if (idx !== lastIdx) {
+            const swappedEntity = qry.entities[lastIdx];
+            qry.result[idx] = qry.result[lastIdx];
+            qry.entities[idx] = swappedEntity;
             qry.entityToResultIdx.set(swappedEntity, idx);
         }
+
+        qry.result.pop();
+        qry.entities.pop();
+        qry.entityToResultIdx.delete(entity);
 
         if (qry.queryArgs.onRemove) qry.queryArgs.onRemove(entity);
     }
 }
 
 export function updateQueriesForRemoveComponent(queries: InternalQuery[], entity: Entity, entityBitmask: Bitmask) {
-    for (let i = 0; i < queries.length; i++) {
+    const queryLength = queries.length;
+    for (let i = 0; i < queryLength; i++) {
         const qry = queries[i];
 
         if (!satisfiesBitmask(qry.bitmask, entityBitmask)) {
@@ -205,15 +181,17 @@ export function updateQueriesForRemoveComponent(queries: InternalQuery[], entity
             if (idx === undefined) continue;
 
             const lastIdx = qry.result.length - 1;
-            const swappedEntity = qry.entities[lastIdx];
-
-            arraySwapDelete(qry.result, idx);
-            arraySwapDelete(qry.entities, idx);
-            qry.entityToResultIdx.delete(entity);
 
             if (idx !== lastIdx) {
+                const swappedEntity = qry.entities[lastIdx];
+                qry.result[idx] = qry.result[lastIdx];
+                qry.entities[idx] = swappedEntity;
                 qry.entityToResultIdx.set(swappedEntity, idx);
             }
+
+            qry.result.pop();
+            qry.entities.pop();
+            qry.entityToResultIdx.delete(entity);
 
             if (qry.queryArgs.onRemove) qry.queryArgs.onRemove(entity);
         }
