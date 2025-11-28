@@ -76,7 +76,7 @@ export function deserializeWorld<WorldComponent extends Component>(
 
     const lines = serialized.split('\n');
     let currentSection: 'meta' | 'componentTypes' | 'entities' | null = null;
-    let version: number | null = null;
+    let _version: number | null = null;
 
     for (let i = 0; i < lines.length; i++) {
         const line = lines[i].trim();
@@ -98,7 +98,7 @@ export function deserializeWorld<WorldComponent extends Component>(
         if (currentSection === 'meta') {
             if (line.startsWith('version=')) {
                 // eslint-disable-next-line @typescript-eslint/no-unused-vars
-                version = Number.parseInt(line.split('=')[1], 10);
+                _version = Number.parseInt(line.split('=')[1], 10);
             }
         } else if (currentSection === 'componentTypes') {
             const [componentType, intStr] = line.split('=');
