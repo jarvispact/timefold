@@ -35,6 +35,12 @@ export function create(args: CreateArgs): OrthographicCameraComponent {
     });
 }
 
+export function update(out: OrthographicCameraData, args: CreateArgs) {
+    Mat4x4.ortho(out.projectionMatrix, args.left, args.right, args.bottom, args.top, args.near, args.far);
+    Mat4x4.multiplication(out.viewProjectionMatrix, out.projectionMatrix, out.viewMatrix);
+    return out;
+}
+
 type CreateFromGltf2Args = {
     camera: ParsedGltf2CameraOrthographic;
     aspect?: number;
