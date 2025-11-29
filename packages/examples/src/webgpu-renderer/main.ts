@@ -1,8 +1,8 @@
-import { createWorld } from '@timefold/ecs';
+import { Component, createWorld, defineComponentTypes } from '@timefold/ecs';
 import {
     DomUtils,
     EngineComponent,
-    EngineComponentType,
+    EngineComponentTypeNames,
     MainCameraTag,
     OrthographicCamera,
     Renderable,
@@ -11,10 +11,16 @@ import {
 } from '@timefold/engine';
 import { EntityRenderPass } from './entity-render-pass';
 import { createPipeline } from '@timefold/webgpu';
-import { Vec3Type } from '@timefold/math';
+import { Vec3, Vec3Type } from '@timefold/math';
 
-const T = EngineComponentType;
-const world = createWorld<EngineComponent>();
+const { T } = defineComponentTypes([...EngineComponentTypeNames, 'Color']);
+type ColorComponent = Component<typeof T.Color, Vec3Type>;
+type WorldComponent = EngineComponent | ColorComponent;
+const world = createWorld<WorldComponent>();
+
+function color(r: number, g: number, b: number): ColorComponent {
+    return { type: T.Color, data: Vec3.create(r, g, b) };
+}
 
 const canvas = DomUtils.getCanvasById('canvas');
 const aspect = canvas.width / canvas.height;
@@ -28,8 +34,6 @@ DomUtils.onResize({
         pipeline.passes.EntityRenderPass.resize(width, height);
         const cam = world.getComponent(camera, T.OrthographicCamera);
         if (cam) {
-            console.log('resize cam');
-
             const newAspect = width / height;
             OrthographicCamera.update(cam.data, {
                 left: -10 * newAspect,
@@ -51,21 +55,14 @@ const cameras = world.createQuery({
     map: ([transform, camera]) => ({ transform: transform.data, camera: camera.data }),
 });
 
-const colorForEntity: Record<number, Vec3Type> = {
-    1: [1, 0, 0],
-    2: [0, 1, 0],
-    3: [0, 0, 1],
-    4: [1, 1, 0],
-};
-
-const renderable2D = world.createQuery({
-    query: { tuple: [T.Transform2D, T.Renderable] },
-    map: ([t]) => t.data,
-    onAdd: (entity, transform) => {
+world.createQuery({
+    query: { tuple: [T.Transform2D, T.Color, T.Renderable] },
+    map: ([t, c]) => ({ transform: t.data, color: c.data }),
+    onAdd: (entity, { transform, color }) => {
         pipeline.passes.EntityRenderPass.addEntity({
             id: entity,
             modelMatrix: transform.modelMatrix,
-            color: colorForEntity[entity],
+            color,
         });
     },
     onRemove: (entity) => {
@@ -73,14 +70,14 @@ const renderable2D = world.createQuery({
     },
 });
 
-const renderable3D = world.createQuery({
-    query: { tuple: [T.Transform3D, T.Renderable] },
-    map: ([t]) => t.data,
-    onAdd: (entity, transform) => {
+world.createQuery({
+    query: { tuple: [T.Transform3D, T.Color, T.Renderable] },
+    map: ([t, c]) => ({ transform: t.data, color: c.data }),
+    onAdd: (entity, { transform, color }) => {
         pipeline.passes.EntityRenderPass.addEntity({
             id: entity,
             modelMatrix: transform.modelMatrix,
-            color: colorForEntity[entity],
+            color,
         });
     },
     onRemove: (entity) => {
@@ -97,17 +94,20 @@ function startup() {
 
     const entity2D_1 = world.createEntity();
     const entity2D_2 = world.createEntity();
-    world.spawn(entity2D_1, [Transform2D.createFromTRS({ translation: [-5, 0] }), Renderable.create()]);
-    world.spawn(entity2D_2, [Transform2D.createFromTRS({ translation: [5, 0] }), Renderable.create()]);
-
+    world.spawn(entity2D_1, [Transform2D.createFromTRS({ translation: [-5, 0] }), color(1, 0, 0), Renderable.create()]);
+    world.spawn(entity2D_2, [Transform2D.createFromTRS({ translation: [5, 0] }), color(0, 1, 0), Renderable.create()]);
     const entity3D_1 = world.createEntity();
     const entity3D_2 = world.createEntity();
-    world.spawn(entity3D_1, [Transform3D.createFromTRS({ translation: [0, -5, 0] }), Renderable.create()]);
-    world.spawn(entity3D_2, [Transform3D.createFromTRS({ translation: [0, 5, 0] }), Renderable.create()]);
-
-    console.log({ entity2D_1, entity2D_2, entity3D_1, entity3D_2 });
-
-    console.log({ cameras, renderable2D, renderable3D });
+    world.spawn(entity3D_1, [
+        Transform3D.createFromTRS({ translation: [0, -5, 0] }),
+        color(0, 0, 1),
+        Renderable.create(),
+    ]);
+    world.spawn(entity3D_2, [
+        Transform3D.createFromTRS({ translation: [0, 5, 0] }),
+        color(1, 1, 0),
+        Renderable.create(),
+    ]);
 }
 
 function updateCameraFromTransform() {
