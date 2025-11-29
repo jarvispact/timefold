@@ -469,17 +469,53 @@ function createStarField(): void {
 // -----------------------------------------------------------------------------
 // Queries
 // -----------------------------------------------------------------------------
-const playerQuery = world.createQuery({
+
+// Player queries - specialized for each system's needs
+const playerInputQuery = world.createQuery({
     query: {
         includeEntity: true,
-        tuple: [T.Position, T.Velocity, T.Rotation, T.Player, T.Health, T.Collider, T.Trail, T.Score],
+        tuple: [T.Position, T.Velocity, T.Rotation, T.Player, T.Trail, T.Score],
     },
 });
 
+const playerPositionQuery = world.createQuery({
+    query: { tuple: [T.Position, T.Player] },
+});
+
+const playerCollisionQuery = world.createQuery({
+    query: { includeEntity: true, tuple: [T.Position, T.Health, T.Collider, T.Player] },
+});
+
+const playerScoreQuery = world.createQuery({
+    query: { tuple: [T.Score, T.Player] },
+});
+
+const playerHealthScoreQuery = world.createQuery({
+    query: { tuple: [T.Health, T.Score, T.Player] },
+});
+
+const playerTrailQuery = world.createQuery({
+    query: { includeEntity: true, tuple: [T.Trail, T.Player] },
+});
+
+const playerShieldRenderQuery = world.createQuery({
+    query: { includeEntity: true, tuple: [T.Position, T.Player] },
+});
+
+const playerUIQuery = world.createQuery({
+    query: { includeEntity: true, tuple: [T.Health, T.Score, T.Player] },
+});
+
+const playerEntityQuery = world.createQuery({
+    query: { includeEntity: true, tuple: [T.Player] },
+});
+
+// Render query
 const renderQuery = world.createQuery({
     query: { includeEntity: true, tuple: [T.Position, T.Rotation, T.Scale, T.Sprite] },
 });
 
+// Physics queries
 const physicsQuery = world.createQuery({
     query: { tuple: [T.Position, T.Velocity] },
 });
@@ -492,26 +528,48 @@ const lifetimeQuery = world.createQuery({
     query: { includeEntity: true, tuple: [T.Lifetime] },
 });
 
-const asteroidQuery = world.createQuery({
+// Asteroid queries - specialized for each use case
+const asteroidPositionQuery = world.createQuery({
+    query: { tuple: [T.Position, T.Asteroid] },
+});
+
+const asteroidCollisionQuery = world.createQuery({
+    query: { includeEntity: true, tuple: [T.Position, T.Collider, T.Asteroid] },
+});
+
+const asteroidFullQuery = world.createQuery({
     query: { includeEntity: true, tuple: [T.Position, T.Asteroid, T.Health, T.Collider, T.Score] },
 });
 
-const enemyQuery = world.createQuery({
+// Enemy queries - specialized for each use case
+const enemyPositionQuery = world.createQuery({
+    query: { tuple: [T.Position, T.Enemy] },
+});
+
+const enemyAIQuery = world.createQuery({
+    query: { includeEntity: true, tuple: [T.Position, T.Velocity, T.Enemy] },
+});
+
+const enemyCollisionQuery = world.createQuery({
     query: { includeEntity: true, tuple: [T.Position, T.Velocity, T.Enemy, T.Health, T.Collider, T.Score] },
 });
 
+// Bullet query
 const bulletQuery = world.createQuery({
     query: { includeEntity: true, tuple: [T.Position, T.Bullet, T.Damage, T.Collider] },
 });
 
+// Power-up query
 const powerUpQuery = world.createQuery({
     query: { includeEntity: true, tuple: [T.Position, T.PowerUp, T.Collider] },
 });
 
+// Particle query
 const particleQuery = world.createQuery({
     query: { tuple: [T.Particle, T.Lifetime] },
 });
 
+// Effect queries
 const screenShakeQuery = world.createQuery({
     query: { tuple: [T.ScreenShake] },
 });
@@ -531,8 +589,7 @@ function playerInputSystem(dt: number): void {
     const input = world.getResource('input');
     const time = world.getResource('time');
 
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    for (const [entity, pos, vel, rot, player, _health, _collider, trail, score] of playerQuery) {
+    for (const [entity, pos, vel, rot, player, trail, score] of playerInputQuery) {
         // Movement
         const acceleration = 800;
         const maxSpeed = 350;
@@ -600,14 +657,13 @@ function enemyAISystem(dt: number): void {
 
     // Find player position
     let playerPos: Vec2Type | null = null;
-    for (const [, pos] of playerQuery) {
+    for (const [pos] of playerPositionQuery) {
         playerPos = pos.data.pos;
         break;
     }
     if (!playerPos) return;
 
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    for (const [enemyEntity, pos, vel, enemy, _health, _collider, _score] of enemyQuery) {
+    for (const [enemyEntity, pos, vel, enemy] of enemyAIQuery) {
         const toPlayer = Vec2.subtraction(Vec2.zero(), playerPos, pos.data.pos);
         const dist = Math.sqrt(toPlayer[0] ** 2 + toPlayer[1] ** 2);
         Vec2.normalize(toPlayer);
@@ -657,13 +713,12 @@ function enemyAISystem(dt: number): void {
 }
 
 function homingMissileSystem(dt: number): void {
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    for (const [pos, vel, _homing] of homingQuery) {
+    for (const [pos, vel] of homingQuery) {
         // Find nearest enemy or asteroid
         let nearestDist = Infinity;
         let nearestPos: Vec2Type | null = null;
 
-        for (const [, enemyPos] of enemyQuery) {
+        for (const [enemyPos] of enemyPositionQuery) {
             const dist = distanceSquared(pos.data.pos, enemyPos.data.pos);
             if (dist < nearestDist) {
                 nearestDist = dist;
@@ -671,7 +726,7 @@ function homingMissileSystem(dt: number): void {
             }
         }
 
-        for (const [, asteroidPos] of asteroidQuery) {
+        for (const [asteroidPos] of asteroidPositionQuery) {
             const dist = distanceSquared(pos.data.pos, asteroidPos.data.pos);
             if (dist < nearestDist) {
                 nearestDist = dist;
@@ -727,8 +782,7 @@ function collisionSystem(): void {
         if (bullet.data.owner !== 'player') continue;
 
         // Check enemies
-        // eslint-disable-next-line @typescript-eslint/no-unused-vars
-        for (const [enemyEntity, enemyPos, vel, _enemy, enemyHealth, enemyCollider, enemyScore] of enemyQuery) {
+        for (const [enemyEntity, enemyPos, vel, , enemyHealth, enemyCollider, enemyScore] of enemyCollisionQuery) {
             const dist = distanceSquared(bulletPos.data.pos, enemyPos.data.pos);
             const minDist = bulletCollider.data.radius + enemyCollider.data.radius;
             if (dist < minDist * minDist) {
@@ -739,7 +793,7 @@ function collisionSystem(): void {
                     spawnExplosion(enemyPos.data.pos, '#e74c3c', 20);
 
                     // Award score
-                    for (const [, , , , , , , , playerScore] of playerQuery) {
+                    for (const [playerScore] of playerScoreQuery) {
                         playerScore.data.combo++;
                         playerScore.data.multiplier = Math.min(1 + playerScore.data.combo * 0.1, 5);
                         playerScore.data.value += Math.floor(enemyScore.data.value * playerScore.data.multiplier);
@@ -771,7 +825,7 @@ function collisionSystem(): void {
             asteroidHealth,
             asteroidCollider,
             asteroidScore,
-        ] of asteroidQuery) {
+        ] of asteroidFullQuery) {
             const dist = distanceSquared(bulletPos.data.pos, asteroidPos.data.pos);
             const minDist = bulletCollider.data.radius + asteroidCollider.data.radius;
             if (dist < minDist * minDist) {
@@ -782,7 +836,7 @@ function collisionSystem(): void {
                     spawnExplosion(asteroidPos.data.pos, '#6c5ce7', 12);
 
                     // Award score
-                    for (const [, , , , , , , , playerScore] of playerQuery) {
+                    for (const [playerScore] of playerScoreQuery) {
                         playerScore.data.combo++;
                         playerScore.data.multiplier = Math.min(1 + playerScore.data.combo * 0.1, 5);
                         playerScore.data.value += Math.floor(asteroidScore.data.value * playerScore.data.multiplier);
@@ -809,7 +863,7 @@ function collisionSystem(): void {
     for (const [bulletEntity, bulletPos, bullet, bulletDamage, bulletCollider] of bulletQuery) {
         if (bullet.data.owner !== 'enemy') continue;
 
-        for (const [playerEntity, playerPos, , , , playerHealth, playerCollider] of playerQuery) {
+        for (const [playerEntity, playerPos, playerHealth, playerCollider] of playerCollisionQuery) {
             const invincible = world.getComponent(playerEntity, T.Invincible);
             const shield = world.getComponent(playerEntity, T.Shield);
             if (invincible) continue;
@@ -831,12 +885,11 @@ function collisionSystem(): void {
     }
 
     // Enemies/asteroids vs player
-    for (const [playerEntity, playerPos, , , , playerHealth, playerCollider] of playerQuery) {
+    for (const [playerEntity, playerPos, playerHealth, playerCollider] of playerCollisionQuery) {
         const invincible = world.getComponent(playerEntity, T.Invincible);
         if (invincible) continue;
 
-        // eslint-disable-next-line @typescript-eslint/no-unused-vars
-        for (const [asteroidEntity, asteroidPos, _asteroid, _asteroidHealth, asteroidCollider] of asteroidQuery) {
+        for (const [asteroidEntity, asteroidPos, asteroidCollider] of asteroidCollisionQuery) {
             const dist = distanceSquared(playerPos.data.pos, asteroidPos.data.pos);
             const minDist = playerCollider.data.radius + asteroidCollider.data.radius;
             if (dist < minDist * minDist) {
@@ -858,7 +911,7 @@ function collisionSystem(): void {
 
     // Power-ups vs player
     for (const [powerUpEntity, powerUpPos, powerUp, powerUpCollider] of powerUpQuery) {
-        for (const [playerEntity, playerPos, , , , playerHealth, playerCollider] of playerQuery) {
+        for (const [playerEntity, playerPos, playerHealth, playerCollider] of playerCollisionQuery) {
             const dist = distanceSquared(playerPos.data.pos, powerUpPos.data.pos);
             const minDist = powerUpCollider.data.radius + playerCollider.data.radius;
             if (dist < minDist * minDist) {
@@ -884,7 +937,7 @@ function collisionSystem(): void {
     }
 
     // Check player death
-    for (const [, , , , , playerHealth, , , playerScore] of playerQuery) {
+    for (const [playerHealth, playerScore] of playerHealthScoreQuery) {
         if (playerHealth.data.current <= 0) {
             world.emit({ type: 'game/over', payload: { finalScore: playerScore.data.value } });
             world.setResource('gameState', 'gameOver');
@@ -893,7 +946,7 @@ function collisionSystem(): void {
 }
 
 function powerUpTimerSystem(dt: number): void {
-    for (const [entity] of playerQuery) {
+    for (const [entity] of playerEntityQuery) {
         // Invincibility
         const invincible = world.getComponent(entity, T.Invincible);
         if (invincible) {
@@ -1081,8 +1134,7 @@ function renderSystem(): void {
     }
 
     // Draw player trail
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    for (const [entity, _pos, , , , , , trail] of playerQuery) {
+    for (const [entity, trail] of playerTrailQuery) {
         const invincible = world.getComponent(entity, T.Invincible);
         if (trail.data.positions.length > 1) {
             ctx.strokeStyle = invincible ? '#fff' : '#4ecdc4';
@@ -1139,7 +1191,7 @@ function renderSystem(): void {
     }
 
     // Draw shield effect
-    for (const [entity, pos] of playerQuery) {
+    for (const [entity, pos] of playerShieldRenderQuery) {
         const shield = world.getComponent(entity, T.Shield);
         if (shield) {
             ctx.save();
@@ -1210,7 +1262,7 @@ function renderUISystem(): void {
         ctx.fillStyle = '#fff';
         ctx.font = '24px Arial';
         let finalScore = 0;
-        for (const [, , , , , , , , score] of playerQuery) {
+        for (const [score] of playerScoreQuery) {
             finalScore = score.data.value;
         }
         ctx.fillText(`Final Score: ${finalScore}`, canvas.width / 2, canvas.height / 2 + 20);
@@ -1222,7 +1274,7 @@ function renderUISystem(): void {
     ctx.textAlign = 'left';
 
     // Health bar
-    for (const [entity, , , , , health, , , score] of playerQuery) {
+    for (const [entity, health, score] of playerUIQuery) {
         const barWidth = 200;
         const barHeight = 20;
         const x = 20;
