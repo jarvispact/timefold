@@ -6,5 +6,7 @@ export * as NonInterleavedPrimitive from './non-interleaved-primitive';
 export * as OrthographicCamera from './orthographic-camera';
 export * as PerspectiveCamera from './perspective-camera';
 export * as PhongMaterial from './phong-material';
-export * as Transform from './transform';
+export * as Renderable from './renderable';
+export * as Transform2D from './transform-2d';
+export * as Transform3D from './transform-3d';
 export * as UnlitMaterial from './unlit-material';

@@ -8,7 +8,9 @@ import {
 } from '@timefold/webgpu';
 
 const ComponentTypes = defineComponentTypes([
-    'Transform',
+    'Transform2D',
+    'Transform3D',
+    'Renderable',
     'UnlitMaterial',
     'PhongMaterial',
     'InterleavedPrimitive',
@@ -22,15 +24,34 @@ const ComponentTypes = defineComponentTypes([
 export const EngineComponentType = ComponentTypes.T;
 export const EngineComponentTypeNames = ComponentTypes.typeNames;
 
-// #region Transform
-export type TransformData = {
+// #region Transform2D
+export type Transform2DData = {
+    translation: Vec2Type;
+    rotation: number;
+    scale: Vec2Type;
+    modelMatrix: Mat4x4Type;
+};
+
+export type Transform2DComponent = Component<typeof EngineComponentType.Transform2D, Transform2DData>;
+// #endregion
+
+// #region Transform3D
+export type Transform3DData = {
     translation: Vec3Type;
     rotation: QuatType;
     scale: Vec3Type;
     modelMatrix: Mat4x4Type;
 };
 
-export type TransformComponent = Component<typeof EngineComponentType.Transform, TransformData>;
+export type Transform3DComponent = Component<typeof EngineComponentType.Transform3D, Transform3DData>;
+// #endregion
+
+// #region Renderable
+export type RenderableData = {
+    layer: number;
+};
+
+export type RenderableComponent = Component<typeof EngineComponentType.Renderable, RenderableData>;
 // #endregion
 
 // #region UnlitMaterial
@@ -171,7 +192,9 @@ export type OrthographicCameraComponent = Component<
 export type MainCameraTagComponent = Component<typeof EngineComponentType.MainCameraTag>;
 
 export type EngineComponent =
-    | TransformComponent
+    | Transform2DComponent
+    | Transform3DComponent
+    | RenderableComponent
     | UnlitMaterialComponent
     | PhongMaterialComponent
     | InterleavedPrimitiveComponent

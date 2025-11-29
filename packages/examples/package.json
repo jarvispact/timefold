@@ -10,6 +10,8 @@
     "build:webgpu": "sed 's/{example-folder}/webgpu/g' index.html.template > index.html && vite build",
     "dev:test-game": "sed 's/{example-folder}/test-game/g' index.html.template > index.html && vite --port 9093",
     "build:test-game": "sed 's/{example-folder}/test-game/g' index.html.template > index.html && vite build",
+    "dev:webgpu-renderer": "sed 's/{example-folder}/webgpu-renderer/g' index.html.template > index.html && vite --port 9093",
+    "build:webgpu-renderer": "sed 's/{example-folder}/webgpu-renderer/g' index.html.template > index.html && vite build",
     "preview": "vite preview --port 9191"
   }
 }

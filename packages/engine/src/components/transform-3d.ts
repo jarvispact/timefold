@@ -1,10 +1,10 @@
 import { Component, createComponent } from '@timefold/ecs';
 import { Vec3, Mat4x4, Quat, Vec3Type, QuatType } from '@timefold/math';
-import { EngineComponentType, TransformComponent } from './types';
+import { EngineComponentType, Transform3DComponent } from './types';
 
-export const type = EngineComponentType.Transform;
+export const type = EngineComponentType.Transform3D;
 
-export function is(component: Component): component is TransformComponent {
+export function is(component: Component): component is Transform3DComponent {
     return component.type === type;
 }
 
@@ -14,7 +14,7 @@ type CreateFromTRSArgs = {
     scale?: Vec3Type;
 };
 
-export function createFromTRS(args: CreateFromTRSArgs): TransformComponent {
+export function createFromTRS(args: CreateFromTRSArgs): Transform3DComponent {
     const translation = args.translation;
     const rotation = args.rotation ?? Quat.createIdentity();
     const scale = args.scale ?? Vec3.one();
@@ -35,7 +35,7 @@ type CreateAndLookAtArgs = {
     up?: Vec3Type;
 };
 
-export function createAndLookAt({ translation, target, up = Vec3.up() }: CreateAndLookAtArgs): TransformComponent {
+export function createAndLookAt({ translation, target, up = Vec3.up() }: CreateAndLookAtArgs): Transform3DComponent {
     const rotation = Quat.create(0, 0, 0, 1);
     const scale = Vec3.one();
     const modelMatrix = Mat4x4.createFromRotationTranslationScale(rotation, translation, scale);
