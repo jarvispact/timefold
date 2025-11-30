@@ -9,9 +9,10 @@ import {
     Transform2D,
     Transform3D,
 } from '@timefold/engine';
-import { EntityRenderPass } from './entity-render-pass';
+import { EntityRenderPass, TransformStruct } from './entity-render-pass';
 import { createPipeline } from '@timefold/webgpu';
-import { Vec3, Vec3Type } from '@timefold/math';
+import { Mat4x4, Vec3, Vec3Type } from '@timefold/math';
+import { getUnlitShaderCode, UnlitMaterialStruct } from './unlit-material';
 
 const { T } = defineComponentTypes([...EngineComponentTypeNames, 'Color']);
 type ColorComponent = Component<typeof T.Color, Vec3Type>;
@@ -25,6 +26,13 @@ function color(r: number, g: number, b: number): ColorComponent {
 const canvas = DomUtils.getCanvasById('canvas');
 const aspect = canvas.width / canvas.height;
 const pipeline = await createPipeline({ canvas, msaa: 1 }).withPass(EntityRenderPass).build();
+
+const unlitMaterialId = pipeline.passes.EntityRenderPass.defineMaterial({
+    struct: UnlitMaterialStruct,
+    getShaderCode: getUnlitShaderCode,
+});
+
+pipeline.passes.EntityRenderPass.defineGeometry();
 
 const camera = world.createEntity();
 
@@ -59,10 +67,16 @@ world.createQuery({
     query: { tuple: [T.Transform2D, T.Color, T.Renderable] },
     map: ([t, c]) => ({ transform: t.data, color: c.data }),
     onAdd: (entity, { transform, color }) => {
+        const t = TransformStruct.create();
+        Mat4x4.copy(t.views.model_matrix, transform.modelMatrix);
+
+        const m = UnlitMaterialStruct.create();
+        Vec3.copy(m.views.color, color);
+
         pipeline.passes.EntityRenderPass.addEntity({
             id: entity,
-            modelMatrix: transform.modelMatrix,
-            color,
+            material: { id: unlitMaterialId, data: m.buffer },
+            transform: t.buffer,
         });
     },
     onRemove: (entity) => {
@@ -74,10 +88,16 @@ world.createQuery({
     query: { tuple: [T.Transform3D, T.Color, T.Renderable] },
     map: ([t, c]) => ({ transform: t.data, color: c.data }),
     onAdd: (entity, { transform, color }) => {
+        const t = TransformStruct.create();
+        Mat4x4.copy(t.views.model_matrix, transform.modelMatrix);
+
+        const m = UnlitMaterialStruct.create();
+        Vec3.copy(m.views.color, color);
+
         pipeline.passes.EntityRenderPass.addEntity({
             id: entity,
-            modelMatrix: transform.modelMatrix,
-            color,
+            material: { id: unlitMaterialId, data: m.buffer },
+            transform: t.buffer,
         });
     },
     onRemove: (entity) => {
