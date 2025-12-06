@@ -548,7 +548,7 @@ export function createPipelineLayout<const Groups extends UniformGroup<number, R
         }
 
         const bindGroup = device.createBindGroup({
-            label: `bind group | group ${group}`,
+            label: `${pipelineLayoutLabel} | bind group ${group}`,
             layout,
             entries: bindgroupEntries,
         });

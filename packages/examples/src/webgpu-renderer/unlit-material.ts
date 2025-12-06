@@ -1,7 +1,18 @@
-import { Wgsl } from '@timefold/webgpu';
+import { Uniform, WebgpuUtils, Wgsl } from '@timefold/webgpu';
+import { FrameUniformGroup, TransformUniformGroup } from './common';
 
 export const UnlitMaterialStruct = Wgsl.struct('UnlitMaterial', {
     color: Wgsl.type('vec3<f32>'),
+});
+
+export const MaterialUniformGroup = Uniform.group(1, {
+    material: Uniform.uniformBuffer(0, UnlitMaterialStruct),
+});
+
+export const UnlitPipelineLayout = WebgpuUtils.createPipelineLayout({
+    bindGroupLayoutLabel: 'Generic Pipeline BGL',
+    pipelineLayoutLabel: 'Generic Pipeline PL',
+    uniformGroups: [FrameUniformGroup, MaterialUniformGroup, TransformUniformGroup],
 });
 
 export const getUnlitShaderCode = ({ vertexWgsl, uniformsWgsl }: { vertexWgsl: string; uniformsWgsl: string }) => {
@@ -17,7 +28,7 @@ ${uniformsWgsl}
 
 @vertex fn vs(vert: Vertex) -> VsOut {
     var vsOut: VsOut;
-    vsOut.position = camera.view_projection_matrix * transform.model_matrix * vec4f(vert.position, 1.0);
+    vsOut.position = frame.camera.view_projection_matrix * transform.model_matrix * vec4f(vert.position, 1.0);
     vsOut.uv = vert.uv;
     return vsOut;
 }

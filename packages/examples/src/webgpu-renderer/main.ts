@@ -1,45 +1,258 @@
-import { Component, createWorld, defineComponentTypes } from '@timefold/ecs';
+import { createWorld, defineComponentTypes } from '@timefold/ecs';
 import {
     DomUtils,
     EngineComponent,
     EngineComponentTypeNames,
+    InterleavedPrimitive,
+    InterleavedPrimitiveComponent,
     MainCameraTag,
+    NonInterleavedPrimitive,
+    NonInterleavedPrimitiveComponent,
     OrthographicCamera,
+    PhongMaterial,
+    PhongMaterialComponent,
     Renderable,
     Transform2D,
     Transform3D,
+    UnlitMaterial,
+    UnlitMaterialComponent,
 } from '@timefold/engine';
-import { EntityRenderPass, TransformStruct } from './entity-render-pass';
-import { createPipeline } from '@timefold/webgpu';
-import { Mat4x4, Vec3, Vec3Type } from '@timefold/math';
-import { getUnlitShaderCode, UnlitMaterialStruct } from './unlit-material';
+import { createPipeline, Uniform, WebgpuUtils } from '@timefold/webgpu';
+import { Mat4x4, Quat, Vec3 } from '@timefold/math';
+import { getUnlitShaderCode, UnlitPipelineLayout, UnlitMaterialStruct } from './unlit-material';
+import { quadIndices, quadInterleavedIndexed, quadNormals, quadPositions, quadUvs } from './quad-geometry';
+import { FrameStruct, TransformStruct } from './common';
+import { createColorRenderPass } from './color-render-pass';
+import { getPhongShaderCode, PhongMaterialStruct, PhongPipelineLayout } from './phong-material';
 
-const { T } = defineComponentTypes([...EngineComponentTypeNames, 'Color']);
-type ColorComponent = Component<typeof T.Color, Vec3Type>;
-type WorldComponent = EngineComponent | ColorComponent;
+const { T } = defineComponentTypes([...EngineComponentTypeNames]);
+type WorldComponent = EngineComponent;
 const world = createWorld<WorldComponent>();
-
-function color(r: number, g: number, b: number): ColorComponent {
-    return { type: T.Color, data: Vec3.create(r, g, b) };
-}
 
 const canvas = DomUtils.getCanvasById('canvas');
 const aspect = canvas.width / canvas.height;
-const pipeline = await createPipeline({ canvas, msaa: 1 }).withPass(EntityRenderPass).build();
 
-const unlitMaterialId = pipeline.passes.EntityRenderPass.defineMaterial({
-    struct: UnlitMaterialStruct,
-    getShaderCode: getUnlitShaderCode,
+const VertexInterleaved = WebgpuUtils.createVertexBufferLayout({
+    label: 'Simple Quad Layout',
+    mode: 'interleaved',
+    definition: {
+        position: { format: 'float32x3', stride: 0 },
+        uv: { format: 'float32x2', stride: 3 },
+        normal: { format: 'float32x3', stride: 5 },
+    },
 });
 
-pipeline.passes.EntityRenderPass.defineGeometry();
+const VertexNonInterleaved = WebgpuUtils.createVertexBufferLayout({
+    label: 'Simple Quad Layout',
+    mode: 'non-interleaved',
+    definition: {
+        position: { format: 'float32x3' },
+        uv: { format: 'float32x2' },
+        normal: { format: 'float32x3' },
+    },
+});
+
+const frameStruct = FrameStruct.create();
+
+const ColorPass = createColorRenderPass<
+    UnlitMaterialComponent | PhongMaterialComponent,
+    InterleavedPrimitiveComponent | NonInterleavedPrimitiveComponent
+>({
+    onNewMaterialType: ({ device, material }) => {
+        switch (material.type) {
+            case UnlitMaterial.type: {
+                const layout = UnlitPipelineLayout.createLayout(device);
+
+                const frameBg = UnlitPipelineLayout.createBindGroups({
+                    device,
+                    group: 0,
+                    bindings: {
+                        frame: WebgpuUtils.createUniformBufferDescriptor({ label: 'Frame Uniform Buffer' }),
+                    },
+                });
+
+                return {
+                    layout,
+                    frameBindgroup: {
+                        group: frameBg.group,
+                        bindGroup: frameBg.bindGroup,
+                        entries: [{ buffer: frameBg.buffers.frame, data: frameStruct.buffer }],
+                    },
+                    getShaderCode: ({ vertexWgsl }) => {
+                        return getUnlitShaderCode({
+                            vertexWgsl,
+                            uniformsWgsl: Uniform.getWgslFromGroups(UnlitPipelineLayout.uniformGroups),
+                        });
+                    },
+                };
+            }
+            case PhongMaterial.type: {
+                const layout = PhongPipelineLayout.createLayout(device);
+
+                const frameBg = PhongPipelineLayout.createBindGroups({
+                    device,
+                    group: 0,
+                    bindings: {
+                        frame: WebgpuUtils.createUniformBufferDescriptor({ label: 'Frame Uniform Buffer' }),
+                    },
+                });
+
+                return {
+                    layout,
+                    frameBindgroup: {
+                        group: frameBg.group,
+                        bindGroup: frameBg.bindGroup,
+                        entries: [{ buffer: frameBg.buffers.frame, data: frameStruct.buffer }],
+                    },
+                    getShaderCode: ({ vertexWgsl }) => {
+                        return getPhongShaderCode({
+                            vertexWgsl,
+                            uniformsWgsl: Uniform.getWgslFromGroups(PhongPipelineLayout.uniformGroups),
+                        });
+                    },
+                };
+            }
+        }
+    },
+    onNewGeometryType: ({ geometry }) => {
+        switch (geometry.type) {
+            case InterleavedPrimitive.type: {
+                return {
+                    primitive: { topology: 'triangle-list' },
+                    layout: VertexInterleaved.layout,
+                    vertexWgsl: VertexInterleaved.wgsl,
+                };
+            }
+            case NonInterleavedPrimitive.type: {
+                return {
+                    primitive: { topology: 'triangle-list' },
+                    layout: VertexNonInterleaved.layout,
+                    vertexWgsl: VertexNonInterleaved.wgsl,
+                };
+            }
+        }
+    },
+    onNewMaterialInstance: ({ device, material, data }) => {
+        switch (material.type) {
+            case UnlitMaterial.type: {
+                const bindGroup = UnlitPipelineLayout.createBindGroups({
+                    device,
+                    group: 1,
+                    bindings: {
+                        material: WebgpuUtils.createUniformBufferDescriptor({ label: 'Material Uniform Buffer' }),
+                    },
+                });
+
+                return {
+                    bindGroup: {
+                        group: bindGroup.group,
+                        bindGroup: bindGroup.bindGroup,
+                        entries: [{ buffer: bindGroup.buffers.material, data }],
+                    },
+                };
+            }
+            case PhongMaterial.type: {
+                const bindGroup = PhongPipelineLayout.createBindGroups({
+                    device,
+                    group: 1,
+                    bindings: {
+                        material: WebgpuUtils.createUniformBufferDescriptor({ label: 'Material Uniform Buffer' }),
+                    },
+                });
+
+                return {
+                    bindGroup: {
+                        group: bindGroup.group,
+                        bindGroup: bindGroup.bindGroup,
+                        entries: [{ buffer: bindGroup.buffers.material, data }],
+                    },
+                };
+            }
+        }
+    },
+    onNewGeometryInstance: ({ device, geometry }) => {
+        switch (geometry.type) {
+            case InterleavedPrimitive.type: {
+                const P = VertexInterleaved.createBuffer(device, quadInterleavedIndexed);
+                const I = WebgpuUtils.createIndexBuffer({
+                    device,
+                    format: 'uint16',
+                    data: quadIndices,
+                    label: 'Simple Quad Index Buffer',
+                });
+                return { primitive: { type: 'interleaved', vertex: P, index: I } };
+            }
+            case NonInterleavedPrimitive.type: {
+                const P = VertexNonInterleaved.createBuffers(device, {
+                    position: quadPositions,
+                    uv: quadUvs,
+                    normal: quadNormals,
+                });
+                const I = WebgpuUtils.createIndexBuffer({
+                    device,
+                    format: 'uint16',
+                    data: quadIndices,
+                    label: 'Simple Quad Index Buffer',
+                });
+                return {
+                    primitive: {
+                        type: 'non-interleaved',
+                        positionsCount: P.attribs.position.count,
+                        buffers: Object.values(P.attribs),
+                        index: I,
+                    },
+                };
+            }
+        }
+    },
+    onNewTransform: ({ device, material, data }) => {
+        switch (material.type) {
+            case UnlitMaterial.type: {
+                const bindGroup = UnlitPipelineLayout.createBindGroups({
+                    device,
+                    group: 2,
+                    bindings: {
+                        transform: WebgpuUtils.createUniformBufferDescriptor({ label: 'Transform Uniform Buffer' }),
+                    },
+                });
+
+                return {
+                    bindGroup: {
+                        group: bindGroup.group,
+                        bindGroup: bindGroup.bindGroup,
+                        entries: [{ buffer: bindGroup.buffers.transform, data }],
+                    },
+                };
+            }
+            case PhongMaterial.type: {
+                const bindGroup = PhongPipelineLayout.createBindGroups({
+                    device,
+                    group: 2,
+                    bindings: {
+                        transform: WebgpuUtils.createUniformBufferDescriptor({ label: 'Transform Uniform Buffer' }),
+                    },
+                });
+
+                return {
+                    bindGroup: {
+                        group: bindGroup.group,
+                        bindGroup: bindGroup.bindGroup,
+                        entries: [{ buffer: bindGroup.buffers.transform, data }],
+                    },
+                };
+            }
+        }
+    },
+});
+
+const pipeline = await createPipeline({ canvas, msaa: 1 }).withPass(ColorPass).build();
 
 const camera = world.createEntity();
 
 DomUtils.onResize({
     canvas,
     fn: (width, height) => {
-        pipeline.passes.EntityRenderPass.resize(width, height);
+        pipeline.passes.ColorRenderPass.resize(width, height);
         const cam = world.getComponent(camera, T.OrthographicCamera);
         if (cam) {
             const newAspect = width / height;
@@ -52,7 +265,7 @@ DomUtils.onResize({
                 far: 10,
             });
 
-            pipeline.passes.EntityRenderPass.setCamera({ viewProjectionMatrix: cam.data.viewProjectionMatrix });
+            Mat4x4.copy(frameStruct.views.camera.view_projection_matrix, cam.data.viewProjectionMatrix);
             pipeline.update();
         }
     },
@@ -64,44 +277,94 @@ const cameras = world.createQuery({
 });
 
 world.createQuery({
-    query: { tuple: [T.Transform2D, T.Color, T.Renderable] },
-    map: ([t, c]) => ({ transform: t.data, color: c.data }),
-    onAdd: (entity, { transform, color }) => {
+    query: { tuple: [T.Transform2D, T.UnlitMaterial, T.InterleavedPrimitive, T.Renderable] },
+    map: ([t, m, p]) => ({ transform: t.data, material: m, primitive: p }),
+    onAdd: (entity, { transform, material, primitive }) => {
         const t = TransformStruct.create();
         Mat4x4.copy(t.views.model_matrix, transform.modelMatrix);
 
         const m = UnlitMaterialStruct.create();
-        Vec3.copy(m.views.color, color);
+        Vec3.copy(m.views.color, material.data.color);
 
-        pipeline.passes.EntityRenderPass.addEntity({
+        pipeline.passes.ColorRenderPass.addEntity({
             id: entity,
-            material: { id: unlitMaterialId, data: m.buffer },
-            transform: t.buffer,
+            material: material,
+            geometry: primitive,
+            materialData: m.buffer,
+            transformData: t.buffer,
         });
     },
     onRemove: (entity) => {
-        pipeline.passes.EntityRenderPass.removeEntity(entity);
+        pipeline.passes.ColorRenderPass.removeEntity(entity);
     },
 });
 
 world.createQuery({
-    query: { tuple: [T.Transform3D, T.Color, T.Renderable] },
-    map: ([t, c]) => ({ transform: t.data, color: c.data }),
-    onAdd: (entity, { transform, color }) => {
+    query: { tuple: [T.Transform2D, T.UnlitMaterial, T.NonInterleavedPrimitive, T.Renderable] },
+    map: ([t, m, p]) => ({ transform: t.data, material: m, primitive: p }),
+    onAdd: (entity, { transform, material, primitive }) => {
         const t = TransformStruct.create();
         Mat4x4.copy(t.views.model_matrix, transform.modelMatrix);
 
         const m = UnlitMaterialStruct.create();
-        Vec3.copy(m.views.color, color);
+        Vec3.copy(m.views.color, material.data.color);
 
-        pipeline.passes.EntityRenderPass.addEntity({
+        pipeline.passes.ColorRenderPass.addEntity({
             id: entity,
-            material: { id: unlitMaterialId, data: m.buffer },
-            transform: t.buffer,
+            material: material,
+            geometry: primitive,
+            materialData: m.buffer,
+            transformData: t.buffer,
         });
     },
     onRemove: (entity) => {
-        pipeline.passes.EntityRenderPass.removeEntity(entity);
+        pipeline.passes.ColorRenderPass.removeEntity(entity);
+    },
+});
+
+world.createQuery({
+    query: { tuple: [T.Transform3D, T.PhongMaterial, T.InterleavedPrimitive, T.Renderable] },
+    map: ([t, m, p]) => ({ transform: t.data, material: m, primitive: p }),
+    onAdd: (entity, { transform, material, primitive }) => {
+        const t = TransformStruct.create();
+        Mat4x4.copy(t.views.model_matrix, transform.modelMatrix);
+
+        const m = PhongMaterialStruct.create();
+        Vec3.copy(m.views.diffuse_color, material.data.diffuseColor);
+
+        pipeline.passes.ColorRenderPass.addEntity({
+            id: entity,
+            material: material,
+            geometry: primitive,
+            materialData: m.buffer,
+            transformData: t.buffer,
+        });
+    },
+    onRemove: (entity) => {
+        pipeline.passes.ColorRenderPass.removeEntity(entity);
+    },
+});
+
+world.createQuery({
+    query: { tuple: [T.Transform3D, T.PhongMaterial, T.NonInterleavedPrimitive, T.Renderable] },
+    map: ([t, m, p]) => ({ transform: t.data, material: m, primitive: p }),
+    onAdd: (entity, { transform, material, primitive }) => {
+        const t = TransformStruct.create();
+        Mat4x4.copy(t.views.model_matrix, transform.modelMatrix);
+
+        const m = PhongMaterialStruct.create();
+        Vec3.copy(m.views.diffuse_color, material.data.diffuseColor);
+
+        pipeline.passes.ColorRenderPass.addEntity({
+            id: entity,
+            material: material,
+            geometry: primitive,
+            materialData: m.buffer,
+            transformData: t.buffer,
+        });
+    },
+    onRemove: (entity) => {
+        pipeline.passes.ColorRenderPass.removeEntity(entity);
     },
 });
 
@@ -112,33 +375,77 @@ function startup() {
         MainCameraTag.create(),
     ]);
 
-    const entity2D_1 = world.createEntity();
-    const entity2D_2 = world.createEntity();
-    world.spawn(entity2D_1, [Transform2D.createFromTRS({ translation: [-5, 0] }), color(1, 0, 0), Renderable.create()]);
-    world.spawn(entity2D_2, [Transform2D.createFromTRS({ translation: [5, 0] }), color(0, 1, 0), Renderable.create()]);
-    const entity3D_1 = world.createEntity();
-    const entity3D_2 = world.createEntity();
-    world.spawn(entity3D_1, [
-        Transform3D.createFromTRS({ translation: [0, -5, 0] }),
-        color(0, 0, 1),
-        Renderable.create(),
-    ]);
-    world.spawn(entity3D_2, [
-        Transform3D.createFromTRS({ translation: [0, 5, 0] }),
-        color(1, 1, 0),
-        Renderable.create(),
-    ]);
+    const redUnlitMaterial = UnlitMaterial.create({ color: Vec3.create(1, 0, 0) });
+    const redPhongMaterial = PhongMaterial.create({ diffuseColor: Vec3.create(1, 0, 0) });
+
+    const interleavedPrimitive = InterleavedPrimitive.create({
+        layout: {
+            position: { format: 'float32x3', stride: 0 },
+            uv: { format: 'float32x2', stride: 3 },
+            normal: { format: 'float32x3', stride: 5 },
+        },
+        vertices: quadInterleavedIndexed,
+        indices: quadIndices,
+    });
+
+    const nonInterleavedPrimitive = NonInterleavedPrimitive.create({
+        attributes: {
+            position: { format: 'float32x3', data: quadPositions },
+            uv: { format: 'float32x2', data: quadUvs },
+            normal: { format: 'float32x3', data: quadNormals },
+        },
+        indices: quadIndices,
+    });
+
+    for (let i = 0; i < 4; i++) {
+        const x = i * 4 - 6;
+        world.spawn(world.createEntity(), [
+            Transform2D.createFromTRS({ translation: [x, 6] }),
+            redUnlitMaterial,
+            interleavedPrimitive,
+            Renderable.create(),
+        ]);
+    }
+
+    for (let i = 0; i < 4; i++) {
+        const x = i * 4 - 6;
+        world.spawn(world.createEntity(), [
+            Transform2D.createFromTRS({ translation: [x, 2] }),
+            redUnlitMaterial,
+            nonInterleavedPrimitive,
+            Renderable.create(),
+        ]);
+    }
+
+    for (let i = 0; i < 4; i++) {
+        const x = i * 4 - 6;
+        world.spawn(world.createEntity(), [
+            Transform3D.createFromTRS({ translation: [x, -2, 0], rotation: Quat.createFromEuler(0, 45, 45) }),
+            redPhongMaterial,
+            interleavedPrimitive,
+            Renderable.create(),
+        ]);
+    }
+
+    for (let i = 0; i < 4; i++) {
+        const x = i * 4 - 6;
+        world.spawn(world.createEntity(), [
+            Transform3D.createFromTRS({ translation: [x, -6, 0], rotation: Quat.createFromEuler(0, -45, -45) }),
+            redPhongMaterial,
+            nonInterleavedPrimitive,
+            Renderable.create(),
+        ]);
+    }
 }
 
 function updateCameraFromTransform() {
     for (const item of cameras) {
         OrthographicCamera.updateFromModelMatrix(item.camera, item.transform.modelMatrix);
-        pipeline.passes.EntityRenderPass.setCamera({ viewProjectionMatrix: item.camera.viewProjectionMatrix });
+        Mat4x4.copy(frameStruct.views.camera.view_projection_matrix, item.camera.viewProjectionMatrix);
     }
 }
 
 function update() {
-    console.log('update');
     updateCameraFromTransform();
     pipeline.update();
     // window.requestAnimationFrame(update);
