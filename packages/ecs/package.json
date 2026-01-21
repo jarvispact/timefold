@@ -22,6 +22,9 @@
     "test": "vitest",
     "test:run": "tsc -p tsconfig.test.json --noEmit && vitest run",
     "build": "rm -rf ./dist && vite build && tsc",
-    "publish-to-npm": "npm publish"
+    "publish-to-npm": "npm publish",
+    "bench:run": "vitest bench --run --config vitest.bench.config.ts --outputJson ./benchmarks/results/latest.json",
+    "bench:compare": "vitest bench --run --config vitest.bench.config.ts --compare ./benchmarks/results/baseline.json --outputJson ./benchmarks/results/latest.json",
+    "bench:baseline": "npm run bench:run && cp benchmarks/results/latest.json benchmarks/results/baseline.json && echo 'Baseline saved to benchmarks/results/baseline.json'"
   }
 }
