@@ -1,2 +1,2 @@
 # @timefold/obj
-Fast and efficient, zero dependency `.obj` and `.mtl` loader and parser.
+Typesafe `.obj` and `.mtl` loader, parser and conversion functions.
