@@ -3,6 +3,10 @@ import tseslint from 'typescript-eslint';
 
 export default [
   ...baseConfig,
+  ...tseslint.configs.strictTypeChecked.map(config => ({
+    ...config,
+    files: ['packages/**/src/**/*.ts'],
+  })),
   {
     name: 'typescript-source',
     files: ['packages/**/src/**/*.ts'],
@@ -19,6 +23,9 @@ export default [
         ],
         tsconfigRootDir: import.meta.dirname,
       },
+    },
+    rules: {
+      "@typescript-eslint/restrict-template-expressions": 'off',
     },
   },
   {

@@ -6,16 +6,14 @@ import tseslint from 'typescript-eslint'
 
 export default [
   { ignores: ['node_modules', '**/dist', '**/*.d.ts'] },
+  js.configs.recommended,
+  ...tseslint.configs.strict,
   {
     name: 'typescript-base',
-    extends: [js.configs.recommended, ...tseslint.configs.strictTypeChecked],
     files: ['**/*.ts'],
     languageOptions: {
       ecmaVersion: 2020,
       globals: globals.browser,
-    },
-    rules: {
-      "@typescript-eslint/restrict-template-expressions": 'off',
     },
   },
   {
