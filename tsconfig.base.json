@@ -20,6 +20,15 @@
     "noUnusedParameters": true,
     "noFallthroughCasesInSwitch": true,
     "noUncheckedSideEffectImports": true,
-    "types": ["@webgpu/types", "vite/client"]
+    "types": ["@webgpu/types", "vite/client"],
+    "baseUrl": ".",
+    "paths": {
+      "@timefold/ecs": ["./packages/ecs/src"],
+      "@timefold/math": ["./packages/math/src"],
+      "@timefold/webgpu": ["./packages/webgpu/src"],
+      "@timefold/obj": ["./packages/obj/src"],
+      "@timefold/gltf2": ["./packages/gltf2/src"],
+      "@timefold/engine": ["./packages/engine/src"]
+    }
   }
 }

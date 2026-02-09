@@ -12,4 +12,4 @@ console.log(math('Hello Math!'));
 console.log(webgpu('Hello WebGPU!'));
 console.log(obj('Hello OBJ!'));
 console.log(gltf2('Hello glTF2!'));
-console.log(engine('Hello Engine!'));
+console.log(engine('Hello engine'));
