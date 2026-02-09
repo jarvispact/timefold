@@ -4,8 +4,8 @@ import prettierPlugin from 'eslint-plugin-prettier';
 import prettierConfig from 'eslint-config-prettier';
 import tseslint from 'typescript-eslint'
 
-export default tseslint.config(
-  { ignores: ['node_modules', '**/dist', '**/*.d.ts', '**/.tsbuildinfo'] },
+export default [
+  { ignores: ['node_modules', '**/dist', '**/*.d.ts'] },
   {
     name: 'typescript-base',
     extends: [js.configs.recommended, ...tseslint.configs.strictTypeChecked],
@@ -29,4 +29,4 @@ export default tseslint.config(
       ...prettierConfig.rules,
     },
   },
-)
+]

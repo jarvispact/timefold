@@ -1,11 +1,11 @@
 import baseConfig from './eslint.config.base.js';
 import tseslint from 'typescript-eslint';
 
-export default tseslint.config(
+export default [
   ...baseConfig,
   {
-    name: 'typescript-root',
-    files: ['packages/**/*.ts'],
+    name: 'typescript-source',
+    files: ['packages/**/src/**/*.ts'],
     languageOptions: {
       parserOptions: {
         project: [
@@ -21,4 +21,14 @@ export default tseslint.config(
       },
     },
   },
-);
+  {
+    name: 'typescript-node',
+    files: ['**/*.config.ts'],
+    languageOptions: {
+      parserOptions: {
+        project: './tsconfig.node.json',
+        tsconfigRootDir: import.meta.dirname,
+      },
+    },
+  },
+];
