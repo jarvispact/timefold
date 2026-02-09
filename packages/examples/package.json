@@ -10,11 +10,11 @@
     "preview": "vite preview --port 9191"
   },
   "dependencies": {
-    "@timefold/ecs": "workspace:*",
-    "@timefold/math": "workspace:*",
-    "@timefold/webgpu": "workspace:*",
-    "@timefold/obj": "workspace:*",
-    "@timefold/gltf2": "workspace:*",
-    "@timefold/engine": "workspace:*"
+    "@timefold/ecs": "*",
+    "@timefold/math": "*",
+    "@timefold/webgpu": "*",
+    "@timefold/obj": "*",
+    "@timefold/gltf2": "*",
+    "@timefold/engine": "*"
   }
 }
