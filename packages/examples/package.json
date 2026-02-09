@@ -8,5 +8,13 @@
     "build:hello-ecs": "sed 's/{example-folder}/hello-ecs/g' index.html.template > index.html && vite build",
 
     "preview": "vite preview --port 9191"
+  },
+  "dependencies": {
+    "@timefold/ecs": "workspace:*",
+    "@timefold/math": "workspace:*",
+    "@timefold/webgpu": "workspace:*",
+    "@timefold/obj": "workspace:*",
+    "@timefold/gltf2": "workspace:*",
+    "@timefold/engine": "workspace:*"
   }
 }

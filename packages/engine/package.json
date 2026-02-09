@@ -20,5 +20,12 @@
   "scripts": {
     "build": "rm -rf ./dist *.tsbuildinfo && tsc -b",
     "publish-to-npm": "npm publish"
+  },
+  "dependencies": {
+    "@timefold/ecs": "workspace:*",
+    "@timefold/math": "workspace:*",
+    "@timefold/webgpu": "workspace:*",
+    "@timefold/obj": "workspace:*",
+    "@timefold/gltf2": "workspace:*"
   }
 }

@@ -10,7 +10,8 @@
     { "path": "../ecs" },
     { "path": "../math" },
     { "path": "../webgpu" },
-    { "path": "../obj" }
+    { "path": "../obj" },
+    { "path": "../gltf2" }
   ],
   "include": ["./src"],
   "exclude": ["node_modules", "./src/**/*.test.ts"]
