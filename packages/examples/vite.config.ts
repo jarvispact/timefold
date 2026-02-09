@@ -1,4 +1,3 @@
-import path from 'path';
 import { defineConfig, Plugin, PreviewServer, ViteDevServer } from 'vite';
 
 const setSharedArrayBufferHeaders = (server: ViteDevServer | PreviewServer) => {
@@ -18,16 +17,6 @@ const sharedArrayBufferHeaderPlugin = (): Plugin => ({
 // https://vitejs.dev/config/
 export default defineConfig({
     plugins: [sharedArrayBufferHeaderPlugin()],
-    resolve: {
-        alias: {
-            '@timefold/ecs': path.resolve(__dirname, '../ecs/src/ecs.ts'),
-            '@timefold/math': path.resolve(__dirname, '../math/src/math.ts'),
-            '@timefold/webgpu': path.resolve(__dirname, '../webgpu/src/webgpu.ts'),
-            '@timefold/obj': path.resolve(__dirname, '../obj/src/obj.ts'),
-            '@timefold/gltf2': path.resolve(__dirname, '../gltf2/src/gltf2.ts'),
-            '@timefold/engine': path.resolve(__dirname, '../engine/src/engine.ts'),
-        },
-    },
     build: {
         target: 'esnext',
         rollupOptions: {

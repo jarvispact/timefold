@@ -1,38 +1,24 @@
-import js from '@eslint/js'
-import globals from 'globals'
-import prettierPlugin from 'eslint-plugin-prettier';
-import prettierConfig from 'eslint-config-prettier';
-import tseslint from 'typescript-eslint'
+import baseConfig from './eslint.config.base.js';
+import tseslint from 'typescript-eslint';
 
 export default tseslint.config(
-  { ignores: ['node_modules', 'packages/**/dist'] },
+  ...baseConfig,
   {
-    name: 'typescript',
-    extends: [js.configs.recommended, ...tseslint.configs.strictTypeChecked],
+    name: 'typescript-root',
     files: ['packages/**/*.ts'],
     languageOptions: {
-      ecmaVersion: 2020,
-      globals: globals.browser,
       parserOptions: {
-        project: ['./tsconfig.json'],
+        project: [
+          './packages/ecs/tsconfig.json',
+          './packages/math/tsconfig.json',
+          './packages/webgpu/tsconfig.json',
+          './packages/obj/tsconfig.json',
+          './packages/gltf2/tsconfig.json',
+          './packages/engine/tsconfig.json',
+          './packages/examples/tsconfig.json',
+        ],
         tsconfigRootDir: import.meta.dirname,
       },
     },
-    settings: {},
-    plugins: {},
-    rules: {
-      "@typescript-eslint/restrict-template-expressions": 'off',
-    },
   },
-  {
-    name: 'prettier',
-    files: ['packages/**/*.ts'],
-    plugins: {
-      prettier: prettierPlugin,
-    },
-    rules: {
-      'prettier/prettier': 'error',
-      ...prettierConfig.rules,
-    },
-  },
-)
+);

@@ -1,3 +1,3 @@
 export const obj = (test: string) => {
-    return {obj: test}
-}
+    return { obj: test };
+};

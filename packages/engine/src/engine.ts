@@ -1,3 +1,3 @@
 export const engine = (test: string) => {
-    return {engine: test}
-}
+    return { engine: test };
+};

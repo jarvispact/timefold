@@ -1,18 +1,17 @@
 {
-    "extends": "../../tsconfig",
-    "compilerOptions": {
-        "declaration": true,
-        "declarationDir": "./dist",
-        "outDir": "./dist",
-        "noEmit": false,
-        "sourceMap": true,
-        "paths": {
-            "@timefold/ecs": ["../../ecs/src/ecs.ts"],
-            "@timefold/math": ["../../math/src/math.ts"],
-            "@timefold/webgpu": ["../../webgpu/src/webgpu.ts"],
-            "@timefold/obj": ["../../obj/src/obj.ts"]
-        }
-    },
-    "include": ["./src"],
-    "exclude": ["node_modules"]
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "rootDir": "./src",
+    "outDir": "./dist",
+    "declarationDir": "./dist",
+    "noEmit": false
+  },
+  "references": [
+    { "path": "../ecs" },
+    { "path": "../math" },
+    { "path": "../webgpu" },
+    { "path": "../obj" }
+  ],
+  "include": ["./src"],
+  "exclude": ["node_modules"]
 }
