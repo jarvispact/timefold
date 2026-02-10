@@ -1,12 +1,28 @@
-import baseConfig from './eslint.config.base.js';
+import js from '@eslint/js'
+import globals from 'globals'
+import prettierPlugin from 'eslint-plugin-prettier';
+import prettierConfig from 'eslint-config-prettier';
 import tseslint from 'typescript-eslint';
 
 export default [
-  ...baseConfig,
-  ...tseslint.configs.strictTypeChecked.map(config => ({
-    ...config,
-    files: ['packages/**/src/**/*.ts'],
-  })),
+  { ignores: ['node_modules', '**/dist', '**/*.d.ts', 'eslint.config.js'] },
+  js.configs.recommended,
+  ...tseslint.configs.strictTypeChecked,
+  {
+    name: 'typescript-base',
+    files: ['**/*.ts'],
+    languageOptions: {
+      ecmaVersion: 2024,
+      globals: globals.browser,
+    },
+    plugins: {
+      prettier: prettierPlugin,
+    },
+    rules: {
+      'prettier/prettier': 'error',
+      ...prettierConfig.rules,
+    },
+  },
   {
     name: 'typescript-source',
     files: ['packages/**/src/**/*.ts'],
@@ -30,7 +46,7 @@ export default [
   },
   {
     name: 'typescript-node',
-    files: ['**/*.config.ts'],
+    files: ['**/vite.config.ts'],
     languageOptions: {
       parserOptions: {
         project: './tsconfig.node.json',
