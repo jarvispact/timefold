@@ -21,26 +21,6 @@ Timefold is a modular, ECS-powered game engine for the web. The codebase is orga
 
 Each package is designed to be used independently with 0 dependencies, ESM-only, and fully tree-shakeable. TypeScript paths are configured in `tsconfig.base.json` to import packages via `@timefold/*`.
 
-## Commands
-
-### Testing
-- `npm test` - Run tests across all packages
-- `npm run test -w @timefold/ecs` - Run tests for a specific package
-
-### Building
-- `npm run build` - Build all packages (outputs to `dist/` in each package)
-- `npm run build -w @timefold/ecs` - Build a specific package
-
-### Linting
-- `npm run lint` - Lint all TypeScript files using ESLint with strict type-checking
-
-### Examples
-- `npm run dev:hello-ecs -w @timefold/examples` - Run the hello-ecs example with hot reload on port 9093
-- `npm run preview -w @timefold/examples` - Preview built examples on port 9191
-
-### Publishing
-- `npm run publish-to-npm` - Build and publish all packages to npm
-
 ## Development Notes
 
 - All packages use TypeScript with strict type-checking enabled
@@ -48,3 +28,15 @@ Each package is designed to be used independently with 0 dependencies, ESM-only,
 - Package builds clean `dist/` directories before building
 - Use workspace dependencies (`*`) when referencing other timefold packages (npm workspaces use `*`, not `workspace:*`)
 - Examples use a template-based approach: `index.html.template` is processed with `sed` to generate `index.html`
+
+## Documentation
+
+Technical specifications are available in `docs/` for reference. Read these on-demand when working on related areas:
+
+- **`docs/webgpu-spec.md`** - Read when working on `@timefold/webgpu` renderer implementation, debugging GPU pipeline issues, implementing render passes, or understanding WebGPU resource lifecycle (buffers, textures, bind groups, command encoding).
+
+- **`docs/wgsl-spec.md`** - Read when writing or modifying shader code, implementing custom materials, debugging shader compilation errors, or understanding WGSL type system and built-in functions.
+
+- **`docs/gltf2-spec.md`** - Read when working on `@timefold/gltf2` loader, implementing support for glTF extensions, debugging asset loading issues, or understanding glTF binary data layout (accessors, bufferViews).
+
+- **`docs/v8-internals.md`** - Read when optimizing performance-critical code (ECS systems, math operations, rendering loops, ...), investigating deoptimization issues, or implementing data structures that need to be JIT-friendly (avoid hidden class mutations).

@@ -4,8 +4,8 @@
   "version": "0.0.1",
   "type": "module",
   "scripts": {
-    "dev:hello-ecs": "sed 's/{example-folder}/hello-ecs/g' index.html.template > index.html && vite --port 9093",
-    "build:hello-ecs": "sed 's/{example-folder}/hello-ecs/g' index.html.template > index.html && vite build",
+    "dev:benchmarks": "sed 's/{example-folder}/benchmarks/g' index.html.template > index.html && vite --port 9093",
+    "build:benchmarks": "sed 's/{example-folder}/benchmarks/g' index.html.template > index.html && vite build",
 
     "preview": "vite preview --port 9191"
   },

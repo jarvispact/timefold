@@ -1,0 +1,241 @@
+# V8 Engine Internals
+
+This document summarizes critical V8 engine internals relevant to writing high-performance JavaScript code, particularly for performance-critical paths in Timefold (ECS systems, math operations, rendering loops).
+
+## Four-Tier Compilation Pipeline
+
+V8 uses a multi-tier JIT compilation strategy to balance startup time and peak performance:
+
+### Tier 0 - Ignition (Interpreter)
+- Parses JavaScript into an Abstract Syntax Tree (AST)
+- Generates bytecode for quick execution
+- Collects type feedback data during execution
+- Prioritizes rapid startup without expensive compilation overhead
+
+### Tier 1 - Sparkplug (Baseline Compiler)
+- Introduced in 2021
+- Compiles bytecode directly to unoptimized machine code
+- No type specialization yet
+- Bridges the performance gap between interpretation and optimization
+
+### Tier 2 - Maglev (Mid-Tier Optimizer)
+- Added in December 2023
+- Uses Static Single Assignment (SSA) form and control flow graphs
+- Generates "good enough code, fast enough"
+- Faster compilation than TurboFan with reasonable optimization
+
+### Tier 3 - TurboFan (Advanced Optimizer)
+- Most aggressive optimizer
+- Makes speculative assumptions based on observed type feedback
+- Generates highly optimized machine code for hot functions
+- Risk of deoptimization if assumptions are violated
+
+## Hidden Classes: The Performance Foundation
+
+V8 assigns each object a "hidden class" (also called "shape" or "map") that encodes its property layout.
+
+**Key principle:** Objects with properties added in the same order share the same hidden class, enabling fast property access as fixed-offset memory reads rather than slow hash-table lookups.
+
+### Hidden Class Anti-Patterns
+
+```javascript
+// BAD: Different initialization orders create different hidden classes
+const obj1 = {};
+obj1.x = 1;
+obj1.y = 2;
+
+const obj2 = {};
+obj2.y = 2;  // Different order!
+obj2.x = 1;
+```
+
+```javascript
+// BAD: Conditional properties fragment the hidden class tree
+function createConfig(includeOptional) {
+  const config = { required: true };
+  if (includeOptional) {
+    config.optional = 42;  // Creates different hidden classes
+  }
+  return config;
+}
+```
+
+### Hidden Class Best Practices
+
+```javascript
+// GOOD: Initialize all properties upfront, even optional ones
+function createConfig(includeOptional) {
+  const config = {
+    required: true,
+    optional: includeOptional ? 42 : null  // Always same shape
+  };
+  return config;
+}
+```
+
+```javascript
+// GOOD: Use constructors or classes for consistent shapes
+class Point {
+  constructor(x = 0, y = 0) {
+    this.x = x;
+    this.y = y;
+  }
+}
+```
+
+## Inline Caching and Monomorphism
+
+Inline Caches (ICs) optimize repeated property accesses by caching offsets and rewriting machine code stubs.
+
+### IC States
+
+1. **Monomorphic** - Single hidden class observed (fastest, ~1x baseline)
+2. **Polymorphic** - 2-4 hidden classes (~3x slower)
+3. **Megamorphic** - Many hidden classes (10-50x slower, falls back to hash lookup)
+
+### Monomorphic vs Polymorphic Example
+
+```javascript
+// MONOMORPHIC: Function always receives same type
+function addVec3(a) {
+  return a.x + a.y + a.z;  // Fast fixed-offset access
+}
+
+// POLYMORPHIC: Function receives different types
+function process(obj) {
+  return obj.value;  // Could be {value} or {value, other} or...
+}
+```
+
+**Critical insight:** Design functions to receive objects of a single type/shape. If you need to handle multiple types, use separate monomorphic functions with a dispatcher.
+
+## Deoptimization: The Performance Cliff
+
+Deoptimization occurs when TurboFan's speculative assumptions fail, forcing V8 to discard optimized code and revert to lower tiers.
+
+### Common Deoptimization Triggers
+
+1. **Type changes** - Function parameter changes from Number to BigInt
+2. **Hidden class mismatches** - Object shape changes unexpectedly
+3. **Element kind transitions** - Array switches from packed integers to sparse objects
+4. **Assumptions violated** - Prototype chain modifications, global variable changes
+
+### Deoptimization Example
+
+```javascript
+// BAD: Mixing types causes deopt cycles
+function add(a, b) {
+  return a + b;
+}
+
+add(1, 2);      // Optimized for Numbers
+add(1n, 2n);    // DEOPT! Now it's BigInt
+add(3, 4);      // DEOPT again! Back to Numbers
+```
+
+```javascript
+// GOOD: Separate monomorphic functions
+function addNumber(a, b) { return a + b; }
+function addBigInt(a, b) { return a + b; }
+
+function add(a, b) {
+  return typeof a === 'bigint' ? addBigInt(a, b) : addNumber(a, b);
+}
+```
+
+## Memory Representation
+
+### Small Integers (Smis)
+
+- Represented with tagged pointers (no heap allocation)
+- On 64-bit systems with pointer compression: 31-bit signed integers
+- Range: approximately ±1 billion (±2³⁰)
+- Arithmetic with Smis is extremely fast
+
+```javascript
+// GOOD: Stays in Smi range
+for (let i = 0; i < 1000000; i++) {
+  // Fast integer arithmetic
+}
+
+// BAD: Exceeds Smi range, requires heap allocation
+const bigNum = 2_000_000_000;
+```
+
+### Heap Objects
+
+- Non-Smi values require heap allocation
+- V8 uses unboxing and escape analysis to minimize allocations
+- String internalization: Identical string literals share memory
+
+## Performance Anti-Patterns
+
+### 1. Delete Operator
+
+```javascript
+// BAD: Forces object into slow dictionary mode
+const obj = { x: 1, y: 2 };
+delete obj.x;
+
+// GOOD: Set to undefined/null to maintain shape
+const obj = { x: 1, y: 2 };
+obj.x = undefined;
+```
+
+### 2. Mixed Array Element Kinds
+
+```javascript
+// BAD: Forces element kind transitions
+const arr = [1, 2, 3];        // PACKED_SMI_ELEMENTS
+arr.push(4.5);                // Transition to PACKED_DOUBLE_ELEMENTS
+arr.push({});                 // Transition to PACKED_ELEMENTS
+arr[100] = 999;               // Transition to HOLEY_ELEMENTS (sparse)
+
+// GOOD: Consistent element types
+const ints = [1, 2, 3];
+const floats = [1.5, 2.5, 3.5];
+const objects = [{}, {}, {}];
+```
+
+### 3. Arguments Object
+
+```javascript
+// BAD: arguments object is slow and prevents optimization
+function sum() {
+  let total = 0;
+  for (let i = 0; i < arguments.length; i++) {
+    total += arguments[i];
+  }
+  return total;
+}
+
+// GOOD: Use rest parameters
+function sum(...args) {
+  let total = 0;
+  for (let i = 0; i < args.length; i++) {
+    total += args[i];
+  }
+  return total;
+}
+```
+
+## Best Practices for Performance-Critical Code
+
+1. **Initialize all properties upfront** - Even optional ones (set to null/undefined)
+2. **Design monomorphic functions** - Single type per function call site
+3. **Use constructors or classes** - Ensures consistent hidden classes
+4. **Avoid delete operator** - Assign to undefined instead
+5. **Keep arrays homogeneous** - Same element type throughout
+6. **Stay in Smi range** - Use 32-bit integers when possible
+7. **Avoid mixing types** - Don't mix Number/BigInt, int/float in hot paths
+8. **Pre-allocate when possible** - Typed arrays for numeric data
+9. **Use factory functions** - Consistent object creation patterns
+10. **Profile before optimizing** - Use V8 flags to understand actual behavior
+
+## Fundamental Principle
+
+**Write predictable, monomorphic code that respects hidden class stability, and V8's compilers will reward you with near-C++ performance.**
+
+---
+
+**Source:** [The Node Book - V8 Engine Architecture](https://www.thenodebook.com/node-arch/v8-engine-intro)
