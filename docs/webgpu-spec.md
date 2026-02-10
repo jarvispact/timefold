@@ -1,201 +1,327 @@
-# WebGPU Specification Summary
+# WebGPU Specification - Condensed Reference
 
-Condensed reference for implementing WebGPU rendering on the web. Focuses on practical rendering usage, omitting native-only concerns and low-level driver details.
+Condensed reference of the W3C WebGPU specification (https://www.w3.org/TR/webgpu/) for implementing web-targeted rendering code.
 
-## Architecture
+---
 
-WebGPU operates across three timelines:
-- **Content timeline**: JavaScript execution and API calls
-- **Device timeline**: Resource creation and driver communication
-- **Queue timeline**: GPU command execution (draw/compute)
+## 1. Architecture
 
-Core design principles:
-- CPU-based validation prevents undefined behavior
-- All resources initialize to zero (security)
+### Timelines
+
+- **Content timeline** - JS execution, API calls
+- **Device timeline** - resource creation, driver communication
+- **Queue timeline** - GPU command execution
+
+### Design Principles
+
+- CPU-side validation prevents undefined behavior - no raw GPU errors leak
+- All resources zero-initialized (security guarantee)
+- Contagious invalidity: objects created from invalid parents are themselves invalid
 - Explicit resource ownership and lifecycle management
-- Contagious invalidity: objects created from invalid parents are invalid
 
-## Initialization
+### Object Graph
 
-```javascript
-// 1. Request adapter (represents physical GPU)
-const adapter = await navigator.gpu.requestAdapter();
+```
+navigator.gpu (GPU)
+  └─ GPUAdapter (physical GPU)
+       └─ GPUDevice (logical device, owns all resources)
+            ├─ GPUQueue (single queue per device)
+            ├─ GPUBuffer, GPUTexture, GPUSampler
+            ├─ GPUShaderModule
+            ├─ GPUBindGroupLayout, GPUPipelineLayout
+            ├─ GPUBindGroup
+            ├─ GPURenderPipeline, GPUComputePipeline
+            ├─ GPUCommandEncoder → GPUCommandBuffer
+            ├─ GPURenderBundleEncoder → GPURenderBundle
+            └─ GPUQuerySet
+```
 
-// 2. Request device (manages resources, owns queue)
+---
+
+## 2. Initialization
+
+```js
+const adapter = await navigator.gpu.requestAdapter({
+  powerPreference: 'high-performance'  // 'low-power' | 'high-performance'
+});
+
 const device = await adapter.requestDevice({
-  requiredFeatures: [],  // optional GPU features
-  requiredLimits: {}     // resource limits
+  requiredFeatures: ['timestamp-query'],
+  requiredLimits: { maxStorageBufferBindingSize: 256 * 1024 * 1024 }
 });
 
-// 3. Handle device loss
-device.lost.then((info) => {
-  console.log('Device lost:', info.reason, info.message);
-});
+device.lost.then(info => { /* info.reason: 'destroyed' | 'unknown' */ });
 ```
 
-**GPUAdapter** properties:
-- `isFallbackAdapter`: boolean
-- `features`: supported optional features
-- `limits`: resource constraints (texture sizes, buffer sizes, etc.)
-- `info`: vendor/device information (privacy-protected)
+**GPUAdapter** exposes:
+- `features: GPUSupportedFeatures` - set of optional feature strings
+- `limits: GPUSupportedLimits` - numerical resource constraints
+- `info: GPUAdapterInfo` - vendor, architecture, device, description (privacy-filtered)
+- `isFallbackAdapter: boolean`
 
-## Resources
+---
 
-### Buffers
+## 3. Buffers
 
-Unified memory for vertex, index, uniform, and storage data.
-
-```javascript
+```js
 const buffer = device.createBuffer({
-  size: 1024,              // bytes
+  size: 1024,                // bytes, must be multiple of 4
   usage: GPUBufferUsage.VERTEX | GPUBufferUsage.COPY_DST,
-  mappedAtCreation: false  // optional: map immediately
+  mappedAtCreation: false
 });
 ```
 
-**Usage flags** (bitwise OR):
-- `INDEX` - index buffer
-- `VERTEX` - vertex buffer
-- `UNIFORM` - uniform buffer
-- `STORAGE` - storage buffer (read/write in shaders)
-- `INDIRECT` - indirect draw/dispatch arguments
-- `COPY_SRC` - source for copy operations
-- `COPY_DST` - destination for copy operations
+### Usage Flags (bitwise OR)
 
-**Buffer mapping** (CPU access):
-```javascript
-await buffer.mapAsync(GPUMapMode.READ);
-const data = new Float32Array(buffer.getMappedRange());
-// ... use data ...
+| Flag | Value | Description |
+|------|-------|-------------|
+| `MAP_READ` | 0x0001 | Can be mapped for reading |
+| `MAP_WRITE` | 0x0002 | Can be mapped for writing |
+| `COPY_SRC` | 0x0004 | Source of copy operations |
+| `COPY_DST` | 0x0008 | Destination of copy operations |
+| `INDEX` | 0x0010 | Index buffer |
+| `VERTEX` | 0x0020 | Vertex buffer |
+| `UNIFORM` | 0x0040 | Uniform buffer binding |
+| `STORAGE` | 0x0080 | Storage buffer binding |
+| `INDIRECT` | 0x0100 | Indirect draw/dispatch arguments |
+| `QUERY_RESOLVE` | 0x0200 | Destination of query resolve |
+
+**Constraints**: `MAP_READ` only combinable with `COPY_DST`. `MAP_WRITE` only combinable with `COPY_SRC`.
+
+### Buffer Mapping
+
+```js
+// Async map for CPU access
+await buffer.mapAsync(GPUMapMode.READ, offset, size);
+const data = new Float32Array(buffer.getMappedRange(offset, size));
 buffer.unmap();
+
+// Direct write (no mapping needed, requires COPY_DST)
+device.queue.writeBuffer(buffer, byteOffset, typedArray);
 ```
 
-**Write without mapping**:
-```javascript
-device.queue.writeBuffer(buffer, 0, new Float32Array([1, 2, 3]));
+### Destruction
+
+```js
+buffer.destroy();  // releases GPU memory, invalidates buffer
 ```
 
-### Textures
+---
 
-Multi-dimensional image data with typed formats.
+## 4. Textures
 
-```javascript
+```js
 const texture = device.createTexture({
   size: { width: 512, height: 512, depthOrArrayLayers: 1 },
   format: 'rgba8unorm',
-  dimension: '2d',  // '1d', '2d', '3d'
+  dimension: '2d',           // '1d' | '2d' | '3d'
   usage: GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.RENDER_ATTACHMENT,
   mipLevelCount: 1,
-  sampleCount: 1
+  sampleCount: 1,            // 1 or 4 (MSAA)
+  viewFormats: []             // additional formats for views
 });
 ```
 
-**Usage flags**:
-- `TEXTURE_BINDING` - read in shaders
-- `STORAGE_BINDING` - read/write in compute shaders
-- `RENDER_ATTACHMENT` - render target
-- `COPY_SRC` / `COPY_DST` - copy operations
+### Usage Flags
 
-**Texture views** (typed accessors):
-```javascript
+| Flag | Value | Description |
+|------|-------|-------------|
+| `COPY_SRC` | 0x01 | Source for copy operations |
+| `COPY_DST` | 0x02 | Destination for copy operations |
+| `TEXTURE_BINDING` | 0x04 | Sampleable in shaders |
+| `STORAGE_BINDING` | 0x08 | Writable in compute shaders |
+| `RENDER_ATTACHMENT` | 0x10 | Render target / resolve target |
+
+### Texture Views
+
+```js
 const view = texture.createView({
-  format: 'rgba8unorm',        // optional: reinterpret format
-  dimension: '2d',             // optional: view dimension
-  baseMipLevel: 0,             // mipmap range
+  format: 'rgba8unorm',       // can reinterpret if listed in viewFormats
+  dimension: '2d',            // override view dimension
+  aspect: 'all',              // 'all' | 'depth-only' | 'stencil-only'
+  baseMipLevel: 0,
   mipLevelCount: 1,
-  baseArrayLayer: 0,           // array layer range
+  baseArrayLayer: 0,
   arrayLayerCount: 1
 });
 ```
 
-**Common texture formats**:
-- **8-bit**: `r8unorm`, `rg8unorm`, `rgba8unorm`, `rgba8unorm-srgb`
-- **16-bit float**: `r16float`, `rg16float`, `rgba16float`
-- **32-bit float**: `r32float`, `rg32float`, `rgba32float`
-- **32-bit int**: `r32sint`, `r32uint`
-- **Packed**: `rgb10a2unorm`, `rg11b10ufloat`
-- **Depth**: `depth32float`, `depth24plus`, `depth16unorm`
-- **Depth-stencil**: `depth24plus-stencil8`
-- **Compressed** (optional features): BC*, ETC2, ASTC formats
+**GPUTextureViewDimension**: `'1d'` | `'2d'` | `'2d-array'` | `'cube'` | `'cube-array'` | `'3d'`
 
-**Write texture data**:
-```javascript
+### Texture Formats
+
+#### Plain Color Formats
+
+**8-bit per component:**
+`r8unorm`, `r8snorm`, `r8uint`, `r8sint`
+`rg8unorm`, `rg8snorm`, `rg8uint`, `rg8sint`
+`rgba8unorm`, `rgba8unorm-srgb`, `rgba8snorm`, `rgba8uint`, `rgba8sint`
+`bgra8unorm`, `bgra8unorm-srgb`
+
+**16-bit per component:**
+`r16uint`, `r16sint`, `r16float`
+`rg16uint`, `rg16sint`, `rg16float`
+`rgba16uint`, `rgba16sint`, `rgba16float`
+
+**32-bit per component:**
+`r32uint`, `r32sint`, `r32float`
+`rg32uint`, `rg32sint`, `rg32float`
+`rgba32uint`, `rgba32sint`, `rgba32float`
+
+**Packed formats:**
+`rgb10a2uint`, `rgb10a2unorm` - 10-bit RGB + 2-bit alpha
+`rg11b10ufloat` - 11/11/10-bit unsigned float
+`rgb9e5ufloat` - 9-bit mantissa + 5-bit shared exponent
+
+#### Depth/Stencil Formats
+
+| Format | Depth bits | Stencil bits | Notes |
+|--------|-----------|--------------|-------|
+| `depth16unorm` | 16 | - | |
+| `depth24plus` | 24+ | - | opaque depth |
+| `depth24plus-stencil8` | 24+ | 8 | opaque depth + stencil |
+| `depth32float` | 32 (float) | - | |
+| `depth32float-stencil8` | 32 (float) | 8 | requires feature |
+| `stencil8` | - | 8 | |
+
+#### Compressed Formats (optional features)
+
+**BC** (require `texture-compression-bc`):
+`bc1-rgba-unorm`, `bc1-rgba-unorm-srgb`, `bc2-rgba-unorm`, `bc2-rgba-unorm-srgb`,
+`bc3-rgba-unorm`, `bc3-rgba-unorm-srgb`, `bc4-r-unorm`, `bc4-r-snorm`,
+`bc5-rg-unorm`, `bc5-rg-snorm`, `bc6h-rgb-ufloat`, `bc6h-rgb-float`,
+`bc7-rgba-unorm`, `bc7-rgba-unorm-srgb`
+
+**ETC2** (require `texture-compression-etc2`):
+`etc2-rgb8unorm`, `etc2-rgb8unorm-srgb`, `etc2-rgb8a1unorm`, `etc2-rgb8a1unorm-srgb`,
+`etc2-rgba8unorm`, `etc2-rgba8unorm-srgb`, `eac-r11unorm`, `eac-r11snorm`,
+`eac-rg11unorm`, `eac-rg11snorm`
+
+**ASTC** (require `texture-compression-astc`):
+`astc-4x4-unorm`, `astc-4x4-unorm-srgb`, `astc-5x4-unorm`, `astc-5x4-unorm-srgb`,
+`astc-5x5-unorm`, `astc-5x5-unorm-srgb`, `astc-6x5-unorm`, `astc-6x5-unorm-srgb`,
+`astc-6x6-unorm`, `astc-6x6-unorm-srgb`, `astc-8x5-unorm`, `astc-8x5-unorm-srgb`,
+`astc-8x6-unorm`, `astc-8x6-unorm-srgb`, `astc-8x8-unorm`, `astc-8x8-unorm-srgb`,
+`astc-10x5-unorm`, `astc-10x5-unorm-srgb`, `astc-10x6-unorm`, `astc-10x6-unorm-srgb`,
+`astc-10x8-unorm`, `astc-10x8-unorm-srgb`, `astc-10x10-unorm`, `astc-10x10-unorm-srgb`,
+`astc-12x10-unorm`, `astc-12x10-unorm-srgb`, `astc-12x12-unorm`, `astc-12x12-unorm-srgb`
+
+### Writing Texture Data
+
+```js
 device.queue.writeTexture(
-  { texture, mipLevel: 0, origin: [0, 0, 0] },
-  imageData,
-  { bytesPerRow: 512 * 4, rowsPerImage: 512 },
-  { width: 512, height: 512 }
+  { texture, mipLevel: 0, origin: [0, 0, 0], aspect: 'all' },
+  data,                                          // ArrayBuffer or typed array
+  { offset: 0, bytesPerRow: width * 4, rowsPerImage: height },
+  { width, height, depthOrArrayLayers: 1 }
+);
+
+// From canvas, ImageBitmap, VideoFrame, OffscreenCanvas
+device.queue.copyExternalImageToTexture(
+  { source: imageBitmap, flipY: false },
+  { texture, premultipliedAlpha: false, colorSpace: 'srgb' },
+  { width, height }
 );
 ```
 
-### Samplers
+---
 
-Texture filtering and addressing configuration.
+## 5. Samplers
 
-```javascript
+```js
 const sampler = device.createSampler({
-  addressModeU: 'repeat',      // 'repeat', 'mirror-repeat', 'clamp-to-edge'
+  addressModeU: 'repeat',    // 'clamp-to-edge' | 'repeat' | 'mirror-repeat'
   addressModeV: 'repeat',
   addressModeW: 'repeat',
-  magFilter: 'linear',         // 'nearest', 'linear'
+  magFilter: 'linear',       // 'nearest' | 'linear'
   minFilter: 'linear',
-  mipmapFilter: 'linear',
+  mipmapFilter: 'linear',    // 'nearest' | 'linear'
   lodMinClamp: 0,
   lodMaxClamp: 32,
-  maxAnisotropy: 1
+  compare: undefined,        // GPUCompareFunction for depth comparison samplers
+  maxAnisotropy: 1           // 1-16, requires linear filtering
 });
 ```
 
-## Shaders
+---
 
-Shaders use WGSL (WebGPU Shading Language). See separate WGSL spec for language details.
+## 6. External Textures
 
-```javascript
+Import live video content for efficient single-frame sampling:
+
+```js
+const externalTexture = device.importExternalTexture({
+  source: videoElement,       // HTMLVideoElement or VideoFrame
+  colorSpace: 'srgb'         // 'srgb' | 'display-p3'
+});
+// Must be used within the same task (expires at end of microtask)
+```
+
+Bound as `texture_external` in WGSL, sampled with `textureSampleBaseClampToEdge`.
+
+---
+
+## 7. Shader Modules
+
+```js
 const shaderModule = device.createShaderModule({
-  code: `
-    @vertex
-    fn vs_main(@builtin(vertex_index) idx: u32) -> @builtin(position) vec4f {
-      return vec4f(0.0, 0.0, 0.0, 1.0);
-    }
-
-    @fragment
-    fn fs_main() -> @location(0) vec4f {
-      return vec4f(1.0, 0.0, 0.0, 1.0);
-    }
-  `
+  code: wgslSourceString,
+  compilationHints: [{ entryPoint: 'main', layout: pipelineLayout }]  // optional
 });
 
-// Check compilation errors
 const info = await shaderModule.getCompilationInfo();
+// info.messages[].{ message, type: 'error'|'warning'|'info', lineNum, linePos }
 ```
 
-**Note**: WGSL details (built-ins, types, storage classes) are in the separate WGSL specification.
+---
 
-## Resource Binding
-
-Bind groups connect resources (buffers, textures, samplers) to shaders.
+## 8. Resource Binding
 
 ### Bind Group Layout
 
-Describes expected resource structure:
+Declares the expected shape of resources for a pipeline stage:
 
-```javascript
+```js
 const bindGroupLayout = device.createBindGroupLayout({
   entries: [
     {
       binding: 0,
-      visibility: GPUShaderStage.VERTEX | GPUShaderStage.FRAGMENT,
-      buffer: { type: 'uniform' }  // 'uniform', 'storage', 'read-only-storage'
+      visibility: GPUShaderStage.VERTEX | GPUShaderStage.FRAGMENT,  // VERTEX=0x1, FRAGMENT=0x2, COMPUTE=0x4
+      buffer: {
+        type: 'uniform',          // 'uniform' | 'storage' | 'read-only-storage'
+        hasDynamicOffset: false,
+        minBindingSize: 0          // 0 = no minimum
+      }
     },
     {
       binding: 1,
       visibility: GPUShaderStage.FRAGMENT,
-      texture: { sampleType: 'float' }  // 'float', 'sint', 'uint', 'depth'
+      texture: {
+        sampleType: 'float',      // 'float' | 'unfilterable-float' | 'depth' | 'sint' | 'uint'
+        viewDimension: '2d',      // GPUTextureViewDimension
+        multisampled: false
+      }
     },
     {
       binding: 2,
       visibility: GPUShaderStage.FRAGMENT,
-      sampler: { type: 'filtering' }  // 'filtering', 'non-filtering', 'comparison'
+      sampler: {
+        type: 'filtering'          // 'filtering' | 'non-filtering' | 'comparison'
+      }
+    },
+    {
+      binding: 3,
+      visibility: GPUShaderStage.COMPUTE,
+      storageTexture: {
+        access: 'write-only',     // 'write-only' | 'read-only' | 'read-write'
+        format: 'rgba8unorm',
+        viewDimension: '2d'
+      }
+    },
+    {
+      binding: 4,
+      visibility: GPUShaderStage.FRAGMENT,
+      externalTexture: {}
     }
   ]
 });
@@ -203,446 +329,616 @@ const bindGroupLayout = device.createBindGroupLayout({
 
 ### Bind Group
 
-Actual resource bindings:
+Creates actual resource bindings matching a layout:
 
-```javascript
+```js
 const bindGroup = device.createBindGroup({
   layout: bindGroupLayout,
   entries: [
-    { binding: 0, resource: { buffer: uniformBuffer } },
+    { binding: 0, resource: { buffer: uniformBuf, offset: 0, size: 64 } },
     { binding: 1, resource: textureView },
-    { binding: 2, resource: sampler }
+    { binding: 2, resource: sampler },
+    { binding: 3, resource: storageTextureView },
+    { binding: 4, resource: externalTexture }
   ]
 });
 ```
 
 ### Pipeline Layout
 
-Organizes multiple bind groups:
-
-```javascript
+```js
 const pipelineLayout = device.createPipelineLayout({
-  bindGroupLayouts: [bindGroupLayout0, bindGroupLayout1]
+  bindGroupLayouts: [bgl0, bgl1, bgl2, bgl3]   // max 4 groups (default limit)
 });
 ```
 
-**Auto-layout alternative**: Use `layout: 'auto'` in pipeline descriptor, then introspect:
-```javascript
-const layout = pipeline.getBindGroupLayout(0);
-```
+**Auto layout**: Use `layout: 'auto'` in pipeline descriptor. Then retrieve with `pipeline.getBindGroupLayout(index)`. Cannot mix auto-layout bind group layouts across pipelines.
 
-## Render Pipelines
+---
 
-Graphics pipelines control the entire rendering process.
+## 9. Render Pipelines
 
-```javascript
+```js
 const pipeline = device.createRenderPipeline({
-  layout: pipelineLayout,  // or 'auto'
+  layout: pipelineLayout,    // GPUPipelineLayout or 'auto'
 
   vertex: {
     module: shaderModule,
-    entryPoint: 'vs_main',
-    buffers: [  // vertex buffer layouts
+    entryPoint: 'vs_main',   // optional if module has single vertex entry point
+    constants: { },           // pipeline-overridable constants
+    buffers: [                // vertex buffer layouts, up to maxVertexBuffers
       {
-        arrayStride: 20,  // bytes per vertex
-        stepMode: 'vertex',  // 'vertex' or 'instance'
+        arrayStride: 32,      // bytes per element
+        stepMode: 'vertex',   // 'vertex' | 'instance'
         attributes: [
-          { shaderLocation: 0, offset: 0, format: 'float32x3' },   // position
-          { shaderLocation: 1, offset: 12, format: 'float32x2' }   // uv
+          { shaderLocation: 0, offset: 0, format: 'float32x3' },
+          { shaderLocation: 1, offset: 12, format: 'float32x3' },
+          { shaderLocation: 2, offset: 24, format: 'float32x2' }
         ]
       }
     ]
   },
 
   primitive: {
-    topology: 'triangle-list',  // 'point-list', 'line-list', 'line-strip', 'triangle-strip'
-    frontFace: 'ccw',           // 'ccw', 'cw'
-    cullMode: 'back'            // 'none', 'front', 'back'
+    topology: 'triangle-list',   // 'point-list'|'line-list'|'line-strip'|'triangle-list'|'triangle-strip'
+    stripIndexFormat: undefined,  // required for strip topologies: 'uint16'|'uint32'
+    frontFace: 'ccw',            // 'ccw' | 'cw'
+    cullMode: 'back',            // 'none' | 'front' | 'back'
+    unclippedDepth: false        // requires 'depth-clip-control' feature
   },
 
-  depthStencil: {
+  depthStencil: {                // omit if no depth/stencil attachment
     format: 'depth24plus',
     depthWriteEnabled: true,
-    depthCompare: 'less',  // 'never', 'less', 'equal', 'less-equal', 'greater', 'not-equal', 'greater-equal', 'always'
-
-    stencilFront: {
+    depthCompare: 'less',        // GPUCompareFunction
+    stencilFront: {              // defaults: compare='always', all ops='keep'
       compare: 'always',
-      failOp: 'keep',      // 'keep', 'zero', 'replace', 'invert', 'increment-clamp', 'decrement-clamp', 'increment-wrap', 'decrement-wrap'
+      failOp: 'keep',
       depthFailOp: 'keep',
       passOp: 'keep'
     },
-    stencilBack: { /* ... */ }
+    stencilBack: { /* same as stencilFront */ },
+    stencilReadMask: 0xFFFFFFFF,
+    stencilWriteMask: 0xFFFFFFFF,
+    depthBias: 0,
+    depthBiasSlopeScale: 0,
+    depthBiasClamp: 0
   },
 
   multisample: {
-    count: 1,  // 1 or 4 (MSAA samples)
-    mask: 0xFFFFFFFF
+    count: 1,                    // 1 or 4
+    mask: 0xFFFFFFFF,
+    alphaToCoverageEnabled: false
   },
 
   fragment: {
     module: shaderModule,
     entryPoint: 'fs_main',
-    targets: [
+    constants: { },
+    targets: [                   // one per color attachment
       {
-        format: 'rgba8unorm',
-        blend: {
-          color: {
-            srcFactor: 'src-alpha',
-            dstFactor: 'one-minus-src-alpha',
-            operation: 'add'  // 'add', 'subtract', 'reverse-subtract', 'min', 'max'
-          },
-          alpha: {
-            srcFactor: 'one',
-            dstFactor: 'zero',
-            operation: 'add'
-          }
+        format: 'bgra8unorm',
+        blend: {                 // omit for no blending
+          color: { srcFactor: 'src-alpha', dstFactor: 'one-minus-src-alpha', operation: 'add' },
+          alpha: { srcFactor: 'one', dstFactor: 'zero', operation: 'add' }
         },
-        writeMask: GPUColorWrite.ALL  // bitwise OR of RED, GREEN, BLUE, ALPHA
+        writeMask: GPUColorWrite.ALL   // RED=0x1, GREEN=0x2, BLUE=0x4, ALPHA=0x8, ALL=0xF
       }
     ]
   }
 });
-```
 
-**Async pipeline creation** (for large shaders):
-```javascript
+// Async creation (avoids stalling on shader compilation)
 const pipeline = await device.createRenderPipelineAsync(descriptor);
 ```
 
-**Vertex attribute formats**:
-- `float32`, `float32x2`, `float32x3`, `float32x4`
-- `sint32`, `sint32x2`, `sint32x3`, `sint32x4`
-- `uint32`, `uint32x2`, `uint32x3`, `uint32x4`
-- `float16x2`, `float16x4` (requires feature)
-- `unorm8x2`, `unorm8x4`, `snorm8x2`, `snorm8x4`
-- `unorm16x2`, `unorm16x4`, `snorm16x2`, `snorm16x4`
+### Vertex Formats
 
-## Compute Pipelines
+| Format | Components | Byte size | WGSL type |
+|--------|-----------|-----------|-----------|
+| `uint8x2`, `uint8x4` | 2, 4 | 2, 4 | `vec2<u32>`, `vec4<u32>` |
+| `sint8x2`, `sint8x4` | 2, 4 | 2, 4 | `vec2<i32>`, `vec4<i32>` |
+| `unorm8x2`, `unorm8x4` | 2, 4 | 2, 4 | `vec2<f32>`, `vec4<f32>` |
+| `snorm8x2`, `snorm8x4` | 2, 4 | 2, 4 | `vec2<f32>`, `vec4<f32>` |
+| `uint16x2`, `uint16x4` | 2, 4 | 4, 8 | `vec2<u32>`, `vec4<u32>` |
+| `sint16x2`, `sint16x4` | 2, 4 | 4, 8 | `vec2<i32>`, `vec4<i32>` |
+| `unorm16x2`, `unorm16x4` | 2, 4 | 4, 8 | `vec2<f32>`, `vec4<f32>` |
+| `snorm16x2`, `snorm16x4` | 2, 4 | 4, 8 | `vec2<f32>`, `vec4<f32>` |
+| `float16x2`, `float16x4` | 2, 4 | 4, 8 | `vec2<f16>`, `vec4<f16>` |
+| `float32`, `float32x2`, `float32x3`, `float32x4` | 1-4 | 4-16 | `f32`, `vec2f`-`vec4f` |
+| `uint32`, `uint32x2`, `uint32x3`, `uint32x4` | 1-4 | 4-16 | `u32`, `vec2u`-`vec4u` |
+| `sint32`, `sint32x2`, `sint32x3`, `sint32x4` | 1-4 | 4-16 | `i32`, `vec2i`-`vec4i` |
+| `unorm10-10-10-2` | 4 | 4 | `vec4<f32>` |
 
-```javascript
+### Blend Factors (`GPUBlendFactor`)
+
+`zero`, `one`, `src`, `one-minus-src`, `src-alpha`, `one-minus-src-alpha`,
+`dst`, `one-minus-dst`, `dst-alpha`, `one-minus-dst-alpha`,
+`src-alpha-saturated`, `constant`, `one-minus-constant`
+
+With `dual-source-blending` feature: `src1`, `one-minus-src1`, `src1-alpha`, `one-minus-src1-alpha`
+
+### Blend Operations (`GPUBlendOperation`)
+
+`add`, `subtract`, `reverse-subtract`, `min`, `max`
+
+### Compare Functions (`GPUCompareFunction`)
+
+`never`, `less`, `equal`, `less-equal`, `greater`, `not-equal`, `greater-equal`, `always`
+
+### Stencil Operations (`GPUStencilOperation`)
+
+`keep`, `zero`, `replace`, `invert`, `increment-clamp`, `decrement-clamp`, `increment-wrap`, `decrement-wrap`
+
+---
+
+## 10. Compute Pipelines
+
+```js
 const computePipeline = device.createComputePipeline({
-  layout: pipelineLayout,  // or 'auto'
+  layout: pipelineLayout,   // or 'auto'
   compute: {
     module: shaderModule,
-    entryPoint: 'compute_main'
+    entryPoint: 'main',
+    constants: { blockSize: 16 }   // pipeline-overridable constants
   }
 });
+
+const computePipeline = await device.createComputePipelineAsync(descriptor);
 ```
 
-## Command Encoding
+---
 
-Commands are recorded into command buffers via encoders.
+## 11. Command Encoding
 
-```javascript
-const encoder = device.createCommandEncoder();
+### Command Encoder
+
+```js
+const encoder = device.createCommandEncoder({ label: 'frame' });
 
 // Copy operations
-encoder.copyBufferToBuffer(srcBuffer, 0, dstBuffer, 0, 256);
+encoder.copyBufferToBuffer(src, srcOffset, dst, dstOffset, size);
 encoder.copyBufferToTexture(
-  { buffer: srcBuffer, bytesPerRow: 512 * 4 },
-  { texture: dstTexture },
-  { width: 512, height: 512 }
+  { buffer, bytesPerRow, rowsPerImage, offset },
+  { texture, mipLevel, origin, aspect },
+  { width, height, depthOrArrayLayers }
 );
-encoder.copyTextureToTexture(src, dst, size);
+encoder.copyTextureToBuffer(source, destination, copySize);
+encoder.copyTextureToTexture(source, destination, copySize);
 
-// Clear buffer
-encoder.clearBuffer(buffer, 0, 256);
+// Clear
+encoder.clearBuffer(buffer, offset, size);
 
-// Finish encoding
+// Queries
+encoder.resolveQuerySet(querySet, firstQuery, queryCount, destination, destinationOffset);
+
+// Finish
 const commandBuffer = encoder.finish();
 device.queue.submit([commandBuffer]);
 ```
 
-## Render Passes
+### Render Pass
 
-Render passes define rendering operations.
-
-```javascript
-const renderPass = encoder.beginRenderPass({
-  colorAttachments: [
-    {
-      view: textureView,
-      loadOp: 'clear',    // 'load' or 'clear'
-      storeOp: 'store',   // 'store' or 'discard'
-      clearValue: { r: 0.0, g: 0.0, b: 0.0, a: 1.0 }
-    }
-  ],
+```js
+const pass = encoder.beginRenderPass({
+  colorAttachments: [{
+    view: textureView,           // render target
+    resolveTarget: undefined,    // MSAA resolve target (sampleCount=1 texture)
+    loadOp: 'clear',             // 'load' | 'clear'
+    storeOp: 'store',            // 'store' | 'discard'
+    clearValue: { r: 0, g: 0, b: 0, a: 1 }
+  }],
   depthStencilAttachment: {
-    view: depthTextureView,
+    view: depthView,
     depthLoadOp: 'clear',
     depthStoreOp: 'store',
     depthClearValue: 1.0,
-    stencilLoadOp: 'clear',
+    depthReadOnly: false,
+    stencilLoadOp: 'clear',      // omit for depth-only formats
     stencilStoreOp: 'discard',
-    stencilClearValue: 0
+    stencilClearValue: 0,
+    stencilReadOnly: false
   },
-  timestampWrites: undefined,  // optional query set
-  occlusionQuerySet: undefined  // optional query set
+  occlusionQuerySet: undefined,
+  timestampWrites: undefined
 });
 
-// Set pipeline and resources
-renderPass.setPipeline(pipeline);
-renderPass.setBindGroup(0, bindGroup0);
-renderPass.setBindGroup(1, bindGroup1, [0, 16]);  // optional dynamic offsets
-
-// Set vertex/index buffers
-renderPass.setVertexBuffer(0, vertexBuffer);
-renderPass.setIndexBuffer(indexBuffer, 'uint16');  // 'uint16' or 'uint32'
-
-// Viewport and scissor
-renderPass.setViewport(0, 0, 800, 600, 0, 1);
-renderPass.setScissorRect(0, 0, 800, 600);
-
-// Blend and stencil state
-renderPass.setBlendConstant([1, 1, 1, 1]);
-renderPass.setStencilReference(0);
+// State setup
+pass.setPipeline(renderPipeline);
+pass.setBindGroup(0, bindGroup);
+pass.setBindGroup(1, dynamicBindGroup, [dynamicOffset1, dynamicOffset2]);  // dynamic offsets
+pass.setVertexBuffer(0, vertexBuffer, offset, size);
+pass.setIndexBuffer(indexBuffer, 'uint16', offset, size);  // 'uint16' | 'uint32'
+pass.setViewport(x, y, width, height, minDepth, maxDepth);
+pass.setScissorRect(x, y, width, height);
+pass.setBlendConstant({ r, g, b, a });
+pass.setStencilReference(value);
 
 // Draw commands
-renderPass.draw(vertexCount, instanceCount, firstVertex, firstInstance);
-renderPass.drawIndexed(indexCount, instanceCount, firstIndex, baseVertex, firstInstance);
-renderPass.drawIndirect(indirectBuffer, offset);
-renderPass.drawIndexedIndirect(indirectBuffer, offset);
+pass.draw(vertexCount, instanceCount, firstVertex, firstInstance);
+pass.drawIndexed(indexCount, instanceCount, firstIndex, baseVertex, firstInstance);
+pass.drawIndirect(indirectBuffer, indirectOffset);
+pass.drawIndexedIndirect(indirectBuffer, indirectOffset);
 
-// Execute reusable render bundles
-renderPass.executeBundles([renderBundle1, renderBundle2]);
+// Render bundles
+pass.executeBundles([bundle1, bundle2]);
 
-// End pass
-renderPass.end();
+// Occlusion queries
+pass.beginOcclusionQuery(queryIndex);
+pass.endOcclusionQuery();
+
+pass.end();
 ```
 
-## Compute Passes
+**Indirect buffer layout** (draw):
+| Offset | Field | Type |
+|--------|-------|------|
+| 0 | vertexCount | uint32 |
+| 4 | instanceCount | uint32 |
+| 8 | firstVertex | uint32 |
+| 12 | firstInstance | uint32 |
 
-```javascript
-const computePass = encoder.beginComputePass();
+**Indirect buffer layout** (drawIndexed):
+| Offset | Field | Type |
+|--------|-------|------|
+| 0 | indexCount | uint32 |
+| 4 | instanceCount | uint32 |
+| 8 | firstIndex | uint32 |
+| 12 | baseVertex | int32 |
+| 16 | firstInstance | uint32 |
 
-computePass.setPipeline(computePipeline);
-computePass.setBindGroup(0, bindGroup);
+### Compute Pass
 
-// Dispatch workgroups
-computePass.dispatchWorkgroups(8, 8, 1);
-computePass.dispatchWorkgroupsIndirect(indirectBuffer, offset);
-
-computePass.end();
-```
-
-## Render Bundles
-
-Reusable command bundles for repeated render operations.
-
-```javascript
-const bundleEncoder = device.createRenderBundleEncoder({
-  colorFormats: ['rgba8unorm'],
-  depthStencilFormat: 'depth24plus',
-  sampleCount: 1
+```js
+const pass = encoder.beginComputePass({
+  timestampWrites: undefined
 });
 
-// Record commands (same as render pass, but limited subset)
+pass.setPipeline(computePipeline);
+pass.setBindGroup(0, bindGroup);
+pass.dispatchWorkgroups(countX, countY, countZ);
+pass.dispatchWorkgroupsIndirect(indirectBuffer, indirectOffset);
+
+pass.end();
+```
+
+**Indirect dispatch buffer layout**: 3x uint32 (workgroupCountX, workgroupCountY, workgroupCountZ)
+
+### Render Bundles
+
+Pre-record reusable command sequences for repeated rendering:
+
+```js
+const bundleEncoder = device.createRenderBundleEncoder({
+  colorFormats: ['bgra8unorm'],
+  depthStencilFormat: 'depth24plus',
+  sampleCount: 1,
+  depthReadOnly: false,
+  stencilReadOnly: false
+});
+
+// Supports: setPipeline, setBindGroup, setVertexBuffer, setIndexBuffer, draw*, setStencilReference, setBlendConstant
 bundleEncoder.setPipeline(pipeline);
-bundleEncoder.setBindGroup(0, bindGroup);
 bundleEncoder.setVertexBuffer(0, vertexBuffer);
 bundleEncoder.draw(3);
 
-const renderBundle = bundleEncoder.finish();
-
-// Execute in render pass
-renderPass.executeBundles([renderBundle]);
+const bundle = bundleEncoder.finish();
+// Use in render pass: pass.executeBundles([bundle]);
 ```
 
-## Canvas Integration
+---
 
-Get WebGPU context and configure for rendering.
+## 12. Queue Operations
 
-```javascript
-const canvas = document.querySelector('canvas');
-const context = canvas.getContext('webgpu');
-
-context.configure({
-  device: device,
-  format: navigator.gpu.getPreferredCanvasFormat(),  // usually 'bgra8unorm'
-  usage: GPUTextureUsage.RENDER_ATTACHMENT,
-  alphaMode: 'opaque',  // 'opaque' or 'premultiplied'
-  colorSpace: 'srgb',   // 'srgb' or 'display-p3'
-  viewFormats: []       // additional view formats
-});
-
-// Render loop
-function frame() {
-  const texture = context.getCurrentTexture();
-  const view = texture.createView();
-
-  // ... render to view ...
-
-  requestAnimationFrame(frame);
-}
-requestAnimationFrame(frame);
-```
-
-**Canvas format**: Use `navigator.gpu.getPreferredCanvasFormat()` for optimal performance (typically `bgra8unorm` or `rgba8unorm`).
-
-## Queue Operations
-
-Submit command buffers and write data directly.
-
-```javascript
-// Submit commands
+```js
 device.queue.submit([commandBuffer1, commandBuffer2]);
 
-// Write data without staging
-device.queue.writeBuffer(buffer, offset, data);
+// Convenience writes (no command encoder needed)
+device.queue.writeBuffer(buffer, bufferOffset, data, dataOffset, size);
 device.queue.writeTexture(destination, data, dataLayout, size);
+device.queue.copyExternalImageToTexture(source, destination, copySize);
 
-// Copy external images (canvas, ImageBitmap, video)
-device.queue.copyExternalImageToTexture(
-  { source: imageBitmap },
-  { texture: texture },
-  { width: 512, height: 512 }
-);
-
-// Wait for GPU work completion
+// Fence: resolves when all submitted work completes
 await device.queue.onSubmittedWorkDone();
 ```
 
-## Coordinate Systems
+---
 
-**Normalized Device Coordinates (NDC)**:
-- X/Y range: `[-1, 1]`
-- Z range (depth): `[0, 1]`
-- Origin: bottom-left `(-1, -1)` in XY plane
-- Z increases into screen (0 = near, 1 = far)
+## 13. Canvas Integration
 
-**Framebuffer Coordinates** (viewport, scissor):
-- Origin: top-left `(0, 0)`
-- X increases right, Y increases down
-- Pixel centers at `(x + 0.5, y + 0.5)`
+```js
+const context = canvas.getContext('webgpu');
 
-**Texture Coordinates**:
-- Range `[0, 1]` per dimension
-- `(0, 0, 0)` = first texel in memory order
-- Origin depends on texture operation context
-
-## Error Handling
-
-Three error types:
-- `GPUValidationError` - invalid API usage
-- `GPUOutOfMemoryError` - allocation failed
-- `GPUInternalError` - implementation issue
-
-**Error scopes** for targeted error capture:
-
-```javascript
-device.pushErrorScope('validation');
-// ... operations that might fail ...
-const error = await device.popErrorScope();
-if (error) {
-  console.error('Validation error:', error.message);
-}
-```
-
-**Device loss**:
-```javascript
-device.lost.then((info) => {
-  // Reason: 'destroyed' or 'unknown'
-  console.log(info.reason, info.message);
-  // Must create new device to continue
-});
-```
-
-**Explicit cleanup**:
-```javascript
-device.destroy();  // invalidate device and resources
-buffer.destroy();  // release GPU memory
-texture.destroy();
-```
-
-## Queries
-
-**Occlusion queries** (fragment counts):
-```javascript
-const querySet = device.createQuerySet({
-  type: 'occlusion',
-  count: 2
+context.configure({
+  device,
+  format: navigator.gpu.getPreferredCanvasFormat(),  // 'bgra8unorm' or 'rgba8unorm'
+  usage: GPUTextureUsage.RENDER_ATTACHMENT,           // can add COPY_SRC, TEXTURE_BINDING etc
+  alphaMode: 'opaque',       // 'opaque' | 'premultiplied'
+  colorSpace: 'srgb',        // 'srgb' | 'display-p3'
+  toneMapping: { mode: 'standard' },  // 'standard' | 'extended'
+  viewFormats: []             // e.g. ['bgra8unorm-srgb'] for sRGB views
 });
 
-renderPass.beginOcclusionQuery(0);
-// ... draw calls ...
-renderPass.endOcclusionQuery();
+// Per-frame
+const texture = context.getCurrentTexture();
+const view = texture.createView();
+// ... render to view ...
 
-// Resolve to buffer
+context.unconfigure();  // release resources
+```
+
+`getCurrentTexture()` returns a texture sized to the canvas. Same texture returned per animation frame. Expires when:
+- The canvas is resized
+- `configure()` / `unconfigure()` is called
+- The document's animation frame runs (compositor presents it)
+
+---
+
+## 14. Queries
+
+### Occlusion Queries
+
+Count fragments passing depth/stencil tests (binary or precise):
+
+```js
+const querySet = device.createQuerySet({ type: 'occlusion', count: 4 });
+
+// In render pass:
+pass.beginOcclusionQuery(0);
+pass.draw(/* ... */);
+pass.endOcclusionQuery();
+
+// Resolve to buffer (uint64 per query):
+encoder.resolveQuerySet(querySet, 0, 4, resultBuffer, 0);
+```
+
+### Timestamp Queries
+
+Requires `'timestamp-query'` feature. Values may be quantized for security.
+
+```js
+const querySet = device.createQuerySet({ type: 'timestamp', count: 2 });
+
+// Via render/compute pass:
+encoder.beginRenderPass({
+  timestampWrites: {
+    querySet,
+    beginningOfPassWriteIndex: 0,
+    endOfPassWriteIndex: 1
+  },
+  // ...
+});
+
+// Resolve to buffer (uint64 nanoseconds per query):
 encoder.resolveQuerySet(querySet, 0, 2, resultBuffer, 0);
 ```
 
-**Timestamp queries** (requires `timestamp-query` feature):
-```javascript
-const querySet = device.createQuerySet({
-  type: 'timestamp',
-  count: 2
-});
+---
 
-encoder.writeTimestamp(querySet, 0);
-// ... GPU work ...
-encoder.writeTimestamp(querySet, 1);
+## 15. Error Handling
+
+### Error Types
+
+| Type | Meaning |
+|------|---------|
+| `GPUValidationError` | Invalid API usage (wrong params, state) |
+| `GPUOutOfMemoryError` | Allocation failure |
+| `GPUInternalError` | Implementation/driver issue |
+
+### Error Scopes
+
+Capture errors from a block of operations:
+
+```js
+device.pushErrorScope('validation');    // 'validation' | 'out-of-memory' | 'internal'
+// ... operations ...
+const error = await device.popErrorScope();  // null or GPUError
 ```
 
-## Optional Features
+Scopes are a stack. Each error is captured by the innermost matching scope. Uncaptured errors fire `device.onuncapturederror`.
 
-Common optional features (check `adapter.features`):
-- `texture-compression-bc` / `etc2` / `astc`
-- `timestamp-query`
-- `depth-clip-control`
-- `depth32float-stencil8`
-- `indirect-first-instance`
-- `shader-f16`
-- `float32-filterable` / `float32-blendable`
-- `dual-source-blending`
-- `subgroups`
+### Device Loss
 
-Request features when creating device:
-```javascript
-const device = await adapter.requestDevice({
-  requiredFeatures: ['timestamp-query', 'texture-compression-bc']
+```js
+device.lost.then(info => {
+  // info.reason: 'destroyed' | 'unknown'
+  // info.message: string
+  // Must create a new device to continue
+});
+
+device.destroy();  // triggers device loss with reason 'destroyed'
+```
+
+### Uncaptured Errors
+
+```js
+device.addEventListener('uncapturederror', event => {
+  console.error(event.error);  // GPUError
 });
 ```
 
-## Limits
+---
 
-Key limits (check `adapter.limits` and set `requiredLimits` if needed):
-- `maxTextureDimension1D` / `2D` / `3D`
-- `maxTextureArrayLayers`
-- `maxBindGroups` (default: 4)
-- `maxDynamicUniformBuffersPerPipelineLayout`
-- `maxDynamicStorageBuffersPerPipelineLayout`
-- `maxStorageBufferBindingSize`
-- `maxUniformBufferBindingSize`
-- `maxVertexBuffers`
-- `maxVertexAttributes`
-- `maxComputeWorkgroupSizeX` / `Y` / `Z`
-- `maxComputeInvocationsPerWorkgroup`
+## 16. Coordinate Systems
 
-## Performance Tips
+**Normalized Device Coordinates (NDC):**
+- X: [-1, 1] (left to right)
+- Y: [-1, 1] (bottom to top)
+- Z: [0, 1] (near to far, left-handed depth)
 
-**Zero-allocation rendering**:
-- Reuse command encoders by calling `finish()` and creating new ones
-- Reuse bind groups across frames
-- Use render bundles for repeated draw sequences
-- Prefer `writeBuffer`/`writeTexture` over map/unmap
+**Framebuffer / Viewport Coordinates:**
+- Origin: top-left (0, 0)
+- X right, Y down
+- Pixel centers at half-integers (x+0.5, y+0.5)
 
-**Resource management**:
-- Call `destroy()` on unused resources to free GPU memory
-- Use appropriate buffer/texture usage flags (avoid over-specification)
-- Batch draw calls when possible
+**Texture Coordinates:**
+- Origin: top-left (0, 0) for 2D textures
+- Range [0, 1] per dimension
+- First texel in memory = (0, 0)
 
-**Pipeline efficiency**:
-- Minimize pipeline switches
-- Group draw calls by pipeline
-- Use auto-layout (`layout: 'auto'`) for simpler pipelines
-- Create pipelines async during load time
+**UV → NDC note**: WebGPU's NDC Y-up vs framebuffer Y-down means the first row of a texture maps to the top of the screen when rendered to a full-screen quad with standard UV mapping.
 
-**Shader optimization**:
-- Minimize texture samples and memory accesses
-- Use appropriate precision (f16 where supported)
-- Leverage hardware features (depth testing, early-z)
+---
 
-## Reference
+## 17. Optional Features
 
-Full specification: https://www.w3.org/TR/webgpu/
-WGSL specification: https://www.w3.org/TR/WGSL/ (separate document)
+Request via `requiredFeatures` when calling `requestDevice()`.
+
+| Feature | Description |
+|---------|-------------|
+| `depth-clip-control` | Disable depth clipping (`unclippedDepth: true`) |
+| `depth32float-stencil8` | `depth32float-stencil8` format |
+| `texture-compression-bc` | BC compressed texture formats |
+| `texture-compression-bc-sliced-3d` | BC formats for 3D textures |
+| `texture-compression-etc2` | ETC2 compressed texture formats |
+| `texture-compression-astc` | ASTC compressed texture formats |
+| `texture-compression-astc-sliced-3d` | ASTC formats for 3D textures |
+| `timestamp-query` | GPU timestamp queries |
+| `indirect-first-instance` | `firstInstance` in indirect draws |
+| `shader-f16` | 16-bit float in WGSL shaders |
+| `float32-filterable` | Linear filtering for `r32float`, `rg32float`, `rgba32float` |
+| `float32-blendable` | Blending for float32 render targets |
+| `clip-distances` | `clip_distances` builtin in vertex shaders |
+| `dual-source-blending` | Two blend sources from fragment shader |
+| `subgroups` | Subgroup operations in shaders |
+| `rg11b10ufloat-renderable` | `rg11b10ufloat` as render attachment |
+| `bgra8unorm-storage` | `bgra8unorm` as storage texture |
+
+---
+
+## 18. Default Limits
+
+| Limit | Default |
+|-------|---------|
+| `maxTextureDimension1D` | 8192 |
+| `maxTextureDimension2D` | 8192 |
+| `maxTextureDimension3D` | 2048 |
+| `maxTextureArrayLayers` | 256 |
+| `maxBindGroups` | 4 |
+| `maxBindGroupsPlusVertexBuffers` | 24 |
+| `maxBindingsPerBindGroup` | 1000 |
+| `maxDynamicUniformBuffersPerPipelineLayout` | 8 |
+| `maxDynamicStorageBuffersPerPipelineLayout` | 4 |
+| `maxSampledTexturesPerShaderStage` | 16 |
+| `maxSamplersPerShaderStage` | 16 |
+| `maxStorageBuffersPerShaderStage` | 8 |
+| `maxStorageTexturesPerShaderStage` | 4 |
+| `maxUniformBuffersPerShaderStage` | 12 |
+| `maxUniformBufferBindingSize` | 65536 (64 KiB) |
+| `maxStorageBufferBindingSize` | 134217728 (128 MiB) |
+| `minUniformBufferOffsetAlignment` | 256 |
+| `minStorageBufferOffsetAlignment` | 256 |
+| `maxVertexBuffers` | 8 |
+| `maxBufferSize` | 268435456 (256 MiB) |
+| `maxVertexAttributes` | 16 |
+| `maxVertexBufferArrayStride` | 2048 |
+| `maxInterStageShaderVariables` | 16 |
+| `maxColorAttachments` | 8 |
+| `maxColorAttachmentBytesPerSample` | 32 |
+| `maxComputeWorkgroupStorageSize` | 16384 (16 KiB) |
+| `maxComputeInvocationsPerWorkgroup` | 256 |
+| `maxComputeWorkgroupSizeX` | 256 |
+| `maxComputeWorkgroupSizeY` | 256 |
+| `maxComputeWorkgroupSizeZ` | 64 |
+| `maxComputeWorkgroupsPerDimension` | 65535 |
+
+Alignment limits (`minUniformBufferOffsetAlignment`, `minStorageBufferOffsetAlignment`) are **maximum** defaults — adapters may support lower (better) alignment.
+
+---
+
+## 19. Key Validation Rules
+
+1. **Device affinity** - all objects in an operation must belong to the same device
+2. **Usage compatibility** - a texture used as both `TEXTURE_BINDING` and `STORAGE_BINDING` in the same pass must use different views of non-overlapping subresources
+3. **Render attachment constraints** - all color and depth/stencil attachments must have matching dimensions and sample counts
+4. **Bind group compatibility** - bind groups must match pipeline layout; buffer sizes must meet `minBindingSize`
+5. **Buffer overlap** - vertex/index buffers may alias in a draw; writable storage buffers must not alias
+6. **Encoding state** - passes must be ended before encoder is finished; only one pass open at a time
+7. **Map state** - mapped buffers cannot be used in submit; must unmap before use on GPU
+8. **Dynamic offsets** - must be aligned to `minUniformBufferOffsetAlignment` / `minStorageBufferOffsetAlignment`
+
+---
+
+## 20. Common Patterns
+
+### Typical Render Loop
+
+```js
+function frame() {
+  const encoder = device.createCommandEncoder();
+  const pass = encoder.beginRenderPass({
+    colorAttachments: [{
+      view: context.getCurrentTexture().createView(),
+      loadOp: 'clear',
+      storeOp: 'store',
+      clearValue: { r: 0, g: 0, b: 0, a: 1 }
+    }],
+    depthStencilAttachment: {
+      view: depthTexture.createView(),
+      depthLoadOp: 'clear',
+      depthStoreOp: 'store',
+      depthClearValue: 1.0
+    }
+  });
+  pass.setPipeline(pipeline);
+  pass.setBindGroup(0, sceneBindGroup);
+  pass.setVertexBuffer(0, vertexBuffer);
+  pass.setIndexBuffer(indexBuffer, 'uint32');
+  pass.drawIndexed(indexCount);
+  pass.end();
+  device.queue.submit([encoder.finish()]);
+  requestAnimationFrame(frame);
+}
+```
+
+### MSAA (4x Multisampling)
+
+```js
+// Create multisample render target
+const msaaTexture = device.createTexture({
+  size: [width, height],
+  format: canvasFormat,
+  sampleCount: 4,
+  usage: GPUTextureUsage.RENDER_ATTACHMENT
+});
+
+// Pipeline must match
+const pipeline = device.createRenderPipeline({
+  multisample: { count: 4 },
+  // ...
+});
+
+// Render pass: render to MSAA, resolve to canvas
+pass = encoder.beginRenderPass({
+  colorAttachments: [{
+    view: msaaTexture.createView(),
+    resolveTarget: context.getCurrentTexture().createView(),  // sampleCount=1
+    loadOp: 'clear',
+    storeOp: 'discard'     // discard MSAA, keep resolved
+  }]
+});
+```
+
+### Dynamic Uniform Buffers
+
+```js
+// Single buffer, multiple offsets
+const dynamicBuffer = device.createBuffer({
+  size: objectCount * 256,   // aligned to minUniformBufferOffsetAlignment
+  usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST
+});
+
+const bgl = device.createBindGroupLayout({
+  entries: [{
+    binding: 0,
+    visibility: GPUShaderStage.VERTEX,
+    buffer: { type: 'uniform', hasDynamicOffset: true }
+  }]
+});
+
+// In render loop:
+for (let i = 0; i < objectCount; i++) {
+  pass.setBindGroup(0, bindGroup, [i * 256]);  // dynamic offset
+  pass.draw(vertexCount);
+}
+```

@@ -219,6 +219,92 @@ function sum(...args) {
 }
 ```
 
+## Array Element Kinds (Deep Dive)
+
+V8 tracks the type of values stored in arrays via "element kinds," enabling specialized fast paths for array operations.
+
+### The Element Kind Lattice
+
+Six core kinds arranged from most specific (fastest) to most general (slowest):
+
+```
+PACKED_SMI_ELEMENTS  →  PACKED_DOUBLE_ELEMENTS  →  PACKED_ELEMENTS
+        ↓                        ↓                        ↓
+HOLEY_SMI_ELEMENTS   →  HOLEY_DOUBLE_ELEMENTS   →  HOLEY_ELEMENTS
+```
+
+- **SMI** - Small integers only (no heap allocation)
+- **DOUBLE** - Floating-point numbers (includes integers outside Smi range, `-0`, `NaN`, `Infinity`)
+- **ELEMENTS** - Any value (strings, objects, mixed types)
+- **PACKED** - Dense, no gaps in indices
+- **HOLEY** - Sparse, has missing indices (holes)
+
+### Transitions Are Irreversible
+
+Element kind transitions only go in one direction — from specific to general. Once an array becomes `HOLEY`, it stays `HOLEY` forever, even if all holes are filled. Once it transitions from `SMI` to `DOUBLE`, it never goes back.
+
+### PACKED vs HOLEY Performance Impact
+
+Operations on packed arrays skip expensive prototype chain lookups. When V8 encounters a hole during array access, it must walk the prototype chain to check if the index exists on `Array.prototype` or `Object.prototype` — this is significantly slower.
+
+```javascript
+// BAD: Out-of-bounds read forces HOLEY handling on optimized code (~6x slower)
+for (let i = 0, item; (item = items[i]) != null; i++) { /* ... */ }
+
+// GOOD: Bounds-checked loop stays on fast path
+for (let i = 0; i < items.length; i++) { /* ... */ }
+
+// GOOD: Modern iteration
+for (const item of items) { /* ... */ }
+```
+
+### Avoiding Unnecessary Transitions
+
+```javascript
+// BAD: new Array(n) creates HOLEY array permanently
+const arr = new Array(3);
+arr[0] = 'a'; arr[1] = 'b'; arr[2] = 'c';  // Still HOLEY
+
+// GOOD: Literal creates PACKED
+const arr = ['a', 'b', 'c'];
+
+// BAD: -0, NaN, Infinity force SMI → DOUBLE transition
+const arr = [1, 2, 3];  // PACKED_SMI_ELEMENTS
+arr.push(-0);            // Now PACKED_DOUBLE_ELEMENTS forever
+
+// GOOD: Normalize special values before insertion
+arr.push(Math.max(0, value));  // Avoids -0
+```
+
+### Polymorphism in Array-Receiving Functions
+
+Functions that receive arrays with different element kinds become polymorphic at those call sites. Built-in methods like `Array.prototype.forEach` handle this internally; user-defined functions do not.
+
+```javascript
+// BAD: Receives arrays with different element kinds → polymorphic
+function processItems(arr) {
+  for (let i = 0; i < arr.length; i++) { /* ... */ }
+}
+processItems([1, 2, 3]);          // PACKED_SMI_ELEMENTS
+processItems([1.5, 2.5]);         // PACKED_DOUBLE_ELEMENTS
+processItems(['a', 'b']);          // PACKED_ELEMENTS
+
+// GOOD: Prefer built-ins or ensure consistent element kinds at call sites
+```
+
+### Prefer True Arrays Over Array-Likes
+
+Array-like objects (e.g., `{ 0: 'a', 1: 'b', length: 2 }`) miss V8's array-specific optimizations. Convert to true arrays when performance matters:
+
+```javascript
+// Convert array-like to true array
+const args = [...arrayLike];
+// or
+const args = Array.from(arrayLike);
+```
+
+**Source:** [V8 Blog - Elements Kinds](https://v8.dev/blog/elements-kinds)
+
 ## Best Practices for Performance-Critical Code
 
 1. **Initialize all properties upfront** - Even optional ones (set to null/undefined)
