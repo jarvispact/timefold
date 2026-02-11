@@ -44,3 +44,4 @@ Technical specifications are available in `docs/` for reference. Read these **on
 
 - Never use classes. Use plain objects, functions, and closures instead.
 - Prefer regular `for` loops over `.forEach`, `.map`, `.filter`, etc. in all code.
+- Always use arrow function syntax ( `const fn = () => {}` ). Never regular function syntax ( `function fn {}` ).
