@@ -1,6 +1,6 @@
 # V8 Engine Internals
 
-This document summarizes critical V8 engine internals relevant to writing high-performance JavaScript code, particularly for performance-critical paths in Timefold (ECS systems, math operations, rendering loops).
+This document summarizes critical V8 engine internals relevant to writing high-performance JavaScript code, particularly for performance-critical paths in Timefold (ECS systems, math operations, rendering/update loops).
 
 ## Four-Tier Compilation Pipeline
 
@@ -70,16 +70,6 @@ function createConfig(includeOptional) {
     optional: includeOptional ? 42 : null  // Always same shape
   };
   return config;
-}
-```
-
-```javascript
-// GOOD: Use constructors or classes for consistent shapes
-class Point {
-  constructor(x = 0, y = 0) {
-    this.x = x;
-    this.y = y;
-  }
 }
 ```
 
@@ -276,6 +266,20 @@ arr.push(-0);            // Now PACKED_DOUBLE_ELEMENTS forever
 arr.push(Math.max(0, value));  // Avoids -0
 ```
 
+When creating new arrays, always prefer the following pattern:
+
+```javascript
+// GOOD: increase array size in a v8 friendly way (no holes, stays on fastest kind as long as possible)
+const arr = [];
+ar.push(0);
+ar.push(1);
+ar.push(2);
+
+// BAD: V8 starts with holey kind right away, will never be optimized by V8!
+const arr = new Array(3);
+arr[0] = 0; arr[1] = 1; arr[2] = 2;
+```
+
 ### Polymorphism in Array-Receiving Functions
 
 Functions that receive arrays with different element kinds become polymorphic at those call sites. Built-in methods like `Array.prototype.forEach` handle this internally; user-defined functions do not.
@@ -309,14 +313,13 @@ const args = Array.from(arrayLike);
 
 1. **Initialize all properties upfront** - Even optional ones (set to null/undefined)
 2. **Design monomorphic functions** - Single type per function call site
-3. **Use constructors or classes** - Ensures consistent hidden classes
+3. **Use constructors** - Ensures consistent hidden classes
 4. **Avoid delete operator** - Assign to undefined instead
 5. **Keep arrays homogeneous** - Same element type throughout
 6. **Stay in Smi range** - Use 32-bit integers when possible
 7. **Avoid mixing types** - Don't mix Number/BigInt, int/float in hot paths
 8. **Pre-allocate when possible** - Typed arrays for numeric data
 9. **Use factory functions** - Consistent object creation patterns
-10. **Profile before optimizing** - Use V8 flags to understand actual behavior
 
 ## Fundamental Principle
 

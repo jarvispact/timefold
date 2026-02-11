@@ -25,18 +25,22 @@ Each package is designed to be used independently with 0 dependencies, ESM-only,
 
 - All packages use TypeScript with strict type-checking enabled
 - Each package has its own `tsconfig.json` extending `tsconfig.base.json`
-- Package builds clean `dist/` directories before building
-- Use workspace dependencies (`*`) when referencing other timefold packages (npm workspaces use `*`, not `workspace:*`)
+- Package builds clean `dist/` directories before building. The build uses `tsc` to generate `.js`, `.d.ts` and sourcemap files. No bundling via vite!
 - Examples use a template-based approach: `index.html.template` is processed with `sed` to generate `index.html`
 
 ## Documentation
 
-Technical specifications are available in `docs/` for reference. Read these on-demand when working on related areas:
+Technical specifications are available in `docs/` for reference. Read these **on-demand** when working on related areas:
 
 - **`docs/webgpu-spec.md`** - Read when working on `@timefold/webgpu` renderer implementation, debugging GPU pipeline issues, implementing render passes, or understanding WebGPU resource lifecycle (buffers, textures, bind groups, command encoding).
 
 - **`docs/wgsl-spec.md`** - Read when writing or modifying shader code, implementing custom materials, debugging shader compilation errors, or understanding WGSL type system and built-in functions.
 
-- **`docs/gltf2-spec.md`** - Read when working on `@timefold/gltf2` loader, implementing support for glTF extensions, debugging asset loading issues, or understanding glTF binary data layout (accessors, bufferViews).
+- **`docs/gltf2-spec.md`** - Read when working on `@timefold/gltf2` loader/parser, implementing support for glTF extensions, debugging asset loading issues, or understanding glTF binary data layout (accessors, bufferViews).
 
 - **`docs/v8-internals.md`** - Read when optimizing performance-critical code (ECS systems, math operations, rendering loops, ...), investigating deoptimization issues, or implementing data structures that need to be JIT-friendly (avoid hidden class mutations).
+
+## Coding Style
+
+- Never use classes. Use plain objects, functions, and closures instead.
+- Prefer regular `for` loops over `.forEach`, `.map`, `.filter`, etc. in all code.
