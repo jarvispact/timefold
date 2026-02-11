@@ -316,9 +316,9 @@ const args = Array.from(arrayLike);
 3. **Use constructors** - Ensures consistent hidden classes
 4. **Avoid delete operator** - Assign to undefined instead
 5. **Keep arrays homogeneous** - Same element type throughout
-6. **Stay in Smi range** - Use 32-bit integers when possible
+6. **Stay in Smi range for counters/indices** - SMIs are fast for loop variables and array indexing, but not for math-heavy FPU work (use PACKED_DOUBLE for that)
 7. **Avoid mixing types** - Don't mix Number/BigInt, int/float in hot paths
-8. **Pre-allocate when possible** - Typed arrays for numeric data
+8. **Use `number[]` for math data** - Initialize with float literals (`0.0`) to get PACKED_DOUBLE_ELEMENTS; reserve `Float32Array` for GPU upload buffers
 9. **Use factory functions** - Consistent object creation patterns
 
 ## Fundamental Principle
@@ -328,3 +328,60 @@ const args = Array.from(arrayLike);
 ---
 
 **Source:** [The Node Book - V8 Engine Architecture](https://www.thenodebook.com/node-arch/v8-engine-intro)
+
+## Benchmark Findings (Timefold-Specific)
+
+The following findings come from controlled microbenchmarks run on this codebase (see `packages/examples/src/benchmarks/`). All benchmarks use 10M iterations per sample, 50 samples with trimmed means, randomized execution order, and extensive warmup.
+
+### Data Representation for Math Operations
+
+**Benchmark:** 4x4 matrix multiplication (`mat4Mul(out, a, b)`) in gl-matrix style — no allocations, all data passed through arguments.
+
+**Variants tested:**
+1. `number[]` — flat JS array with index access
+2. `Float32Array` — typed array with index access
+3. `Object` — named properties (`m00`, `m01`, ..., `m33`)
+
+**Results with float values (realistic — PACKED_DOUBLE_ELEMENTS):**
+
+| Representation | Mean (ms) | Median (ms) | vs fastest |
+|---|---|---|---|
+| `number[]` | 123.35 | 122.57 | — |
+| Object | 142.98 | 142.87 | 14% slower |
+| `Float32Array` | 167.60 | 167.54 | 26% slower |
+
+**Results with integer values (PACKED_SMI_ELEMENTS):**
+
+| Representation | Mean (ms) | Median (ms) | vs fastest |
+|---|---|---|---|
+| `Float32Array` | 161.81 | 161.02 | — |
+| Object | 223.42 | 222.72 | 28% slower |
+| `number[]` | 255.27 | 255.58 | 37% slower |
+
+**Why the ranking flips between integers and floats:**
+
+- **`number[]` with PACKED_DOUBLE** is fastest because loads/stores are direct 64-bit float operations — no conversions, no tagging. TurboFan generates clean FPU instructions (`mulsd`, `addsd`).
+- **`number[]` with PACKED_SMI** is slowest because SMI values require tagging/untagging on every access, overflow checks on arithmetic, and implicit SMI→double conversion since JS math operates on doubles.
+- **`Float32Array`** performance is constant regardless of input values (always float32 storage), but pays a float32↔float64 conversion penalty on every load (widening) and store (truncation). For mat4 multiply that's 48 extra conversions per call.
+- **Object** with named properties performs well because V8 stores doubles unboxed in hidden class slots and inlines property access efficiently.
+
+**Guideline:** Use `number[]` with `PACKED_DOUBLE_ELEMENTS` for math data. Always initialize with float literals (e.g. `0.0` not `0`) to ensure V8 uses the PACKED_DOUBLE element kind from the start. Avoid `Float32Array` for CPU-side math — the float32↔float64 conversion overhead is significant. Reserve `Float32Array` for GPU upload buffers where float32 is required by the API.
+
+### Function Call Overhead
+
+**Benchmark:** Mat4 multiply via call chain (`multiplyCall → multiply → copy`) vs fully inlined equivalent.
+
+| Variant | Mean (ms) |
+|---|---|
+| Call chain | 289.97 |
+| Inlined | 268.66 |
+
+Inlining gives ~7% improvement for mat4-sized operations. For smaller operations (vec2, vec3), TurboFan's automatic inlining eliminates the difference. Manual inlining is only worth it for larger operation chains.
+
+### Arrow Functions vs Regular Functions
+
+No measurable difference between arrow functions and regular `function` declarations, even for callbacks inside hot loops. Use arrow functions per project convention without performance concern.
+
+### Argument Passing vs Closure Capture
+
+No measurable difference between passing data as a function argument vs accessing it through a closure variable, even with nested closures. Choose whichever style produces clearer code.
