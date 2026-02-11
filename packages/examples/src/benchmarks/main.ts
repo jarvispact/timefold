@@ -77,4 +77,26 @@ The function should perform the exact same math operations in all cases, just ho
 
 //   SMIs win for things like loop counters and array indices where V8 keeps everything in integer registers. For math-heavy FPU work, unboxed
 //   doubles are the ideal representation.
-import './array-vs-typed-vs-object';
+// import './array-vs-typed-vs-object';
+
+// ================================================================
+// JS Array + Copy vs ArrayBuffer Views: ECS Data Pipeline
+// Tests whether number[] components + staging buffer copy (Option A)
+// outperform Float32Array views into per-entity ArrayBuffers (Option B)
+// when composing model matrices from TRS per entity.
+
+// Results (ms per 1000 frames):
+//   JS Arrays + Copy:    mean=1362.19  median=1343.46  stddev=36.87
+//   ArrayBuffer Views:   mean=683.23  median=683.11  stddev=2.41
+
+//   Per-frame average: A=1.3622ms  B=0.6832ms
+//   => ArrayBuffer Views is 49.84% faster than JS Arrays + Copy (trimmed mean)
+
+// Removing the copy operation from the equation!
+// Results (ms per 1000 frames):
+//   JS Arrays + Copy:    mean=572.29  median=571.67  stddev=4.20
+//   ArrayBuffer Views:   mean=689.08  median=688.68  stddev=1.66
+
+//   Per-frame average: A=0.5723ms  B=0.6891ms
+//   => JS Arrays + Copy is 16.95% faster than ArrayBuffer Views (trimmed mean)
+import './js-array-vs-arraybuffer';
