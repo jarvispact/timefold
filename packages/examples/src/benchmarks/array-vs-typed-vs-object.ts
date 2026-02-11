@@ -126,36 +126,39 @@ let sink = 0;
 
 // --- Per-variant state (no sharing) ---
 
-// prettier-ignore
-const arrA: number[] = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16];
-// prettier-ignore
-const arrB: number[] = [16, 15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1];
-// prettier-ignore
-const arrOut: number[] = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0];
+// Use floating-point values to ensure number[] gets PACKED_DOUBLE_ELEMENTS (not PACKED_SMI).
+// This matches real-world usage where matrices contain rotation/projection floats.
 
 // prettier-ignore
-const f32A = new Float32Array([1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16]);
+const arrA: number[] = [1.1, 2.2, 3.3, 4.4, 5.5, 6.6, 7.7, 8.8, 9.9, 10.1, 11.2, 12.3, 13.4, 14.5, 15.6, 16.7];
 // prettier-ignore
-const f32B = new Float32Array([16, 15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1]);
+const arrB: number[] = [16.7, 15.6, 14.5, 13.4, 12.3, 11.2, 10.1, 9.9, 8.8, 7.7, 6.6, 5.5, 4.4, 3.3, 2.2, 1.1];
+// prettier-ignore
+const arrOut: number[] = [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0];
+
+// prettier-ignore
+const f32A = new Float32Array([1.1, 2.2, 3.3, 4.4, 5.5, 6.6, 7.7, 8.8, 9.9, 10.1, 11.2, 12.3, 13.4, 14.5, 15.6, 16.7]);
+// prettier-ignore
+const f32B = new Float32Array([16.7, 15.6, 14.5, 13.4, 12.3, 11.2, 10.1, 9.9, 8.8, 7.7, 6.6, 5.5, 4.4, 3.3, 2.2, 1.1]);
 const f32Out = new Float32Array(16);
 
 const objA: Mat4Obj = {
-    m00: 1, m01: 2, m02: 3, m03: 4,
-    m10: 5, m11: 6, m12: 7, m13: 8,
-    m20: 9, m21: 10, m22: 11, m23: 12,
-    m30: 13, m31: 14, m32: 15, m33: 16,
+    m00: 1.1, m01: 2.2, m02: 3.3, m03: 4.4,
+    m10: 5.5, m11: 6.6, m12: 7.7, m13: 8.8,
+    m20: 9.9, m21: 10.1, m22: 11.2, m23: 12.3,
+    m30: 13.4, m31: 14.5, m32: 15.6, m33: 16.7,
 };
 const objB: Mat4Obj = {
-    m00: 16, m01: 15, m02: 14, m03: 13,
-    m10: 12, m11: 11, m12: 10, m13: 9,
-    m20: 8, m21: 7, m22: 6, m23: 5,
-    m30: 4, m31: 3, m32: 2, m33: 1,
+    m00: 16.7, m01: 15.6, m02: 14.5, m03: 13.4,
+    m10: 12.3, m11: 11.2, m12: 10.1, m13: 9.9,
+    m20: 8.8, m21: 7.7, m22: 6.6, m23: 5.5,
+    m30: 4.4, m31: 3.3, m32: 2.2, m33: 1.1,
 };
 const objOut: Mat4Obj = {
-    m00: 0, m01: 0, m02: 0, m03: 0,
-    m10: 0, m11: 0, m12: 0, m13: 0,
-    m20: 0, m21: 0, m22: 0, m23: 0,
-    m30: 0, m31: 0, m32: 0, m33: 0,
+    m00: 0.0, m01: 0.0, m02: 0.0, m03: 0.0,
+    m10: 0.0, m11: 0.0, m12: 0.0, m13: 0.0,
+    m20: 0.0, m21: 0.0, m22: 0.0, m23: 0.0,
+    m30: 0.0, m31: 0.0, m32: 0.0, m33: 0.0,
 };
 
 /* eslint-enable prettier/prettier */

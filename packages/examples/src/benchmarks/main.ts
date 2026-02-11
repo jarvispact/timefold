@@ -1,7 +1,5 @@
 // TODO:
-// math operations with arrays vs objects vs typed arrays
 // loops forEach vs for of vs for loop
-// SMI vs non-SMI numbers
 
 // Prompt template:
 /**
@@ -39,10 +37,44 @@ The function should perform the exact same math operations in all cases, just ho
 // Outcome of array-vs-typed-vs-object benchmark:
 // Fastest: Float32Array, then Object, then number[] (but Object is close to number[])
 // If we write math functions we should make them operate on arrays or typed arrays.
-// Results
+
+// Results (integer literals)
 // number[]:     mean=255.27  median=255.58  stddev=4.35
 // Float32Array: mean=161.81  median=161.02  stddev=2.72
 // Object:       mean=223.42  median=222.72  stddev=4.44
 // Float32Array is 27.58% faster than Object (trimmed mean)
 // Float32Array is 36.61% faster than number[] (trimmed mean)
+
+// Results (forced floats)
+// number[]:     mean=123.35  median=122.57  stddev=1.81
+// Float32Array: mean=167.60  median=167.54  stddev=2.03
+// Object:       mean=142.98  median=142.87  stddev=1.18
+// number[] is 13.73% faster than Object (trimmed mean)
+// number[] is 26.40% faster than Float32Array (trimmed mean)
+
+// Claude Opus 4.6 analysis of results:
+//   PACKED_DOUBLE (current, floats) — fastest:
+//   - Loads/stores are direct 64-bit float operations, no conversions
+//   - Arithmetic uses native FPU instructions (mulsd, addsd) with zero overhead
+//   - TurboFan generates very clean machine code
+
+//   PACKED_SMI (previous, integers) — surprisingly slow for math:
+//   - Values are stored as tagged SMIs (pointer-tagging with bit shift)
+//   - Every load needs untagging, every store needs tagging
+//   - Multiplications may need overflow checks (does the result still fit in SMI?)
+//   - JS arithmetic fundamentally operates on doubles, so SMIs often get converted to doubles internally anyway for * and + chains
+
+//   Float32Array — middle ground:
+//   - No tagging overhead (good)
+//   - But every load does float32 → float64 widening (JS numbers are float64)
+//   - Every store does float64 → float32 truncation
+//   - That's 32 loads + 16 stores = 48 extra conversions per mat4 multiply
+
+//   So the ranking makes perfect sense:
+//   1. number[] (PACKED_DOUBLE) — zero conversion overhead, direct double read/write
+//   2. Object — V8 inlines named property access well, also stores doubles (unboxed in hidden class slots)
+//   3. Float32Array — float32↔float64 conversion penalty on every access
+
+//   SMIs win for things like loop counters and array indices where V8 keeps everything in integer registers. For math-heavy FPU work, unboxed
+//   doubles are the ideal representation.
 import './array-vs-typed-vs-object';
