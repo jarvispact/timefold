@@ -1,19 +1,11 @@
 {
   "extends": "../../tsconfig.base.json",
   "compilerOptions": {
-    "rootDir": "./src",
-    "outDir": "./dist",
-    "declarationDir": "./dist",
+    "composite": false,
+    "declaration": false,
+    "declarationMap": false,
     "noEmit": true
   },
-  "references": [
-    { "path": "../ecs" },
-    { "path": "../math" },
-    { "path": "../webgpu" },
-    { "path": "../obj" },
-    { "path": "../gltf2" },
-    { "path": "../engine" }
-  ],
   "include": ["./src"],
   "exclude": ["node_modules"]
 }
