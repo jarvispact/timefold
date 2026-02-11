@@ -14,6 +14,11 @@
 // Variant B (ArrayBuffer Views):
 //   Each entity owns an ArrayBuffer. Components are Float32Array views.
 //   No copy needed — data is already in the buffer.
+//
+// Variant C (JS Arrays + Direct Write):
+//   Components are number[] (PACKED_DOUBLE). TRS math reads from number[]
+//   but writes the mat4 result directly into the shared Float32Array staging
+//   buffer — no intermediate number[] mat4, no copy step.
 
 /* eslint-disable prettier/prettier */
 
@@ -99,6 +104,41 @@ const mat4FromTRS_F32 = (
     return out;
 };
 
+// --- TRS -> Mat4: number[] reads, Float32Array direct write variant ---
+
+const mat4FromTRS_DirectWrite = (
+    out: Float32Array,
+    offset: number,
+    pos: number[],
+    rot: number[],
+    scl: number[],
+): void => {
+    const qx = rot[0], qy = rot[1], qz = rot[2], qw = rot[3];
+    const sx = scl[0], sy = scl[1], sz = scl[2];
+
+    const x2 = qx + qx, y2 = qy + qy, z2 = qz + qz;
+    const xx = qx * x2, xy = qx * y2, xz = qx * z2;
+    const yy = qy * y2, yz = qy * z2, zz = qz * z2;
+    const wx = qw * x2, wy = qw * y2, wz = qw * z2;
+
+    out[offset]      = (1.0 - (yy + zz)) * sx;
+    out[offset + 1]  = (xy + wz) * sx;
+    out[offset + 2]  = (xz - wy) * sx;
+    out[offset + 3]  = 0.0;
+    out[offset + 4]  = (xy - wz) * sy;
+    out[offset + 5]  = (1.0 - (xx + zz)) * sy;
+    out[offset + 6]  = (yz + wx) * sy;
+    out[offset + 7]  = 0.0;
+    out[offset + 8]  = (xz + wy) * sz;
+    out[offset + 9]  = (yz - wx) * sz;
+    out[offset + 10] = (1.0 - (xx + yy)) * sz;
+    out[offset + 11] = 0.0;
+    out[offset + 12] = pos[0];
+    out[offset + 13] = pos[1];
+    out[offset + 14] = pos[2];
+    out[offset + 15] = 1.0;
+};
+
 // --- Setup: Variant A (JS Arrays) ---
 
 const setupVariantA = (entityCount: number) => {
@@ -155,6 +195,26 @@ const setupVariantB = (entityCount: number) => {
     return { positions, rotations, scales, modelMatrices };
 };
 
+// --- Setup: Variant C (JS Arrays + Direct Write) ---
+
+const setupVariantC = (entityCount: number) => {
+    const positions: number[][] = [];
+    const rotations: number[][] = [];
+    const scales: number[][] = [];
+    const stagingBuffer = new Float32Array(entityCount * 16);
+
+    for (let i = 0; i < entityCount; i++) {
+        positions.push([i * 0.1, i * 0.2, i * 0.3]);
+        const angle = i * 0.01;
+        const s = Math.sin(angle * 0.5);
+        const c = Math.cos(angle * 0.5);
+        rotations.push([0.0, s, 0.0, c]);
+        scales.push([1.0, 1.0, 1.0]);
+    }
+
+    return { positions, rotations, scales, stagingBuffer };
+};
+
 // --- Frame runners ---
 
 const runFrameA = (
@@ -199,6 +259,21 @@ const runFrameB = (
     sink += modelMatrices[0][0];
 };
 
+const runFrameC = (
+    entityCount: number,
+    positions: number[][],
+    rotations: number[][],
+    scales: number[][],
+    stagingBuffer: Float32Array,
+) => {
+    // Single step: read from number[] components, write directly into staging Float32Array
+    for (let i = 0; i < entityCount; i++) {
+        mat4FromTRS_DirectWrite(stagingBuffer, i * 16, positions[i], rotations[i], scales[i]);
+    }
+
+    sink += stagingBuffer[0];
+};
+
 // --- Statistics ---
 
 const trimmedMean = (times: number[]): number => {
@@ -241,6 +316,7 @@ const runBenchmark = async () => {
 
         const dataA = setupVariantA(entityCount);
         const dataB = setupVariantB(entityCount);
+        const dataC = setupVariantC(entityCount);
 
         // --- Warmup ---
 
@@ -260,15 +336,24 @@ const runBenchmark = async () => {
         }
         await new Promise((r) => setTimeout(r, 200));
 
+        console.log('Warming up Variant C (JS Arrays + Direct Write)...');
+        for (let w = 0; w < WARMUP_RUNS; w++) {
+            for (let f = 0; f < FRAMES_PER_SAMPLE; f++) {
+                runFrameC(entityCount, dataC.positions, dataC.rotations, dataC.scales, dataC.stagingBuffer);
+            }
+        }
+        await new Promise((r) => setTimeout(r, 200));
+
         // --- Measurement ---
 
         console.log('Running samples...');
 
-        // Randomized schedule: 0 = Variant A, 1 = Variant B
+        // Randomized schedule: 0 = Variant A, 1 = Variant B, 2 = Variant C
         const schedule: number[] = [];
         for (let i = 0; i < SAMPLES; i++) {
             schedule.push(0);
             schedule.push(1);
+            schedule.push(2);
         }
         for (let i = schedule.length - 1; i > 0; i--) {
             const j = Math.floor(Math.random() * (i + 1));
@@ -279,6 +364,7 @@ const runBenchmark = async () => {
 
         const timesA: number[] = [];
         const timesB: number[] = [];
+        const timesC: number[] = [];
 
         for (let s = 0; s < schedule.length; s++) {
             if (schedule[s] === 0) {
@@ -287,12 +373,18 @@ const runBenchmark = async () => {
                     runFrameA(entityCount, dataA.positions, dataA.rotations, dataA.scales, dataA.modelMatrices, dataA.stagingBuffer);
                 }
                 timesA.push(performance.now() - start);
-            } else {
+            } else if (schedule[s] === 1) {
                 const start = performance.now();
                 for (let f = 0; f < FRAMES_PER_SAMPLE; f++) {
                     runFrameB(entityCount, dataB.positions, dataB.rotations, dataB.scales, dataB.modelMatrices);
                 }
                 timesB.push(performance.now() - start);
+            } else {
+                const start = performance.now();
+                for (let f = 0; f < FRAMES_PER_SAMPLE; f++) {
+                    runFrameC(entityCount, dataC.positions, dataC.rotations, dataC.scales, dataC.stagingBuffer);
+                }
+                timesC.push(performance.now() - start);
             }
             if (s % 10 === 9) {
                 await new Promise((r) => setTimeout(r, 50));
@@ -303,29 +395,37 @@ const runBenchmark = async () => {
 
         const meanA = trimmedMean(timesA);
         const meanB = trimmedMean(timesB);
+        const meanC = trimmedMean(timesC);
         const medA = median(timesA);
         const medB = median(timesB);
+        const medC = median(timesC);
         const stdA = stdDev(timesA, meanA);
         const stdB = stdDev(timesB, meanB);
+        const stdC = stdDev(timesC, meanC);
 
         console.log('');
         console.log(`Results (ms per ${FRAMES_PER_SAMPLE} frames):`);
-        console.log(`  JS Arrays + Copy:    mean=${meanA.toFixed(2)}  median=${medA.toFixed(2)}  stddev=${stdA.toFixed(2)}`);
-        console.log(`  ArrayBuffer Views:   mean=${meanB.toFixed(2)}  median=${medB.toFixed(2)}  stddev=${stdB.toFixed(2)}`);
+        console.log(`  A) JS Arrays + Copy:        mean=${meanA.toFixed(2)}  median=${medA.toFixed(2)}  stddev=${stdA.toFixed(2)}`);
+        console.log(`  B) ArrayBuffer Views:       mean=${meanB.toFixed(2)}  median=${medB.toFixed(2)}  stddev=${stdB.toFixed(2)}`);
+        console.log(`  C) JS Arrays + Direct Write: mean=${meanC.toFixed(2)}  median=${medC.toFixed(2)}  stddev=${stdC.toFixed(2)}`);
         console.log('');
 
         const perFrameA = meanA / FRAMES_PER_SAMPLE;
         const perFrameB = meanB / FRAMES_PER_SAMPLE;
-        console.log(`  Per-frame average: A=${perFrameA.toFixed(4)}ms  B=${perFrameB.toFixed(4)}ms`);
+        const perFrameC = meanC / FRAMES_PER_SAMPLE;
+        console.log(`  Per-frame average: A=${perFrameA.toFixed(4)}ms  B=${perFrameB.toFixed(4)}ms  C=${perFrameC.toFixed(4)}ms`);
 
-        if (meanA < meanB) {
-            const pct = ((meanB - meanA) / meanB) * 100;
-            console.log(`  => JS Arrays + Copy is ${pct.toFixed(2)}% faster than ArrayBuffer Views (trimmed mean)`);
-        } else if (meanB < meanA) {
-            const pct = ((meanA - meanB) / meanA) * 100;
-            console.log(`  => ArrayBuffer Views is ${pct.toFixed(2)}% faster than JS Arrays + Copy (trimmed mean)`);
-        } else {
-            console.log('  => Both variants are equal (trimmed mean)');
+        // Find fastest and compare
+        const means = [
+            { name: 'A) JS Arrays + Copy', mean: meanA },
+            { name: 'B) ArrayBuffer Views', mean: meanB },
+            { name: 'C) JS Arrays + Direct Write', mean: meanC },
+        ];
+        means.sort((a, b) => a.mean - b.mean);
+
+        for (let i = 1; i < means.length; i++) {
+            const pct = ((means[i].mean - means[0].mean) / means[i].mean) * 100;
+            console.log(`  ${means[0].name} is ${pct.toFixed(2)}% faster than ${means[i].name} (trimmed mean)`);
         }
         console.log('');
     }

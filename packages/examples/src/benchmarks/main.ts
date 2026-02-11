@@ -99,4 +99,14 @@ The function should perform the exact same math operations in all cases, just ho
 
 //   Per-frame average: A=0.5723ms  B=0.6891ms
 //   => JS Arrays + Copy is 16.95% faster than ArrayBuffer Views (trimmed mean)
+
+// Adding a new js array + direct write approach:
+// Results (ms per 1000 frames):
+//   A) JS Arrays + Copy:        mean=1359.64  median=1344.38  stddev=35.35
+//   B) ArrayBuffer Views:       mean=687.46  median=687.69  stddev=2.55
+//   C) JS Arrays + Direct Write: mean=618.74  median=617.48  stddev=5.24
+
+//   Per-frame average: A=1.3596ms  B=0.6875ms  C=0.6187ms
+//   C) JS Arrays + Direct Write is 10.00% faster than B) ArrayBuffer Views (trimmed mean)
+//   C) JS Arrays + Direct Write is 54.49% faster than A) JS Arrays + Copy (trimmed mean)
 import './js-array-vs-arraybuffer';
