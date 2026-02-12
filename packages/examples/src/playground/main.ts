@@ -23,6 +23,10 @@ const spawnBufferBackedEntity = () => {
     const rotation = new Float32Array(data, rotationOffset, 4);
     const scale = new Float32Array(data, scaleOffset, 3);
 
+    position.set([0, 0, 0]);
+    rotation.set([0, 0, 0, 1]);
+    scale.set([1, 1, 1]);
+
     world.spawn(entity, [Data.create(data), Transform.create({ position, rotation, scale })]);
 };
 
