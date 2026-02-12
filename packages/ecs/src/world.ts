@@ -3,6 +3,7 @@ import { Component } from './component';
 export type World<C extends Component> = {
     createEntity: () => number;
     spawn: (entity: number, components: C[]) => void;
+    getComponent: <T extends C['type']>(entity: number, type: T) => Extract<C, { type: T }> | undefined;
 };
 
 const createWorld = <C extends Component>(): World<C> => {
@@ -25,10 +26,17 @@ const createWorld = <C extends Component>(): World<C> => {
         }
     };
 
+    const getComponent = (entity: number, type: Component['type']) => {
+        const components = componentsByEntity.get(entity);
+        if (!components) return undefined;
+        return components.get(type) as Extract<C, { type: typeof type }> | undefined;
+    };
+
     return {
         createEntity,
         spawn,
-    };
+        getComponent,
+    } as World<C>;
 };
 
 type WorldBuilderApi<C extends Component> = {
