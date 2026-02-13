@@ -5,13 +5,13 @@ import { DirLightComponent, T } from './types';
 export const type = T.DirLight;
 
 type CreateArgs = {
-    direction?: Vec3Type;
+    direction: Vec3Type;
     color?: Vec3Type;
     intensity?: number;
 };
 
-export const create = (args: CreateArgs = {}): DirLightComponent => {
-    const direction = args.direction ?? Vec3.create();
+export const create = (args: CreateArgs): DirLightComponent => {
+    const direction = args.direction;
     const color = args.color ?? Vec3.create();
     const intensity = args.intensity ?? 1;
 

@@ -1,6 +1,8 @@
 import { Vec2Type } from './types';
 
-export const create = (): Vec2Type => [0.0, 0.0];
+export const create = (...args: [number, number] | []): Vec2Type =>
+    args.length === 2 ? [args[0], args[1]] : [0.0, 0.0];
+
 export const fromScalar = (scalar: number): Vec2Type => [scalar, scalar];
 
 export const zero = (): Vec2Type => [0.0, 0.0];

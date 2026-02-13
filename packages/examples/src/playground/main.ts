@@ -1,34 +1,32 @@
 import { worldBuilder } from '@timefold/ecs';
-import { EngineComponent, Transform } from '@timefold/engine';
+import { DirLight, DomUtils, EngineComponent, PerspectiveCamera, Transform } from '@timefold/engine';
 import { Quat, Vec3 } from '@timefold/math';
+
+const canvas = DomUtils.getCanvasById('canvas');
+const aspect = canvas.width / canvas.height;
 
 const world = worldBuilder<EngineComponent>().compile();
 
-const spawnSimpleEntity = () => {
-    const entity = world.createEntity();
-    world.spawn(entity, [Transform.create({ position: Vec3.create(), rotation: Quat.create(), scale: Vec3.create() })]);
+const main = () => {
+    const camera = world.createEntity();
+    const light = world.createEntity();
+    const cube = world.createEntity();
+
+    world.spawn(camera, [
+        Transform.create({ translation: Vec3.create(0, 0, 5), rotation: Quat.createFromEuler(0, Math.PI, 0) }),
+        PerspectiveCamera.create({ aspect }),
+    ]);
+
+    world.spawn(light, [
+        Transform.create({ translation: Vec3.create(0, 5, 5) }),
+        DirLight.create({
+            direction: Vec3.normalize(Vec3.create(0, -5, -5)),
+            color: Vec3.create(1, 1, 1),
+            intensity: 1,
+        }),
+    ]);
+
+    world.spawn(cube, [Transform.create({ translation: Vec3.zero() })]);
 };
 
-const spawnBufferBackedEntity = () => {
-    const entity = world.createEntity();
-
-    // position: 3 floats, rotation: 4 floats, scale: 3 floats
-    const bufferSize = 3 * 4 + 4 * 4 + 3 * 4;
-    const data = new ArrayBuffer(bufferSize);
-
-    const rotationOffset = 3 * 4;
-    const scaleOffset = rotationOffset + 4 * 4;
-
-    const position = new Float32Array(data, 0, 3);
-    const rotation = new Float32Array(data, rotationOffset, 4);
-    const scale = new Float32Array(data, scaleOffset, 3);
-
-    position.set([0, 0, 0]);
-    rotation.set([0, 0, 0, 1]);
-    scale.set([1, 1, 1]);
-
-    world.spawn(entity, [Transform.create({ position, rotation, scale })]);
-};
-
-spawnSimpleEntity();
-spawnBufferBackedEntity();
+main();

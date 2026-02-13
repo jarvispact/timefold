@@ -1,6 +1,7 @@
 import { QuatAngleOrder, QuatType } from './types';
 
-export const create = (): QuatType => [0.0, 0.0, 0.0, 1.0];
+export const create = (...args: [number, number, number, number] | []): QuatType =>
+    args.length === 4 ? [args[0], args[1], args[2], args[3]] : [0.0, 0.0, 0.0, 1.0];
 
 let angleOrder: QuatAngleOrder = 'zyx';
 
@@ -144,3 +145,6 @@ export const multiply = (out: QuatType, a: QuatType, b: QuatType): QuatType => {
 
     return out;
 };
+
+export const createFromEuler = (x: number, y: number, z: number, order: QuatAngleOrder = angleOrder) =>
+    fromEuler(create(), x, y, z, order);
