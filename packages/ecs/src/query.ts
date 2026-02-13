@@ -75,13 +75,13 @@ export const QueryBuilder = <C extends Component>() => {
         return api;
     };
 
-    const withType = (type: number) => {
-        query.types.push({ with: type });
+    const withType = (type: number, options?: QueryTypeOptions) => {
+        query.types.push({ with: type, options });
         return api;
     };
 
-    const withoutType = (type: number) => {
-        query.types.push({ without: type });
+    const withoutType = (type: number, options?: QueryTypeOptions) => {
+        query.types.push({ without: type, options });
         return api;
     };
 

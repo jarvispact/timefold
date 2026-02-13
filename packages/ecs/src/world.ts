@@ -83,6 +83,13 @@ export const WorldBuilder = <C extends Component>() => {
         queries: {},
     };
 
+    const withPlugins = (...plugins: GenericCompiledPlugin[]) => {
+        for (const plugin of plugins) {
+            args.plugins[plugin.name] = plugin;
+        }
+        return api;
+    };
+
     const withQueries = (...queries: GenericCompiledQuery[]) => {
         for (const query of queries) {
             args.queries[query.name] = query;
@@ -94,6 +101,7 @@ export const WorldBuilder = <C extends Component>() => {
         createWorld<C, Record<string, GenericCompiledPlugin>, Record<string, GenericCompiledQuery>>(args);
 
     const api = {
+        withPlugins,
         withQueries,
         compile,
     } as unknown as WorldBuilderApi<C, NonNullable<unknown>, NonNullable<unknown>, 'compile'>;
