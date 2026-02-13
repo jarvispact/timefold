@@ -1,6 +1,6 @@
 import { createComponent } from '@timefold/ecs';
-import { Quat, QuatType, Vec3, Vec3Type } from '@timefold/math';
-import { T, TransformComponent } from './types';
+import { Mat3, Quat, QuatType, Vec3, Vec3Type } from '@timefold/math';
+import { T, TransformComponent, TransformData } from './types';
 
 export const type = T.Transform;
 
@@ -11,13 +11,36 @@ type CreateArgs = {
 };
 
 export const create = (args: CreateArgs = {}): TransformComponent => {
-    const translation = args.translation ?? Vec3.create();
+    const translation = args.translation ?? Vec3.zero();
     const rotation = args.rotation ?? Quat.create();
-    const scale = args.scale ?? Vec3.create();
+    const scale = args.scale ?? Vec3.one();
+    return createComponent(type, { translation, rotation, scale });
+};
 
-    return createComponent(type, {
-        translation,
-        rotation,
-        scale,
-    });
+type CreateAndLookAtArgs = {
+    translation?: Vec3Type;
+    scale?: Vec3Type;
+    target: Vec3Type;
+    up?: Vec3Type;
+};
+
+export const createAndLookAt = (args: CreateAndLookAtArgs): TransformComponent => {
+    const transform = create(args);
+    lookAt(transform.data, args.target, args.up);
+    return transform;
+};
+
+export const lookAt = (out: TransformData, target: Vec3Type, up: Vec3Type = Vec3.up()): TransformData => {
+    const f = Vec3.normalize(Vec3.subtraction(Vec3.create(), target, out.translation));
+    const r = Vec3.normalize(Vec3.cross(Vec3.create(), up, f));
+    const u = Vec3.cross(Vec3.create(), f, r);
+
+    const mat3 = Mat3.create(r, u, f);
+    Quat.fromMat3(out.rotation, mat3);
+
+    return out;
+};
+
+export const extractForward = (out: Vec3Type, transform: TransformData): Vec3Type => {
+    return Vec3.transformQuat(out, Vec3.forward(), transform.rotation);
 };

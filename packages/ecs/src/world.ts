@@ -3,6 +3,8 @@ import { IndexTupleByName } from './internal-utils';
 import { GenericCompiledPlugin } from './plugin';
 import { CompiledQuery, GenericCompiledQuery, QueryTypeOptions, SupportedQuery } from './query';
 
+// TODO: merge queries from plugins and world queries
+
 export type CompiledWorld<
     C extends Component,
     PluginsByName extends Record<string, GenericCompiledPlugin>,
@@ -104,7 +106,7 @@ export const WorldBuilder = <C extends Component>() => {
         withPlugins,
         withQueries,
         compile,
-    } as unknown as WorldBuilderApi<C, NonNullable<unknown>, NonNullable<unknown>, 'compile'>;
+    } as unknown as WorldBuilderApi<C, NonNullable<unknown>, NonNullable<unknown>>;
 
     return api;
 };

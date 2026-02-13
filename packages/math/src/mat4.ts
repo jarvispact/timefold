@@ -1,8 +1,8 @@
-import { Mat4Type, QuatType, Vec3Type } from './types';
+import { Mat4ArrayType, Mat4Type, QuatType, Vec3Type } from './types';
 import { EPSILON } from './utils';
 
 // eslint-disable-next-line prettier/prettier
-export const create = (): Mat4Type => [
+export const create = (...args: Mat4ArrayType | []): Mat4Type => args.length === 16 ? args : [
     1.0, 0.0, 0.0, 0.0,
     0.0, 1.0, 0.0, 0.0,
     0.0, 0.0, 1.0, 0.0,

@@ -1,18 +1,11 @@
-import { QueryBuilder, WorldBuilder } from '@timefold/ecs';
-import { DirLight, DomUtils, EngineComponent, PerspectiveCamera, Transform, T } from '@timefold/engine';
-import { Quat, Vec3 } from '@timefold/math';
-import { RenderPlugin } from './render-plugin';
+import { WorldBuilder } from '@timefold/ecs';
+import { DirLight, DomUtils, EngineComponent, PerspectiveCamera, Transform } from '@timefold/engine';
+import { Vec3 } from '@timefold/math';
 
 const canvas = DomUtils.getCanvasById('canvas');
 const aspect = canvas.width / canvas.height;
 
-const Movable = QueryBuilder<EngineComponent>()
-    .name('Movable')
-    .with(T.Transform)
-    .with(T.PhongMaterial, { include: false })
-    .compile();
-
-const world = WorldBuilder<EngineComponent>().withPlugins(RenderPlugin).withQueries(Movable).compile();
+const world = WorldBuilder<EngineComponent>().compile();
 
 const main = () => {
     const camera = world.createEntity();
@@ -20,14 +13,15 @@ const main = () => {
     const cube = world.createEntity();
 
     world.spawn(camera, [
-        Transform.create({ translation: Vec3.create(0, 0, 5), rotation: Quat.createFromEuler(0, Math.PI, 0) }),
+        Transform.createAndLookAt({ translation: Vec3.create(0, 3, 5), target: Vec3.zero() }),
         PerspectiveCamera.create({ aspect }),
     ]);
 
+    const lightTransform = Transform.createAndLookAt({ translation: Vec3.create(0, 5, 5), target: Vec3.zero() });
     world.spawn(light, [
-        Transform.create({ translation: Vec3.create(0, 5, 5) }),
+        lightTransform,
         DirLight.create({
-            direction: Vec3.normalize(Vec3.create(0, -5, -5)),
+            direction: Transform.extractForward(Vec3.create(), lightTransform.data),
             color: Vec3.create(1, 1, 1),
             intensity: 1,
         }),
