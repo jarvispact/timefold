@@ -15,3 +15,5 @@ export type Mat4Type =
       ]
     | TypedArray;
 /* eslint-enable prettier/prettier */
+
+export type QuatAngleOrder = 'xyz' | 'xzy' | 'yxz' | 'yzx' | 'zxy' | 'zyx';
