@@ -1,5 +1,5 @@
 import { worldBuilder } from '@timefold/ecs';
-import { Data, EngineComponent, Transform } from '@timefold/engine';
+import { EngineComponent, Transform } from '@timefold/engine';
 import { Quat, Vec3 } from '@timefold/math';
 
 const world = worldBuilder<EngineComponent>().compile();
@@ -27,7 +27,7 @@ const spawnBufferBackedEntity = () => {
     rotation.set([0, 0, 0, 1]);
     scale.set([1, 1, 1]);
 
-    world.spawn(entity, [Data.create(data), Transform.create({ position, rotation, scale })]);
+    world.spawn(entity, [Transform.create({ position, rotation, scale })]);
 };
 
 spawnSimpleEntity();

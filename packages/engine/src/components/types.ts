@@ -3,7 +3,7 @@ import { QuatType, Vec3Type } from '@timefold/math';
 
 // Types
 
-export const { T, Types, ByName } = defineComponentTypes(['Transform', 'DirLight', 'Data']);
+export const { T, Types, ByName } = defineComponentTypes(['Transform', 'DirLight']);
 
 // Transform
 
@@ -13,13 +13,7 @@ export type TransformData = {
     scale: Vec3Type;
 };
 
-export type TransformStructData = {
-    position: Float32Array;
-    rotation: Float32Array;
-    scale: Float32Array;
-};
-
-export type TransformComponent = Component<typeof T.Transform, TransformData | TransformStructData>;
+export type TransformComponent = Component<typeof T.Transform, TransformData>;
 
 // DirLight
 
@@ -29,18 +23,8 @@ export type DirLightData = {
     intensity: number;
 };
 
-export type DirLightStructData = {
-    direction: Float32Array;
-    color: Float32Array;
-    intensity: Uint32Array;
-};
-
-export type DirLightComponent = Component<typeof T.DirLight, DirLightData | DirLightStructData>;
-
-// Data
-
-export type DataComponent = Component<typeof T.Data, ArrayBufferLike>;
+export type DirLightComponent = Component<typeof T.DirLight, DirLightData>;
 
 // Union
 
-export type EngineComponent = TransformComponent | DirLightComponent | DataComponent;
+export type EngineComponent = TransformComponent | DirLightComponent;

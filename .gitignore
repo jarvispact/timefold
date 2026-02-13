@@ -2,3 +2,4 @@ node_modules
 .vscode
 packages/**/dist
 tsconfig.tsbuildinfo
+packages/examples/index.html
