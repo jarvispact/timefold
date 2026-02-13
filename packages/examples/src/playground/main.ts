@@ -1,11 +1,18 @@
-import { worldBuilder } from '@timefold/ecs';
-import { DirLight, DomUtils, EngineComponent, PerspectiveCamera, Transform } from '@timefold/engine';
+import { QueryBuilder, WorldBuilder } from '@timefold/ecs';
+import { DirLight, DomUtils, EngineComponent, PerspectiveCamera, Transform, T } from '@timefold/engine';
 import { Quat, Vec3 } from '@timefold/math';
+import { RenderPlugin } from './render-plugin';
 
 const canvas = DomUtils.getCanvasById('canvas');
 const aspect = canvas.width / canvas.height;
 
-const world = worldBuilder<EngineComponent>().compile();
+const Movable = QueryBuilder<EngineComponent>()
+    .name('Movable')
+    .with(T.Transform)
+    .with(T.PhongMaterial, { include: false })
+    .compile();
+
+const world = WorldBuilder<EngineComponent>().withPlugins(RenderPlugin).withQueries(Movable).compile();
 
 const main = () => {
     const camera = world.createEntity();
