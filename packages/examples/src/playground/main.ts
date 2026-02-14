@@ -1,15 +1,15 @@
 /* eslint-disable @typescript-eslint/no-non-null-assertion */
 import { WorldBuilder } from '@timefold/ecs';
-import { DirLight, DomUtils, EngineComponent, PerspectiveCamera, T, Transform } from '@timefold/engine';
+import { DirLight, DomUtils, EngineComponent, PerspectiveCamera, PhongMaterial, T, Transform } from '@timefold/engine';
 import { Quat, Vec3 } from '@timefold/math';
-import { createRenderer } from './renderer';
+import { createWebGPURenderer } from './webgpu-renderer';
 
 const canvas = DomUtils.getCanvasById('canvas');
 const aspect = canvas.width / canvas.height;
 
 const world = WorldBuilder<EngineComponent>().compile();
 
-const main = () => {
+const main = async () => {
     const camera = world.createEntity();
     const light = world.createEntity();
     const cube = world.createEntity();
@@ -23,6 +23,7 @@ const main = () => {
         translation: Vec3.create(0, 3, 3),
         target: Vec3.zero(),
     });
+
     world.spawn(light, [
         lightTransformComponent,
         DirLight.create({
@@ -32,29 +33,32 @@ const main = () => {
         }),
     ]);
 
-    world.spawn(cube, [Transform.create({ translation: Vec3.zero() })]);
+    world.spawn(cube, [
+        Transform.create({ translation: Vec3.zero() }),
+        PhongMaterial.create({ diffuseColor: Vec3.create(0.2, 0.5, 0.8), shininess: 1024 }),
+    ]);
 
     // Extract component data for the renderer
     const cameraTransform = world.getComponent(camera, T.Transform)!.data;
     const cameraData = world.getComponent(camera, T.PerspectiveCamera)!.data;
     const lightData = world.getComponent(light, T.DirLight)!.data;
     const cubeTransform = world.getComponent(cube, T.Transform)!.data;
-
+    const cubeMaterial = world.getComponent(cube, T.PhongMaterial)!.data;
     const lightTransform = world.getComponent(light, T.Transform)!.data;
 
-    const renderer = createRenderer(canvas, {
+    const renderer = createWebGPURenderer(canvas, {
         cameraTransform,
         cameraData,
         lightData,
         lightTransform,
         cubeTransform,
+        cubeMaterial,
     });
 
-    // Rotate cube each frame
     let lastTime = 0;
     const rotationSpeed = 0.8; // radians per second
 
-    const update = (time: number) => {
+    const tick = (time: number) => {
         const dt = (time - lastTime) / 1000;
         lastTime = time;
 
@@ -62,11 +66,12 @@ const main = () => {
             Quat.rotationY(cubeTransform.rotation, cubeTransform.rotation, rotationSpeed * dt);
         }
 
-        requestAnimationFrame(update);
+        renderer.frame();
+        requestAnimationFrame(tick);
     };
 
-    renderer.start();
-    requestAnimationFrame(update);
+    await renderer.init();
+    requestAnimationFrame(tick);
 };
 
-main();
+void main();

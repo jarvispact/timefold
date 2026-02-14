@@ -1,4 +1,4 @@
-import { QuatType, Vec2Type, Vec3ArrayType, Vec3Type } from './types';
+import { Mat4Type, QuatType, Vec2Type, Vec3ArrayType, Vec3Type } from './types';
 
 export const create = (...args: Vec3ArrayType | []): Vec3Type =>
     args.length === 3 ? [args[0], args[1], args[2]] : [0.0, 0.0, 0.0];
@@ -108,6 +108,13 @@ export const normalization = (out: Vec3Type, a: Vec3Type): Vec3Type => {
 
 export const normalize = (vec: Vec3Type): Vec3Type => normalization(vec, vec);
 
+export const length = (a: Vec3Type): number => {
+    const x = a[0];
+    const y = a[1];
+    const z = a[2];
+    return Math.sqrt(x * x + y * y + z * z);
+};
+
 export const transformQuat = (out: Vec3Type, a: Vec3Type, q: QuatType): Vec3Type => {
     // Fast Vector Rotation using Quaternions by Robert Eisele
     // https://raw.org/proof/vector-rotation-using-quaternions/
@@ -135,6 +142,21 @@ export const transformQuat = (out: Vec3Type, a: Vec3Type, q: QuatType): Vec3Type
     out[0] = vx + qw * tx + qy * tz - qz * ty;
     out[1] = vy + qw * ty + qz * tx - qx * tz;
     out[2] = vz + qw * tz + qx * ty - qy * tx;
+
+    return out;
+};
+
+export const transformMat4 = (out: Vec3Type, a: Vec3Type, m: Mat4Type): Vec3Type => {
+    const x = a[0],
+        y = a[1],
+        z = a[2];
+
+    let w = m[3] * x + m[7] * y + m[11] * z + m[15];
+    w = w || 1.0;
+
+    out[0] = (m[0] * x + m[4] * y + m[8] * z + m[12]) / w;
+    out[1] = (m[1] * x + m[5] * y + m[9] * z + m[13]) / w;
+    out[2] = (m[2] * x + m[6] * y + m[10] * z + m[14]) / w;
 
     return out;
 };
