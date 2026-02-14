@@ -350,7 +350,7 @@ fn fs_main(input: VertexOutput) -> @location(0) vec4f {
     let specular = material.specularColor * spec * light.intensity * light.color;
 
     let color = ambient + diffuse + specular;
-    return vec4f(diffuse, material.opacity);
+    return vec4f(color, material.opacity);
 }
 `;
 

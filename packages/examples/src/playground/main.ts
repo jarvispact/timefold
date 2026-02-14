@@ -35,7 +35,7 @@ const main = async () => {
 
     world.spawn(cube, [
         Transform.create({ translation: Vec3.zero() }),
-        PhongMaterial.create({ diffuseColor: Vec3.create(0.2, 0.5, 0.8), shininess: 1024 }),
+        PhongMaterial.create({ diffuseColor: Vec3.create(0.2, 0.5, 0.8) }),
     ]);
 
     // Extract component data for the renderer

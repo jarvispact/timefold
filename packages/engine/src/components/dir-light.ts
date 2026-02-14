@@ -12,7 +12,7 @@ type CreateArgs = {
 
 export const create = (args: CreateArgs): DirLightComponent => {
     const direction = args.direction;
-    const color = args.color ?? Vec3.create();
+    const color = args.color ?? Vec3.one();
     const intensity = args.intensity ?? 1;
 
     return createComponent(type, {
