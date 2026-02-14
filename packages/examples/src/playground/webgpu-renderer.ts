@@ -11,6 +11,7 @@ export type WebGPUSceneData = {
     lightTransform: TransformData;
     cubeTransform: TransformData;
     cubeMaterial: PhongMaterialData;
+    texture?: ImageBitmap;
 };
 
 // --- Trackball ---
@@ -281,6 +282,33 @@ const CUBE_INDICES = new Uint16Array([
     20, 22, 21,  20, 23, 22,   // top
 ]);
 
+// --- Cube UVs (standing cross layout: 3 cols x 4 rows) ---
+// Layout (top to bottom): [Top] / [Left][Front][Right] / [Bottom] / [Back]
+// Column boundaries: 0, 1/3, 2/3, 1
+// Row boundaries: 0, 1/4, 1/2, 3/4, 1
+
+const C1 = 1 / 3;
+const C2 = 2 / 3;
+const R1 = 1 / 4;
+const R2 = 2 / 4;
+const R3 = 3 / 4;
+
+// prettier-ignore
+const CUBE_UVS = new Float32Array([
+    // Back face (v0-v3) — cell: u[C1,C2], v[R3,1]
+    C1, R3,   C1, 1,    C2, 1,    C2, R3,
+    // Front face (v4-v7) — cell: u[C1,C2], v[R1,R2]
+    C2, R2,   C2, R1,   C1, R1,   C1, R2,
+    // Left face (v8-v11) — cell: u[0,C1], v[R1,R2]
+     0, R2,   C1, R2,   C1, R1,    0, R1,
+    // Right face (v12-v15) — cell: u[C2,1], v[R1,R2]
+    C2, R2,    1, R2,    1, R1,   C2, R1,
+    // Bottom face (v16-v19) — cell: u[C1,C2], v[R2,R3]
+    C1, R3,   C2, R3,   C2, R2,   C1, R2,
+    // Top face (v20-v23) — cell: u[C1,C2], v[0,R1]
+    C1, R1,   C2, R1,   C2,  0,   C1,  0,
+]);
+
 // --- WGSL Shader ---
 
 const SHADER_SOURCE = /* wgsl */ `
@@ -308,16 +336,20 @@ struct MaterialUniforms {
 @group(0) @binding(0) var<uniform> scene: SceneUniforms;
 @group(1) @binding(0) var<uniform> light: LightUniforms;
 @group(2) @binding(0) var<uniform> material: MaterialUniforms;
+@group(3) @binding(0) var texSampler: sampler;
+@group(3) @binding(1) var texDiffuse: texture_2d<f32>;
 
 struct VertexInput {
     @location(0) position: vec3f,
     @location(1) normal: vec3f,
+    @location(2) uv: vec2f,
 }
 
 struct VertexOutput {
     @builtin(position) clipPos: vec4f,
     @location(0) worldPos: vec3f,
     @location(1) worldNormal: vec3f,
+    @location(2) uv: vec2f,
 }
 
 @vertex
@@ -327,6 +359,7 @@ fn vs_main(input: VertexInput) -> VertexOutput {
     out.worldPos = worldPos4.xyz;
     out.clipPos = scene.viewProj * worldPos4;
     out.worldNormal = (scene.normalMatrix * vec4f(input.normal, 0.0)).xyz;
+    out.uv = input.uv;
     return out;
 }
 
@@ -337,12 +370,14 @@ fn fs_main(input: VertexOutput) -> @location(0) vec4f {
     let V = normalize(scene.cameraPos - input.worldPos);
     let H = normalize(L + V);
 
+    let texColor = textureSample(texDiffuse, texSampler, input.uv).rgb;
+
     // Ambient
-    let ambient = material.ambientColor;
+    let ambient = material.ambientColor * texColor;
 
     // Diffuse
     let NdotL = max(dot(N, L), 0.0);
-    let diffuse = material.diffuseColor * NdotL * light.intensity * light.color;
+    let diffuse = material.diffuseColor * texColor * NdotL * light.intensity * light.color;
 
     // Specular (Blinn-Phong)
     let NdotH = max(dot(N, H), 0.0);
@@ -449,6 +484,12 @@ export const createWebGPURenderer = (canvas: HTMLCanvasElement, scene: WebGPUSce
         });
         device.queue.writeBuffer(normalBuffer, 0, CUBE_NORMALS);
 
+        const uvBuffer = device.createBuffer({
+            size: CUBE_UVS.byteLength,
+            usage: GPUBufferUsage.VERTEX | GPUBufferUsage.COPY_DST,
+        });
+        device.queue.writeBuffer(uvBuffer, 0, CUBE_UVS);
+
         const indexBuffer = device.createBuffer({
             size: CUBE_INDICES.byteLength,
             usage: GPUBufferUsage.INDEX | GPUBufferUsage.COPY_DST,
@@ -468,6 +509,22 @@ export const createWebGPURenderer = (canvas: HTMLCanvasElement, scene: WebGPUSce
         const materialUniformBuffer = device.createBuffer({
             size: MATERIAL_UNIFORM_SIZE,
             usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
+        });
+
+        // --- GPU texture + sampler ---
+        const gpuTexture = device.createTexture({
+            size: [scene.texture!.width, scene.texture!.height],
+            format: 'rgba8unorm',
+            usage: GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.COPY_DST | GPUTextureUsage.RENDER_ATTACHMENT,
+        });
+        device.queue.copyExternalImageToTexture({ source: scene.texture! }, { texture: gpuTexture }, [
+            scene.texture!.width,
+            scene.texture!.height,
+        ]);
+
+        const sampler = device.createSampler({
+            magFilter: 'linear',
+            minFilter: 'linear',
         });
 
         // --- Shader module ---
@@ -492,8 +549,20 @@ export const createWebGPURenderer = (canvas: HTMLCanvasElement, scene: WebGPUSce
             entries: [{ binding: 0, visibility: GPUShaderStage.FRAGMENT, buffer: { type: 'uniform' } }],
         });
 
+        const textureBindGroupLayout = device.createBindGroupLayout({
+            entries: [
+                { binding: 0, visibility: GPUShaderStage.FRAGMENT, sampler: { type: 'filtering' } },
+                { binding: 1, visibility: GPUShaderStage.FRAGMENT, texture: { sampleType: 'float' } },
+            ],
+        });
+
         const pipelineLayout = device.createPipelineLayout({
-            bindGroupLayouts: [sceneBindGroupLayout, lightBindGroupLayout, materialBindGroupLayout],
+            bindGroupLayouts: [
+                sceneBindGroupLayout,
+                lightBindGroupLayout,
+                materialBindGroupLayout,
+                textureBindGroupLayout,
+            ],
         });
 
         // --- Render pipeline ---
@@ -510,6 +579,10 @@ export const createWebGPURenderer = (canvas: HTMLCanvasElement, scene: WebGPUSce
                     {
                         arrayStride: 12,
                         attributes: [{ shaderLocation: 1, offset: 0, format: 'float32x3' }],
+                    },
+                    {
+                        arrayStride: 8, // 2 floats * 4 bytes
+                        attributes: [{ shaderLocation: 2, offset: 0, format: 'float32x2' }],
                     },
                 ],
             },
@@ -544,6 +617,14 @@ export const createWebGPURenderer = (canvas: HTMLCanvasElement, scene: WebGPUSce
         const materialBindGroup = device.createBindGroup({
             layout: materialBindGroupLayout,
             entries: [{ binding: 0, resource: { buffer: materialUniformBuffer } }],
+        });
+
+        const textureBindGroup = device.createBindGroup({
+            layout: textureBindGroupLayout,
+            entries: [
+                { binding: 0, resource: sampler },
+                { binding: 1, resource: gpuTexture.createView() },
+            ],
         });
 
         // --- Depth texture ---
@@ -647,10 +728,12 @@ export const createWebGPURenderer = (canvas: HTMLCanvasElement, scene: WebGPUSce
             renderPass.setPipeline(pipeline);
             renderPass.setVertexBuffer(0, positionBuffer);
             renderPass.setVertexBuffer(1, normalBuffer);
+            renderPass.setVertexBuffer(2, uvBuffer);
             renderPass.setIndexBuffer(indexBuffer, 'uint16');
             renderPass.setBindGroup(0, sceneBindGroup);
             renderPass.setBindGroup(1, lightBindGroup);
             renderPass.setBindGroup(2, materialBindGroup);
+            renderPass.setBindGroup(3, textureBindGroup);
             renderPass.drawIndexed(36);
             renderPass.end();
 

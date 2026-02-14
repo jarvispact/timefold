@@ -1,6 +1,15 @@
 /* eslint-disable @typescript-eslint/no-non-null-assertion */
 import { WorldBuilder } from '@timefold/ecs';
-import { DirLight, DomUtils, EngineComponent, PerspectiveCamera, PhongMaterial, T, Transform } from '@timefold/engine';
+import {
+    DirLight,
+    DomUtils,
+    EngineComponent,
+    ImageLoader,
+    PerspectiveCamera,
+    PhongMaterial,
+    T,
+    Transform,
+} from '@timefold/engine';
 import { Quat, Vec3 } from '@timefold/math';
 import { createWebGPURenderer } from './webgpu-renderer';
 
@@ -46,6 +55,8 @@ const main = async () => {
     const cubeMaterial = world.getComponent(cube, T.PhongMaterial)!.data;
     const lightTransform = world.getComponent(light, T.Transform)!.data;
 
+    const texture = await ImageLoader.loadImage('./cube-uv-debug-map.png');
+
     const renderer = createWebGPURenderer(canvas, {
         cameraTransform,
         cameraData,
@@ -53,6 +64,7 @@ const main = async () => {
         lightTransform,
         cubeTransform,
         cubeMaterial,
+        texture,
     });
 
     let lastTime = 0;
