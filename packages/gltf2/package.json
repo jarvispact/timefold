@@ -18,8 +18,6 @@
   "author": "jarvispact <jarvispact@gmail.com>",
   "license": "MIT",
   "scripts": {
-    "test": "vitest --typecheck",
-    "test:run": "vitest run --typecheck",
     "build": "rm -rf ./dist *.tsbuildinfo && tsc -b",
     "publish-to-npm": "npm publish"
   },

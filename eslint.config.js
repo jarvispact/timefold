@@ -26,6 +26,7 @@ export default [
   {
     name: 'typescript-source',
     files: ['packages/**/src/**/*.ts'],
+    ignores: ['**/*.test.ts'],
     languageOptions: {
       parserOptions: {
         project: [
@@ -42,6 +43,16 @@ export default [
     },
     rules: {
       "@typescript-eslint/restrict-template-expressions": 'off',
+    },
+  },
+  {
+    name: 'typescript-test',
+    files: ['**/*.test.ts'],
+    languageOptions: {
+      parserOptions: {
+        project: ['./packages/obj/tsconfig.test.json'],
+        tsconfigRootDir: import.meta.dirname,
+      },
     },
   },
   {

@@ -21,6 +21,10 @@ Timefold is a modular, ECS-powered game engine for the web. The codebase is orga
 
 Each package is designed to be used independently with 0 dependencies, ESM-only, and fully tree-shakeable. TypeScript paths are configured in `tsconfig.base.json` to import packages via `@timefold/*`.
 
+## Domain
+
+The timefold project uses a left-handed coordinate system ( +Z forward, +X right, +Y up ) for the world space across all its modules.
+
 ## Development Notes
 
 - All packages use TypeScript with strict type-checking enabled
