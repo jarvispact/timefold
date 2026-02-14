@@ -15,6 +15,12 @@ export const down = (): Vec3Type => [0.0, -1.0, 0.0];
 export const forward = (): Vec3Type => [0.0, 0.0, 1.0];
 export const backward = (): Vec3Type => [0.0, 0.0, -1.0];
 
+export const set = (out: Vec3Type, x: number, y: number, z: number) => {
+    out[0] = x;
+    out[1] = y;
+    out[2] = z;
+};
+
 export const copy = (out: Vec3Type, vec3: Vec3Type): Vec3Type => {
     out[0] = vec3[0];
     out[1] = vec3[1];
@@ -22,15 +28,7 @@ export const copy = (out: Vec3Type, vec3: Vec3Type): Vec3Type => {
     return out;
 };
 
-export const createCopy = (vec3: Vec3Type): Vec3Type => {
-    return copy(create(0, 0, 0), vec3);
-};
-
-export const set = (out: Vec3Type, x: number, y: number, z: number) => {
-    out[0] = x;
-    out[1] = y;
-    out[2] = z;
-};
+export const createCopy = (vec3: Vec3Type): Vec3Type => copy(create(0, 0, 0), vec3);
 
 export const addition = (out: Vec3Type, a: Vec3Type, b: Vec3Type) => {
     out[0] = a[0] + b[0];
@@ -39,9 +37,7 @@ export const addition = (out: Vec3Type, a: Vec3Type, b: Vec3Type) => {
     return out;
 };
 
-export const add = (out: Vec3Type, vec3: Vec3Type) => {
-    return addition(out, out, vec3);
-};
+export const add = (out: Vec3Type, vec3: Vec3Type) => addition(out, out, vec3);
 
 export const subtraction = (out: Vec3Type, a: Vec3Type, b: Vec3Type) => {
     out[0] = a[0] - b[0];
@@ -50,9 +46,7 @@ export const subtraction = (out: Vec3Type, a: Vec3Type, b: Vec3Type) => {
     return out;
 };
 
-export const subtract = (out: Vec3Type, vec3: Vec3Type) => {
-    return subtraction(out, out, vec3);
-};
+export const subtract = (out: Vec3Type, vec3: Vec3Type) => subtraction(out, out, vec3);
 
 export const multiplication = (out: Vec3Type, a: Vec3Type, b: Vec3Type) => {
     out[0] = a[0] * b[0];
@@ -61,9 +55,7 @@ export const multiplication = (out: Vec3Type, a: Vec3Type, b: Vec3Type) => {
     return out;
 };
 
-export const multiply = (out: Vec3Type, vec3: Vec3Type) => {
-    return multiplication(out, out, vec3);
-};
+export const multiply = (out: Vec3Type, vec3: Vec3Type) => multiplication(out, out, vec3);
 
 export const scaling = (out: Vec3Type, vec3: Vec3Type, factor: number) => {
     out[0] = vec3[0] * factor;
@@ -72,11 +64,9 @@ export const scaling = (out: Vec3Type, vec3: Vec3Type, factor: number) => {
     return out;
 };
 
-export const scale = (out: Vec3Type, factor: number) => {
-    return scaling(out, out, factor);
-};
+export const scale = (out: Vec3Type, factor: number) => scaling(out, out, factor);
 
-export const cross = (out: Vec3Type, a: Vec3Type, b: Vec3Type): Vec3Type => {
+export const crossProduct = (out: Vec3Type, a: Vec3Type, b: Vec3Type): Vec3Type => {
     const ax = a[0],
         ay = a[1],
         az = a[2];
@@ -89,6 +79,8 @@ export const cross = (out: Vec3Type, a: Vec3Type, b: Vec3Type): Vec3Type => {
     out[2] = ax * by - ay * bx;
     return out;
 };
+
+export const cross = (out: Vec3Type, vec3: Vec3Type) => crossProduct(out, out, vec3);
 
 export const normalization = (out: Vec3Type, a: Vec3Type): Vec3Type => {
     const x = a[0];

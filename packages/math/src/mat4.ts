@@ -1,5 +1,6 @@
 import { Mat4ArrayType, Mat4Type, QuatType, Vec3Type } from './types';
 import { EPSILON } from './utils';
+import * as Vec3 from './vec3';
 
 // eslint-disable-next-line prettier/prettier
 export const create = (...args: Mat4ArrayType | []): Mat4Type => args.length === 16 ? args : [
@@ -72,6 +73,9 @@ export const fromRotationTranslationScale = (out: Mat4Type, q: QuatType, v: Vec3
     return out;
 };
 
+export const createFromRotationTranslationScale = (q: QuatType, v: Vec3Type, s: Vec3Type): Mat4Type =>
+    fromRotationTranslationScale(create(), q, v, s);
+
 export const fromRotationTranslationScaleOrigin = (
     out: Mat4Type,
     q: QuatType,
@@ -135,6 +139,13 @@ export const fromRotationTranslationScaleOrigin = (
     return out;
 };
 
+export const createFromRotationTranslationScaleOrigin = (
+    q: QuatType,
+    v: Vec3Type,
+    s: Vec3Type,
+    o: Vec3Type,
+): Mat4Type => fromRotationTranslationScaleOrigin(create(), q, v, s, o);
+
 export const targetTo = (out: Mat4Type, eye: Vec3Type, target: Vec3Type, up: Vec3Type): Mat4Type => {
     const eyex = eye[0],
         eyey = eye[1],
@@ -143,9 +154,9 @@ export const targetTo = (out: Mat4Type, eye: Vec3Type, target: Vec3Type, up: Vec
         upy = up[1],
         upz = up[2];
 
-    let z0 = eyex - target[0],
-        z1 = eyey - target[1],
-        z2 = eyez - target[2];
+    let z0 = target[0] - eyex,
+        z1 = target[1] - eyey,
+        z2 = target[2] - eyez;
 
     let len = z0 * z0 + z1 * z1 + z2 * z2;
     if (len > 0) {
@@ -207,9 +218,9 @@ export const lookAt = (out: Mat4Type, eye: Vec3Type, center: Vec3Type, up: Vec3T
         return identity(out);
     }
 
-    z0 = eyex - centerx;
-    z1 = eyey - centery;
-    z2 = eyez - centerz;
+    z0 = centerx - eyex;
+    z1 = centery - eyey;
+    z2 = centerz - eyez;
 
     len = 1 / Math.sqrt(z0 * z0 + z1 * z1 + z2 * z2);
     z0 *= len;
@@ -285,17 +296,17 @@ export const perspective = (
     out[7] = 0.0;
     out[8] = 0.0;
     out[9] = 0.0;
-    out[11] = -1.0;
+    out[11] = 1.0;
     out[12] = 0.0;
     out[13] = 0.0;
     out[15] = 0.0;
 
     if (far !== undefined && far !== Infinity) {
-        const nf = 1 / (near - far);
-        out[10] = far * nf;
-        out[14] = far * near * nf;
+        const fn = 1 / (far - near);
+        out[10] = far * fn;
+        out[14] = -(far * near * fn);
     } else {
-        out[10] = -1.0;
+        out[10] = 1.0;
         out[14] = -near;
     }
 
@@ -313,7 +324,7 @@ export const ortho = (
 ): Mat4Type => {
     const lr = 1 / (left - right);
     const bt = 1 / (bottom - top);
-    const nf = 1 / (near - far);
+    const fn = 1 / (far - near);
 
     out[0] = -2 * lr;
     out[1] = 0.0;
@@ -325,11 +336,11 @@ export const ortho = (
     out[7] = 0.0;
     out[8] = 0.0;
     out[9] = 0.0;
-    out[10] = nf;
+    out[10] = fn;
     out[11] = 0.0;
     out[12] = (left + right) * lr;
     out[13] = (top + bottom) * bt;
-    out[14] = near * nf;
+    out[14] = -(near * fn);
     out[15] = 1.0;
 
     return out;
@@ -499,5 +510,336 @@ export const transpose = (out: Mat4Type, mat4: Mat4Type): Mat4Type => {
 export const modelToNormal = (out: Mat4Type, modelMatrix: Mat4Type): Mat4Type => {
     transpose(out, modelMatrix);
     invert(out, out);
+    return out;
+};
+
+export const rotationX = (out: Mat4Type, a: Mat4Type, rad: number): Mat4Type => {
+    const s = Math.sin(rad);
+    const c = Math.cos(rad);
+    const a10 = a[4];
+    const a11 = a[5];
+    const a12 = a[6];
+    const a13 = a[7];
+    const a20 = a[8];
+    const a21 = a[9];
+    const a22 = a[10];
+    const a23 = a[11];
+
+    if (a !== out) {
+        // If the source and destination differ, copy the unchanged rows
+        out[0] = a[0];
+        out[1] = a[1];
+        out[2] = a[2];
+        out[3] = a[3];
+        out[12] = a[12];
+        out[13] = a[13];
+        out[14] = a[14];
+        out[15] = a[15];
+    }
+
+    // Perform axis-specific matrix multiplication
+    out[4] = a10 * c + a20 * s;
+    out[5] = a11 * c + a21 * s;
+    out[6] = a12 * c + a22 * s;
+    out[7] = a13 * c + a23 * s;
+    out[8] = a20 * c - a10 * s;
+    out[9] = a21 * c - a11 * s;
+    out[10] = a22 * c - a12 * s;
+    out[11] = a23 * c - a13 * s;
+
+    return out;
+};
+
+export const rotateX = (out: Mat4Type, rad: number) => rotationX(out, out, rad);
+
+export const rotationY = (out: Mat4Type, a: Mat4Type, rad: number): Mat4Type => {
+    const s = Math.sin(rad);
+    const c = Math.cos(rad);
+    const a00 = a[0];
+    const a01 = a[1];
+    const a02 = a[2];
+    const a03 = a[3];
+    const a20 = a[8];
+    const a21 = a[9];
+    const a22 = a[10];
+    const a23 = a[11];
+
+    if (a !== out) {
+        // If the source and destination differ, copy the unchanged rows
+        out[4] = a[4];
+        out[5] = a[5];
+        out[6] = a[6];
+        out[7] = a[7];
+        out[12] = a[12];
+        out[13] = a[13];
+        out[14] = a[14];
+        out[15] = a[15];
+    }
+
+    // Perform axis-specific matrix multiplication
+    out[0] = a00 * c - a20 * s;
+    out[1] = a01 * c - a21 * s;
+    out[2] = a02 * c - a22 * s;
+    out[3] = a03 * c - a23 * s;
+    out[8] = a00 * s + a20 * c;
+    out[9] = a01 * s + a21 * c;
+    out[10] = a02 * s + a22 * c;
+    out[11] = a03 * s + a23 * c;
+
+    return out;
+};
+
+export const rotateY = (out: Mat4Type, rad: number) => rotationY(out, out, rad);
+
+export const rotationZ = (out: Mat4Type, a: Mat4Type, rad: number): Mat4Type => {
+    const s = Math.sin(rad);
+    const c = Math.cos(rad);
+    const a00 = a[0];
+    const a01 = a[1];
+    const a02 = a[2];
+    const a03 = a[3];
+    const a10 = a[4];
+    const a11 = a[5];
+    const a12 = a[6];
+    const a13 = a[7];
+
+    if (a !== out) {
+        // If the source and destination differ, copy the unchanged last row
+        out[8] = a[8];
+        out[9] = a[9];
+        out[10] = a[10];
+        out[11] = a[11];
+        out[12] = a[12];
+        out[13] = a[13];
+        out[14] = a[14];
+        out[15] = a[15];
+    }
+
+    // Perform axis-specific matrix multiplication
+    out[0] = a00 * c + a10 * s;
+    out[1] = a01 * c + a11 * s;
+    out[2] = a02 * c + a12 * s;
+    out[3] = a03 * c + a13 * s;
+    out[4] = a10 * c - a00 * s;
+    out[5] = a11 * c - a01 * s;
+    out[6] = a12 * c - a02 * s;
+    out[7] = a13 * c - a03 * s;
+
+    return out;
+};
+
+export const rotateZ = (out: Mat4Type, rad: number) => rotationZ(out, out, rad);
+
+export const fromTranslation = (out: Mat4Type, v: Vec3Type): Mat4Type => {
+    out[0] = 1;
+    out[1] = 0;
+    out[2] = 0;
+    out[3] = 0;
+    out[4] = 0;
+    out[5] = 1;
+    out[6] = 0;
+    out[7] = 0;
+    out[8] = 0;
+    out[9] = 0;
+    out[10] = 1;
+    out[11] = 0;
+    out[12] = v[0];
+    out[13] = v[1];
+    out[14] = v[2];
+    out[15] = 1;
+    return out;
+};
+
+export const createFromTranslation = (v: Vec3Type): Mat4Type => fromTranslation(create(), v);
+
+export const fromScaling = (out: Mat4Type, v: Vec3Type): Mat4Type => {
+    out[0] = v[0];
+    out[1] = 0;
+    out[2] = 0;
+    out[3] = 0;
+    out[4] = 0;
+    out[5] = v[1];
+    out[6] = 0;
+    out[7] = 0;
+    out[8] = 0;
+    out[9] = 0;
+    out[10] = v[2];
+    out[11] = 0;
+    out[12] = 0;
+    out[13] = 0;
+    out[14] = 0;
+    out[15] = 1;
+    return out;
+};
+
+export const createFromScaling = (v: Vec3Type): Mat4Type => fromScaling(create(), v);
+
+export const getTranslation = (out: Vec3Type, mat: Mat4Type): Vec3Type => {
+    out[0] = mat[12];
+    out[1] = mat[13];
+    out[2] = mat[14];
+    return out;
+};
+
+export const getScaling = (out: Vec3Type, mat: Mat4Type): Vec3Type => {
+    const m11 = mat[0];
+    const m12 = mat[1];
+    const m13 = mat[2];
+    const m21 = mat[4];
+    const m22 = mat[5];
+    const m23 = mat[6];
+    const m31 = mat[8];
+    const m32 = mat[9];
+    const m33 = mat[10];
+
+    out[0] = Math.sqrt(m11 * m11 + m12 * m12 + m13 * m13);
+    out[1] = Math.sqrt(m21 * m21 + m22 * m22 + m23 * m23);
+    out[2] = Math.sqrt(m31 * m31 + m32 * m32 + m33 * m33);
+
+    return out;
+};
+
+const tmpScale = Vec3.one();
+
+export const getRotation = (out: QuatType, mat: Mat4Type): QuatType => {
+    getScaling(tmpScale, mat);
+
+    const is1 = 1 / tmpScale[0];
+    const is2 = 1 / tmpScale[1];
+    const is3 = 1 / tmpScale[2];
+
+    const sm11 = mat[0] * is1;
+    const sm12 = mat[1] * is2;
+    const sm13 = mat[2] * is3;
+    const sm21 = mat[4] * is1;
+    const sm22 = mat[5] * is2;
+    const sm23 = mat[6] * is3;
+    const sm31 = mat[8] * is1;
+    const sm32 = mat[9] * is2;
+    const sm33 = mat[10] * is3;
+
+    const trace = sm11 + sm22 + sm33;
+    let S = 0;
+
+    if (trace > 0) {
+        S = Math.sqrt(trace + 1.0) * 2;
+        out[3] = 0.25 * S;
+        out[0] = (sm23 - sm32) / S;
+        out[1] = (sm31 - sm13) / S;
+        out[2] = (sm12 - sm21) / S;
+    } else if (sm11 > sm22 && sm11 > sm33) {
+        S = Math.sqrt(1.0 + sm11 - sm22 - sm33) * 2;
+        out[3] = (sm23 - sm32) / S;
+        out[0] = 0.25 * S;
+        out[1] = (sm12 + sm21) / S;
+        out[2] = (sm31 + sm13) / S;
+    } else if (sm22 > sm33) {
+        S = Math.sqrt(1.0 + sm22 - sm11 - sm33) * 2;
+        out[3] = (sm31 - sm13) / S;
+        out[0] = (sm12 + sm21) / S;
+        out[1] = 0.25 * S;
+        out[2] = (sm23 + sm32) / S;
+    } else {
+        S = Math.sqrt(1.0 + sm33 - sm11 - sm22) * 2;
+        out[3] = (sm12 - sm21) / S;
+        out[0] = (sm31 + sm13) / S;
+        out[1] = (sm23 + sm32) / S;
+        out[2] = 0.25 * S;
+    }
+
+    return out;
+};
+
+export const decompose = (out_r: QuatType, out_t: Vec3Type, out_s: Vec3Type, mat: Mat4Type) => {
+    out_t[0] = mat[12];
+    out_t[1] = mat[13];
+    out_t[2] = mat[14];
+
+    const m11 = mat[0];
+    const m12 = mat[1];
+    const m13 = mat[2];
+    const m21 = mat[4];
+    const m22 = mat[5];
+    const m23 = mat[6];
+    const m31 = mat[8];
+    const m32 = mat[9];
+    const m33 = mat[10];
+
+    out_s[0] = Math.sqrt(m11 * m11 + m12 * m12 + m13 * m13);
+    out_s[1] = Math.sqrt(m21 * m21 + m22 * m22 + m23 * m23);
+    out_s[2] = Math.sqrt(m31 * m31 + m32 * m32 + m33 * m33);
+
+    const is1 = 1 / out_s[0];
+    const is2 = 1 / out_s[1];
+    const is3 = 1 / out_s[2];
+
+    const sm11 = m11 * is1;
+    const sm12 = m12 * is2;
+    const sm13 = m13 * is3;
+    const sm21 = m21 * is1;
+    const sm22 = m22 * is2;
+    const sm23 = m23 * is3;
+    const sm31 = m31 * is1;
+    const sm32 = m32 * is2;
+    const sm33 = m33 * is3;
+
+    const trace = sm11 + sm22 + sm33;
+    let S = 0;
+
+    if (trace > 0) {
+        S = Math.sqrt(trace + 1.0) * 2;
+        out_r[3] = 0.25 * S;
+        out_r[0] = (sm23 - sm32) / S;
+        out_r[1] = (sm31 - sm13) / S;
+        out_r[2] = (sm12 - sm21) / S;
+    } else if (sm11 > sm22 && sm11 > sm33) {
+        S = Math.sqrt(1.0 + sm11 - sm22 - sm33) * 2;
+        out_r[3] = (sm23 - sm32) / S;
+        out_r[0] = 0.25 * S;
+        out_r[1] = (sm12 + sm21) / S;
+        out_r[2] = (sm31 + sm13) / S;
+    } else if (sm22 > sm33) {
+        S = Math.sqrt(1.0 + sm22 - sm11 - sm33) * 2;
+        out_r[3] = (sm31 - sm13) / S;
+        out_r[0] = (sm12 + sm21) / S;
+        out_r[1] = 0.25 * S;
+        out_r[2] = (sm23 + sm32) / S;
+    } else {
+        S = Math.sqrt(1.0 + sm33 - sm11 - sm22) * 2;
+        out_r[3] = (sm12 - sm21) / S;
+        out_r[0] = (sm31 + sm13) / S;
+        out_r[1] = (sm23 + sm32) / S;
+        out_r[2] = 0.25 * S;
+    }
+};
+
+export const frustum = (
+    out: Mat4Type,
+    left: number,
+    right: number,
+    bottom: number,
+    top: number,
+    near: number,
+    far: number,
+) => {
+    const rl = 1 / (right - left);
+    const tb = 1 / (top - bottom);
+    const nf = 1 / (near - far);
+    out[0] = near * 2 * rl;
+    out[1] = 0;
+    out[2] = 0;
+    out[3] = 0;
+    out[4] = 0;
+    out[5] = near * 2 * tb;
+    out[6] = 0;
+    out[7] = 0;
+    out[8] = (right + left) * rl;
+    out[9] = (top + bottom) * tb;
+    out[10] = (far + near) * nf;
+    out[11] = -1;
+    out[12] = 0;
+    out[13] = 0;
+    out[14] = far * near * 2 * nf;
+    out[15] = 0;
     return out;
 };

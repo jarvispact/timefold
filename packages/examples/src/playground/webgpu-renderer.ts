@@ -61,7 +61,7 @@ const bindTrackball = (canvas: HTMLCanvasElement, tb: Trackball) => {
         tb.lastX = e.clientX;
         tb.lastY = e.clientY;
 
-        tb.theta -= dx * 0.005;
+        tb.theta += dx * 0.005;
         tb.phi += dy * 0.005;
 
         const limit = Math.PI * 0.495;
@@ -273,12 +273,12 @@ const CUBE_NORMALS = new Float32Array([
 
 // prettier-ignore
 const CUBE_INDICES = new Uint16Array([
-     0,  1,  2,   0,  2,  3,   // back
-     4,  5,  6,   4,  6,  7,   // front
-     8,  9, 10,   8, 10, 11,   // left
-    12, 13, 14,  12, 14, 15,   // right
-    16, 17, 18,  16, 18, 19,   // bottom
-    20, 21, 22,  20, 22, 23,   // top
+     0,  2,  1,   0,  3,  2,   // back
+     4,  6,  5,   4,  7,  6,   // front
+     8, 10,  9,   8, 11, 10,   // left
+    12, 14, 13,  12, 15, 14,   // right
+    16, 18, 17,  16, 19, 18,   // bottom
+    20, 22, 21,  20, 23, 22,   // top
 ]);
 
 // --- WGSL Shader ---

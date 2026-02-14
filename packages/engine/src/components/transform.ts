@@ -32,8 +32,8 @@ export const createAndLookAt = (args: CreateAndLookAtArgs): TransformComponent =
 
 export const lookAt = (out: TransformData, target: Vec3Type, up: Vec3Type = Vec3.up()): TransformData => {
     const f = Vec3.normalize(Vec3.subtraction(Vec3.create(), target, out.translation));
-    const r = Vec3.normalize(Vec3.cross(Vec3.create(), up, f));
-    const u = Vec3.cross(Vec3.create(), f, r);
+    const r = Vec3.normalize(Vec3.crossProduct(Vec3.create(), up, f));
+    const u = Vec3.crossProduct(Vec3.create(), f, r);
 
     const mat3 = Mat3.create(r, u, f);
     Quat.fromMat3(out.rotation, mat3);

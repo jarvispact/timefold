@@ -15,12 +15,12 @@ const main = async () => {
     const cube = world.createEntity();
 
     world.spawn(camera, [
-        Transform.createAndLookAt({ translation: Vec3.create(-3, 4, 8), target: Vec3.zero() }),
+        Transform.createAndLookAt({ translation: Vec3.create(0, 3, -8), target: Vec3.zero() }),
         PerspectiveCamera.create({ aspect }),
     ]);
 
     const lightTransformComponent = Transform.createAndLookAt({
-        translation: Vec3.create(0, 3, 3),
+        translation: Vec3.create(1, 3, -3),
         target: Vec3.zero(),
     });
 

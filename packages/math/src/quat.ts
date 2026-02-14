@@ -92,6 +92,8 @@ export const rotationX = (out: QuatType, quat: QuatType, radians: number): QuatT
     return out;
 };
 
+export const rotateX = (out: QuatType, radians: number) => rotationX(out, out, radians);
+
 export const rotationY = (out: QuatType, quat: QuatType, radians: number): QuatType => {
     radians *= 0.5;
 
@@ -110,6 +112,8 @@ export const rotationY = (out: QuatType, quat: QuatType, radians: number): QuatT
 
     return out;
 };
+
+export const rotateY = (out: QuatType, radians: number) => rotationY(out, out, radians);
 
 export const rotationZ = (out: QuatType, quat: QuatType, radians: number): QuatType => {
     radians *= 0.5;
@@ -130,7 +134,9 @@ export const rotationZ = (out: QuatType, quat: QuatType, radians: number): QuatT
     return out;
 };
 
-export const multiply = (out: QuatType, a: QuatType, b: QuatType): QuatType => {
+export const rotateZ = (out: QuatType, radians: number) => rotationZ(out, out, radians);
+
+export const multiplication = (out: QuatType, a: QuatType, b: QuatType): QuatType => {
     const ax = a[0],
         ay = a[1],
         az = a[2],
@@ -148,6 +154,8 @@ export const multiply = (out: QuatType, a: QuatType, b: QuatType): QuatType => {
 
     return out;
 };
+
+export const multiply = (out: QuatType, other: QuatType): QuatType => multiplication(out, out, other);
 
 export const fromMat3 = (out: QuatType, m: Mat3Type): QuatType => {
     // Algorithm in Ken Shoemake's article in 1987 SIGGRAPH course notes
