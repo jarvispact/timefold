@@ -20,6 +20,8 @@ const defaultOptions = {
     flipUvY: false,
 } as const;
 
+type ObjByNameValue = { name: string; primitivesByName: Record<string, unknown>; primitives: unknown[] };
+
 export const createParser = <Options extends Partial<ParserOptions>>(options?: Options) => {
     const opts = { ...defaultOptions, ...options };
 
@@ -30,7 +32,7 @@ export const createParser = <Options extends Partial<ParserOptions>>(options?: O
         const uvs: number[] = [];
         const normals: number[] = [];
 
-        const objects: Record<string, { name: string; primitives: Record<string, unknown> }> = {};
+        const objectsByName: Record<string, ObjByNameValue> = {};
         let currentObjectName = 'default';
         let currentPrimitiveName = 'default';
 
@@ -43,7 +45,7 @@ export const createParser = <Options extends Partial<ParserOptions>>(options?: O
 
             if (trimmedLine.startsWith(`${splitObjectMap[opts.splitObjectMode]} `)) {
                 const name = trimmedLine.substring(2);
-                objects[name] = { name, primitives: {} };
+                objectsByName[name] = { name, primitivesByName: {}, primitives: [] };
                 currentObjectName = name;
                 currentPrimitiveName = 'default';
             }
@@ -65,7 +67,7 @@ export const createParser = <Options extends Partial<ParserOptions>>(options?: O
 
             if (trimmedLine.startsWith('usemtl ')) {
                 const name = trimmedLine.substring(7);
-                objects[currentObjectName].primitives[name] = modeMap[opts.mode].createPrimitive(name);
+                objectsByName[currentObjectName].primitivesByName[name] = modeMap[opts.mode].createPrimitive(name);
                 currentPrimitiveName = name;
             }
 
@@ -76,14 +78,15 @@ export const createParser = <Options extends Partial<ParserOptions>>(options?: O
                 }
 
                 // Export does not contain usemtl line - create a default primitive
-                if (!objects[currentObjectName].primitives[currentPrimitiveName]) {
-                    objects[currentObjectName].primitives.default = modeMap[opts.mode].createPrimitive('default');
+                if (!objectsByName[currentObjectName].primitivesByName[currentPrimitiveName]) {
+                    objectsByName[currentObjectName].primitivesByName.default =
+                        modeMap[opts.mode].createPrimitive('default');
                     currentPrimitiveName = 'default';
                 }
 
                 modeMap[opts.mode].handleFace({
                     trimmedLine,
-                    primitive: objects[currentObjectName].primitives[currentPrimitiveName],
+                    primitive: objectsByName[currentObjectName].primitivesByName[currentPrimitiveName],
                     positions,
                     uvs,
                     normals,
@@ -92,25 +95,28 @@ export const createParser = <Options extends Partial<ParserOptions>>(options?: O
             }
         }
 
-        const objectKeys = Object.keys(objects);
+        const objectKeys = Object.keys(objectsByName);
 
         for (let oi = 0; oi < objectKeys.length; oi++) {
             const objectKey = objectKeys[oi];
-            const object = objects[objectKey];
-            const primitiveKeys = Object.keys(object.primitives);
+            const object = objectsByName[objectKey];
+            const primitiveKeys = Object.keys(object.primitivesByName);
             for (let pi = 0; pi < primitiveKeys.length; pi++) {
                 const primitiveKey = primitiveKeys[pi];
-                const primitive = object.primitives[primitiveKey];
+                const primitive = object.primitivesByName[primitiveKey];
                 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
                 // @ts-ignore
-                objects[objectKey].primitives[primitiveKey] = modeMap[opts.mode].convertPrimitive(
+                objectsByName[objectKey].primitivesByName[primitiveKey] = modeMap[opts.mode].convertPrimitive(
                     primitive,
                     info as InterleavedInfo,
                 );
             }
+
+            object.primitives = Object.values(object.primitivesByName);
         }
 
-        return { objects, ...(info ? { info } : {}) } as ObjParserResult<Options>;
+        const objects = Object.values(objectsByName);
+        return { objectsByName, objects, ...(info ? { info } : {}) } as ObjParserResult<Options>;
     };
 
     return parse;

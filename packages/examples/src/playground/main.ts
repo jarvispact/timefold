@@ -60,7 +60,9 @@ const main = async () => {
         mode: 'non-interleaved-typed-array-indexed',
     });
 
-    const cubePrimitive = result.objects.Cube.primitives.Material;
+    console.log(result);
+
+    const cubePrimitive = result.objects[0].primitives[0];
 
     const texture = await ImageLoader.loadImage('./cube-uv-debug-map.png');
 

@@ -74,7 +74,8 @@ export type GenericObjPrimitive = GenericInterleavedObjPrimitive | GenericNonInt
 
 export type ObjObject<Primitive extends GenericObjPrimitive = GenericObjPrimitive> = {
     name: string;
-    primitives: Record<string, Primitive>;
+    primitives: Primitive[];
+    primitivesByName: Record<string, Primitive>;
 };
 
 export type ParserOptions = {
