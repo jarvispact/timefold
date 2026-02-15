@@ -1,6 +1,7 @@
 /* eslint-disable @typescript-eslint/no-non-null-assertion */
 import { Mat4, Vec3, Vec3Type, Mat4Type } from '@timefold/math';
 import type { PhongMaterialData, PerspectiveCameraData, TransformData, DirLightData } from '@timefold/engine';
+import { ObjIndexBuffer } from '@timefold/obj';
 
 // --- WebGPU Scene Data ---
 
@@ -13,7 +14,7 @@ export type WebGPUSceneData = {
         posiitions: Float32Array;
         normals: Float32Array;
         uvs: Float32Array;
-        indices: Uint32Array;
+        indices: ObjIndexBuffer;
     };
     cubeTransform: TransformData;
     cubeMaterial: PhongMaterialData;
@@ -426,10 +427,10 @@ export const createWebGPURenderer = (canvas: HTMLCanvasElement, scene: WebGPUSce
         device.queue.writeBuffer(uvBuffer, 0, scene.cubeGeometry.uvs.buffer);
 
         const indexBuffer = device.createBuffer({
-            size: scene.cubeGeometry.indices.byteLength,
+            size: scene.cubeGeometry.indices.data.byteLength,
             usage: GPUBufferUsage.INDEX | GPUBufferUsage.COPY_DST,
         });
-        device.queue.writeBuffer(indexBuffer, 0, scene.cubeGeometry.indices.buffer);
+        device.queue.writeBuffer(indexBuffer, 0, scene.cubeGeometry.indices.data.buffer);
 
         const sceneUniformBuffer = device.createBuffer({
             size: SCENE_UNIFORM_SIZE,
@@ -664,7 +665,7 @@ export const createWebGPURenderer = (canvas: HTMLCanvasElement, scene: WebGPUSce
             renderPass.setVertexBuffer(0, positionBuffer);
             renderPass.setVertexBuffer(1, normalBuffer);
             renderPass.setVertexBuffer(2, uvBuffer);
-            renderPass.setIndexBuffer(indexBuffer, 'uint32');
+            renderPass.setIndexBuffer(indexBuffer, scene.cubeGeometry.indices.format);
             renderPass.setBindGroup(0, sceneBindGroup);
             renderPass.setBindGroup(1, lightBindGroup);
             renderPass.setBindGroup(2, materialBindGroup);
