@@ -154,9 +154,9 @@ export const targetTo = (out: Mat4Type, eye: Vec3Type, target: Vec3Type, up: Vec
         upy = up[1],
         upz = up[2];
 
-    let z0 = target[0] - eyex,
-        z1 = target[1] - eyey,
-        z2 = target[2] - eyez;
+    let z0 = eyex - target[0],
+        z1 = eyey - target[1],
+        z2 = eyez - target[2];
 
     let len = z0 * z0 + z1 * z1 + z2 * z2;
     if (len > 0) {
@@ -218,9 +218,9 @@ export const lookAt = (out: Mat4Type, eye: Vec3Type, center: Vec3Type, up: Vec3T
         return identity(out);
     }
 
-    z0 = centerx - eyex;
-    z1 = centery - eyey;
-    z2 = centerz - eyez;
+    z0 = eyex - centerx;
+    z1 = eyey - centery;
+    z2 = eyez - centerz;
 
     len = 1 / Math.sqrt(z0 * z0 + z1 * z1 + z2 * z2);
     z0 *= len;
@@ -296,17 +296,17 @@ export const perspective = (
     out[7] = 0.0;
     out[8] = 0.0;
     out[9] = 0.0;
-    out[11] = 1.0;
+    out[11] = -1.0;
     out[12] = 0.0;
     out[13] = 0.0;
     out[15] = 0.0;
 
     if (far !== undefined && far !== Infinity) {
-        const fn = 1 / (far - near);
-        out[10] = far * fn;
-        out[14] = -(far * near * fn);
+        const nf = 1 / (near - far);
+        out[10] = far * nf;
+        out[14] = far * near * nf;
     } else {
-        out[10] = 1.0;
+        out[10] = -1.0;
         out[14] = -near;
     }
 
@@ -336,7 +336,7 @@ export const ortho = (
     out[7] = 0.0;
     out[8] = 0.0;
     out[9] = 0.0;
-    out[10] = fn;
+    out[10] = -fn;
     out[11] = 0.0;
     out[12] = (left + right) * lr;
     out[13] = (top + bottom) * bt;

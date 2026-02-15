@@ -12,6 +12,7 @@ import {
 } from '@timefold/engine';
 import { Quat, Vec3 } from '@timefold/math';
 import { createWebGPURenderer } from './webgpu-renderer';
+import { ObjLoader } from '@timefold/obj';
 
 const canvas = DomUtils.getCanvasById('canvas');
 const aspect = canvas.width / canvas.height;
@@ -24,12 +25,12 @@ const main = async () => {
     const cube = world.createEntity();
 
     world.spawn(camera, [
-        Transform.createAndLookAt({ translation: Vec3.create(0, 3, -8), target: Vec3.zero() }),
+        Transform.createAndLookAt({ translation: Vec3.create(0, 3, 8), target: Vec3.zero() }),
         PerspectiveCamera.create({ aspect }),
     ]);
 
     const lightTransformComponent = Transform.createAndLookAt({
-        translation: Vec3.create(1, 3, -3),
+        translation: Vec3.create(1, 3, 3),
         target: Vec3.zero(),
     });
 
@@ -55,6 +56,12 @@ const main = async () => {
     const cubeMaterial = world.getComponent(cube, T.PhongMaterial)!.data;
     const lightTransform = world.getComponent(light, T.Transform)!.data;
 
+    const result = await ObjLoader.load('./cube-blender-default-settings.obj', {
+        mode: 'non-interleaved-typed-array-indexed',
+    });
+
+    const cubePrimitive = result.objects.Cube.primitives.Material;
+
     const texture = await ImageLoader.loadImage('./cube-uv-debug-map.png');
 
     const renderer = createWebGPURenderer(canvas, {
@@ -62,6 +69,12 @@ const main = async () => {
         cameraData,
         lightData,
         lightTransform,
+        cubeGeometry: {
+            posiitions: cubePrimitive.positions,
+            normals: cubePrimitive.normals,
+            uvs: cubePrimitive.uvs,
+            indices: cubePrimitive.indices,
+        },
         cubeTransform,
         cubeMaterial,
         texture,

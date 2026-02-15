@@ -31,7 +31,7 @@ export const createAndLookAt = (args: CreateAndLookAtArgs): TransformComponent =
 };
 
 export const lookAt = (out: TransformData, target: Vec3Type, up: Vec3Type = Vec3.up()): TransformData => {
-    const f = Vec3.normalize(Vec3.subtraction(Vec3.create(), target, out.translation));
+    const f = Vec3.normalize(Vec3.subtraction(Vec3.create(), out.translation, target));
     const r = Vec3.normalize(Vec3.crossProduct(Vec3.create(), up, f));
     const u = Vec3.crossProduct(Vec3.create(), f, r);
 

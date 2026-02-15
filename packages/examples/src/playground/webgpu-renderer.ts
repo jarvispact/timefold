@@ -9,6 +9,12 @@ export type WebGPUSceneData = {
     cameraData: PerspectiveCameraData;
     lightData: DirLightData;
     lightTransform: TransformData;
+    cubeGeometry: {
+        posiitions: Float32Array;
+        normals: Float32Array;
+        uvs: Float32Array;
+        indices: Uint32Array;
+    };
     cubeTransform: TransformData;
     cubeMaterial: PhongMaterialData;
     texture?: ImageBitmap;
@@ -62,7 +68,7 @@ const bindTrackball = (canvas: HTMLCanvasElement, tb: Trackball) => {
         tb.lastX = e.clientX;
         tb.lastY = e.clientY;
 
-        tb.theta += dx * 0.005;
+        tb.theta -= dx * 0.005;
         tb.phi += dy * 0.005;
 
         const limit = Math.PI * 0.495;
@@ -238,77 +244,6 @@ const drawDebugInfo = (ctx: CanvasRenderingContext2D, scene: WebGPUSceneData) =>
     }
 };
 
-// --- Cube geometry (24 vertices with per-face normals) ---
-
-// prettier-ignore
-const CUBE_POSITIONS = new Float32Array([
-    // Back face (z = -0.5)
-    -0.5, -0.5, -0.5,   -0.5,  0.5, -0.5,    0.5,  0.5, -0.5,    0.5, -0.5, -0.5,
-    // Front face (z = +0.5)
-     0.5, -0.5,  0.5,    0.5,  0.5,  0.5,   -0.5,  0.5,  0.5,   -0.5, -0.5,  0.5,
-    // Left face (x = -0.5)
-    -0.5, -0.5, -0.5,   -0.5, -0.5,  0.5,   -0.5,  0.5,  0.5,   -0.5,  0.5, -0.5,
-    // Right face (x = +0.5)
-     0.5, -0.5,  0.5,    0.5, -0.5, -0.5,    0.5,  0.5, -0.5,    0.5,  0.5,  0.5,
-    // Bottom face (y = -0.5)
-    -0.5, -0.5, -0.5,    0.5, -0.5, -0.5,    0.5, -0.5,  0.5,   -0.5, -0.5,  0.5,
-    // Top face (y = +0.5)
-    -0.5,  0.5,  0.5,    0.5,  0.5,  0.5,    0.5,  0.5, -0.5,   -0.5,  0.5, -0.5,
-]);
-
-// prettier-ignore
-const CUBE_NORMALS = new Float32Array([
-    // Back
-     0,  0, -1,    0,  0, -1,    0,  0, -1,    0,  0, -1,
-    // Front
-     0,  0,  1,    0,  0,  1,    0,  0,  1,    0,  0,  1,
-    // Left
-    -1,  0,  0,   -1,  0,  0,   -1,  0,  0,   -1,  0,  0,
-    // Right
-     1,  0,  0,    1,  0,  0,    1,  0,  0,    1,  0,  0,
-    // Bottom
-     0, -1,  0,    0, -1,  0,    0, -1,  0,    0, -1,  0,
-    // Top
-     0,  1,  0,    0,  1,  0,    0,  1,  0,    0,  1,  0,
-]);
-
-// prettier-ignore
-const CUBE_INDICES = new Uint16Array([
-     0,  2,  1,   0,  3,  2,   // back
-     4,  6,  5,   4,  7,  6,   // front
-     8, 10,  9,   8, 11, 10,   // left
-    12, 14, 13,  12, 15, 14,   // right
-    16, 18, 17,  16, 19, 18,   // bottom
-    20, 22, 21,  20, 23, 22,   // top
-]);
-
-// --- Cube UVs (standing cross layout: 3 cols x 4 rows) ---
-// Layout (top to bottom): [Top] / [Left][Front][Right] / [Bottom] / [Back]
-// Column boundaries: 0, 1/3, 2/3, 1
-// Row boundaries: 0, 1/4, 1/2, 3/4, 1
-
-const C1 = 1 / 3;
-const C2 = 2 / 3;
-const R1 = 1 / 4;
-const R2 = 2 / 4;
-const R3 = 3 / 4;
-
-// prettier-ignore
-const CUBE_UVS = new Float32Array([
-    // Back face (v0-v3) — cell: u[C1,C2], v[R3,1]
-    C1, R3,   C1, 1,    C2, 1,    C2, R3,
-    // Front face (v4-v7) — cell: u[C1,C2], v[R1,R2]
-    C2, R2,   C2, R1,   C1, R1,   C1, R2,
-    // Left face (v8-v11) — cell: u[0,C1], v[R1,R2]
-     0, R2,   C1, R2,   C1, R1,    0, R1,
-    // Right face (v12-v15) — cell: u[C2,1], v[R1,R2]
-    C2, R2,    1, R2,    1, R1,   C2, R1,
-    // Bottom face (v16-v19) — cell: u[C1,C2], v[R2,R3]
-    C1, R3,   C2, R3,   C2, R2,   C1, R2,
-    // Top face (v20-v23) — cell: u[C1,C2], v[0,R1]
-    C1, R1,   C2, R1,   C2,  0,   C1,  0,
-]);
-
 // --- WGSL Shader ---
 
 const SHADER_SOURCE = /* wgsl */ `
@@ -473,28 +408,28 @@ export const createWebGPURenderer = (canvas: HTMLCanvasElement, scene: WebGPUSce
 
         // --- Create buffers ---
         const positionBuffer = device.createBuffer({
-            size: CUBE_POSITIONS.byteLength,
+            size: scene.cubeGeometry.posiitions.byteLength,
             usage: GPUBufferUsage.VERTEX | GPUBufferUsage.COPY_DST,
         });
-        device.queue.writeBuffer(positionBuffer, 0, CUBE_POSITIONS);
+        device.queue.writeBuffer(positionBuffer, 0, scene.cubeGeometry.posiitions.buffer);
 
         const normalBuffer = device.createBuffer({
-            size: CUBE_NORMALS.byteLength,
+            size: scene.cubeGeometry.normals.byteLength,
             usage: GPUBufferUsage.VERTEX | GPUBufferUsage.COPY_DST,
         });
-        device.queue.writeBuffer(normalBuffer, 0, CUBE_NORMALS);
+        device.queue.writeBuffer(normalBuffer, 0, scene.cubeGeometry.normals.buffer);
 
         const uvBuffer = device.createBuffer({
-            size: CUBE_UVS.byteLength,
+            size: scene.cubeGeometry.uvs.byteLength,
             usage: GPUBufferUsage.VERTEX | GPUBufferUsage.COPY_DST,
         });
-        device.queue.writeBuffer(uvBuffer, 0, CUBE_UVS);
+        device.queue.writeBuffer(uvBuffer, 0, scene.cubeGeometry.uvs.buffer);
 
         const indexBuffer = device.createBuffer({
-            size: CUBE_INDICES.byteLength,
+            size: scene.cubeGeometry.indices.byteLength,
             usage: GPUBufferUsage.INDEX | GPUBufferUsage.COPY_DST,
         });
-        device.queue.writeBuffer(indexBuffer, 0, CUBE_INDICES);
+        device.queue.writeBuffer(indexBuffer, 0, scene.cubeGeometry.indices.buffer);
 
         const sceneUniformBuffer = device.createBuffer({
             size: SCENE_UNIFORM_SIZE,
@@ -517,7 +452,7 @@ export const createWebGPURenderer = (canvas: HTMLCanvasElement, scene: WebGPUSce
             format: 'rgba8unorm',
             usage: GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.COPY_DST | GPUTextureUsage.RENDER_ATTACHMENT,
         });
-        device.queue.copyExternalImageToTexture({ source: scene.texture! }, { texture: gpuTexture }, [
+        device.queue.copyExternalImageToTexture({ source: scene.texture!, flipY: true }, { texture: gpuTexture }, [
             scene.texture!.width,
             scene.texture!.height,
         ]);
@@ -729,7 +664,7 @@ export const createWebGPURenderer = (canvas: HTMLCanvasElement, scene: WebGPUSce
             renderPass.setVertexBuffer(0, positionBuffer);
             renderPass.setVertexBuffer(1, normalBuffer);
             renderPass.setVertexBuffer(2, uvBuffer);
-            renderPass.setIndexBuffer(indexBuffer, 'uint16');
+            renderPass.setIndexBuffer(indexBuffer, 'uint32');
             renderPass.setBindGroup(0, sceneBindGroup);
             renderPass.setBindGroup(1, lightBindGroup);
             renderPass.setBindGroup(2, materialBindGroup);

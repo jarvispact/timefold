@@ -12,8 +12,8 @@ export const left = (): Vec3Type => [-1.0, 0.0, 0.0];
 export const right = (): Vec3Type => [1.0, 0.0, 0.0];
 export const up = (): Vec3Type => [0.0, 1.0, 0.0];
 export const down = (): Vec3Type => [0.0, -1.0, 0.0];
-export const forward = (): Vec3Type => [0.0, 0.0, 1.0];
-export const backward = (): Vec3Type => [0.0, 0.0, -1.0];
+export const forward = (): Vec3Type => [0.0, 0.0, -1.0];
+export const backward = (): Vec3Type => [0.0, 0.0, 1.0];
 
 export const set = (out: Vec3Type, x: number, y: number, z: number) => {
     out[0] = x;

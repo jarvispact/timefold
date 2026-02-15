@@ -23,7 +23,7 @@ Each package is designed to be used independently with 0 dependencies, ESM-only,
 
 ## Domain
 
-The timefold project uses a left-handed coordinate system ( +Z forward, +X right, +Y up ) for the world space across all its modules.
+The timefold project uses a right-handed coordinate system ( -Z forward, +X right, +Y up ) for the world space across all its modules.
 
 ## Development Notes
 
