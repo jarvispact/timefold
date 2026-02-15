@@ -22,12 +22,25 @@ export type InterleavedInfo = {
 };
 
 type GenericVertices = number[] | Float32Array;
-type GenericIndices = number[] | Uint32Array;
+
+export type ObjIndexBufferUint16 = {
+    format: 'uint16';
+    data: Uint16Array;
+};
+
+export type ObjIndexBufferUint32 = {
+    format: 'uint32';
+    data: Uint32Array;
+};
+
+export type ObjIndexBuffer = ObjIndexBufferUint16 | ObjIndexBufferUint32;
+type GenericIndices = number[] | ObjIndexBuffer;
 
 export type InterleavedObjPrimitive<Vertices extends GenericVertices = GenericVertices> = {
     name: string;
     mode: 'interleaved';
     vertices: Vertices;
+    vertexCount: number;
 };
 
 export type InterleavedObjPrimitiveIndexed<
@@ -43,6 +56,7 @@ export type NonInterleavedObjPrimitive<Vertices extends GenericVertices = Generi
     positions: Vertices;
     uvs: Vertices;
     normals: Vertices;
+    vertexCount: number;
 };
 
 export type NonInterleavedObjPrimitiveIndexed<

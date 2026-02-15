@@ -3,6 +3,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
 import {
+    ObjIndexBuffer,
     InterleavedInfo,
     InterleavedObjPrimitive,
     InterleavedObjPrimitiveIndexed,
@@ -13,6 +14,22 @@ import {
 } from './types';
 
 const parseToInt = (n: string) => Number.parseInt(n, 10);
+
+const createIndexBuffer = (indices: number[], vertexCount: number): ObjIndexBuffer => {
+    // Max index value is vertexCount - 1
+    // Uint16 can hold values 0-65535, so we can use it if vertexCount <= 65536
+    if (vertexCount <= 65536) {
+        return {
+            format: 'uint16',
+            data: new Uint16Array(indices),
+        };
+    } else {
+        return {
+            format: 'uint32',
+            data: new Uint32Array(indices),
+        };
+    }
+};
 
 const getIndicesForSection = (section: string) => {
     const [p, u, n] = section.split('/').map(parseToInt) as [number, number | undefined, number | undefined];
@@ -38,6 +55,7 @@ const createInterleavedPrimitive = (name: string): InterleavedObjPrimitive<numbe
         name: name,
         mode: 'interleaved',
         vertices: [],
+        vertexCount: 0,
     };
 };
 
@@ -48,6 +66,7 @@ const createNonInterleavedPrimitive = (name: string): NonInterleavedObjPrimitive
         positions: [],
         uvs: [],
         normals: [],
+        vertexCount: 0,
     };
 };
 
@@ -55,15 +74,32 @@ export const convertInterleavedToTypedArray = <
     Primitive extends InterleavedObjPrimitive<number[]> | InterleavedObjPrimitiveIndexed<number[], number[]>,
 >(
     primitive: Primitive,
+    info?: InterleavedInfo,
 ): Primitive extends InterleavedObjPrimitiveIndexed<number[], number[]>
-    ? InterleavedObjPrimitiveIndexed<Float32Array, Uint32Array>
+    ? InterleavedObjPrimitiveIndexed<Float32Array, ObjIndexBuffer>
     : InterleavedObjPrimitive<Float32Array> => {
-    return {
+    const vertexCount = info ? primitive.vertices.length / info.stride : primitive.vertices.length / 3;
+
+    if ('indices' in primitive) {
+        const convertedPrimitive: InterleavedObjPrimitiveIndexed<Float32Array, ObjIndexBuffer> = {
+            name: primitive.name,
+            mode: 'interleaved',
+            vertices: new Float32Array(primitive.vertices),
+            indices: createIndexBuffer(primitive.indices, vertexCount),
+            vertexCount,
+        };
+
+        return convertedPrimitive;
+    }
+
+    const convertedPrimitive: InterleavedObjPrimitive<Float32Array> = {
         name: primitive.name,
         mode: 'interleaved',
         vertices: new Float32Array(primitive.vertices),
-        ...('indices' in primitive ? { indices: new Uint32Array(primitive.indices) } : {}),
-    } as never;
+        vertexCount,
+    };
+
+    return convertedPrimitive as never;
 };
 
 export const convertNonInterleavedToTypedArray = <
@@ -71,16 +107,34 @@ export const convertNonInterleavedToTypedArray = <
 >(
     primitive: Primitive,
 ): Primitive extends NonInterleavedObjPrimitiveIndexed<number[], number[]>
-    ? NonInterleavedObjPrimitiveIndexed<Float32Array, Uint32Array>
+    ? NonInterleavedObjPrimitiveIndexed<Float32Array, ObjIndexBuffer>
     : NonInterleavedObjPrimitive<Float32Array> => {
-    return {
+    const vertexCount = primitive.positions.length / 3;
+
+    if ('indices' in primitive) {
+        const convertedPrimitive: NonInterleavedObjPrimitiveIndexed<Float32Array, ObjIndexBuffer> = {
+            name: primitive.name,
+            mode: 'non-interleaved',
+            positions: new Float32Array(primitive.positions),
+            uvs: new Float32Array(primitive.uvs),
+            normals: new Float32Array(primitive.normals),
+            indices: createIndexBuffer(primitive.indices, vertexCount),
+            vertexCount,
+        };
+
+        return convertedPrimitive;
+    }
+
+    const convertedPrimitive: NonInterleavedObjPrimitive<Float32Array> = {
         name: primitive.name,
         mode: 'non-interleaved',
         positions: new Float32Array(primitive.positions),
         uvs: new Float32Array(primitive.uvs),
         normals: new Float32Array(primitive.normals),
-        ...('indices' in primitive ? { indices: new Uint32Array(primitive.indices) } : {}),
-    } as never;
+        vertexCount,
+    };
+
+    return convertedPrimitive as never;
 };
 
 export const convertInterleavedToIndexed = (
@@ -131,6 +185,7 @@ export const convertInterleavedToIndexed = (
         mode: 'interleaved',
         vertices,
         indices,
+        vertexCount: vertices.length / info.stride,
     };
 };
 
@@ -180,6 +235,7 @@ export const convertNonInterleavedToIndexed = (
         uvs,
         normals,
         indices,
+        vertexCount: positions.length / 3,
     };
 };
 
@@ -211,6 +267,9 @@ const handleInterleavedFace = ({ trimmedLine, primitive, positions, uvs, normals
     const sections = trimmedLine.substring(2).split(' ');
 
     for (let s = 1; s < sections.length - 1; s++) {
+        // eslint-disable-next-line @typescript-eslint/restrict-plus-operands
+        primitive.vertexCount += 3;
+
         const [p1, u1, n1] = getIndicesForSection(sections[0]);
         primitive.vertices.push(positions[p1 + 0], positions[p1 + 1], positions[p1 + 2]);
 
@@ -263,6 +322,8 @@ const handleNonInterleavedFace = ({ trimmedLine, primitive, positions, uvs, norm
         primitive.positions.push(positions[p1 + 0], positions[p1 + 1], positions[p1 + 2]);
         primitive.positions.push(positions[p2 + 0], positions[p2 + 1], positions[p2 + 2]);
         primitive.positions.push(positions[p3 + 0], positions[p3 + 1], positions[p3 + 2]);
+        // eslint-disable-next-line @typescript-eslint/restrict-plus-operands
+        primitive.vertexCount += 3;
 
         if (u1 !== undefined && u2 !== undefined && u3 !== undefined) {
             const flipX = opts.flipUvX;
@@ -296,7 +357,8 @@ export const modeMap = {
     'interleaved-typed-array': {
         createPrimitive: createInterleavedPrimitive,
         handleFace: handleInterleavedFace,
-        convertPrimitive: convertInterleavedToTypedArray,
+        convertPrimitive: (primitive: InterleavedObjPrimitive<number[]>, info: InterleavedInfo) =>
+            convertInterleavedToTypedArray(primitive, info),
         ResultType: null as unknown as ResultType<InterleavedObjPrimitive<Float32Array>> & {
             info: InterleavedInfo;
         },
@@ -313,8 +375,8 @@ export const modeMap = {
         createPrimitive: createInterleavedPrimitive,
         handleFace: handleInterleavedFace,
         convertPrimitive: (primitive: InterleavedObjPrimitive<number[]>, info: InterleavedInfo) =>
-            convertInterleavedToTypedArray(convertInterleavedToIndexed(primitive, info)),
-        ResultType: null as unknown as ResultType<InterleavedObjPrimitiveIndexed<Float32Array, Uint32Array>> & {
+            convertInterleavedToTypedArray(convertInterleavedToIndexed(primitive, info), info),
+        ResultType: null as unknown as ResultType<InterleavedObjPrimitiveIndexed<Float32Array, ObjIndexBuffer>> & {
             info: InterleavedInfo;
         },
     },
@@ -342,7 +404,7 @@ export const modeMap = {
         handleFace: handleNonInterleavedFace,
         convertPrimitive: (primitive: NonInterleavedObjPrimitive<number[]>) =>
             convertNonInterleavedToTypedArray(convertNonInterleavedToIndexed(primitive)),
-        ResultType: null as unknown as ResultType<NonInterleavedObjPrimitiveIndexed<Float32Array, Uint32Array>>,
+        ResultType: null as unknown as ResultType<NonInterleavedObjPrimitiveIndexed<Float32Array, ObjIndexBuffer>>,
     },
 };
 

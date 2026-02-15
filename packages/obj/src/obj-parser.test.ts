@@ -1,5 +1,6 @@
 import { expect, it, describe, expectTypeOf } from 'vitest';
 import { createParser } from './obj-parser';
+import { ObjIndexBuffer } from './types';
 
 const positionUvNormalPlane = `
 # Blender 3.4.0
@@ -196,7 +197,8 @@ describe('obj-parser', () => {
                                 name: string;
                                 mode: 'interleaved';
                                 vertices: Float32Array;
-                                indices: Uint32Array;
+                                indices: ObjIndexBuffer;
+                                vertexCount: number;
                             }
                         >;
                     }
@@ -219,7 +221,8 @@ describe('obj-parser', () => {
                                 name: string;
                                 mode: 'interleaved';
                                 vertices: Float32Array;
-                                indices: Uint32Array;
+                                indices: ObjIndexBuffer;
+                                vertexCount: number;
                             }
                         >;
                     }
@@ -242,7 +245,8 @@ describe('obj-parser', () => {
                                 name: string;
                                 mode: 'interleaved';
                                 vertices: Float32Array;
-                                indices: Uint32Array;
+                                indices: ObjIndexBuffer;
+                                vertexCount: number;
                             }
                         >;
                     }
@@ -265,6 +269,7 @@ describe('obj-parser', () => {
                                 name: string;
                                 mode: 'interleaved';
                                 vertices: number[];
+                                vertexCount: number;
                             }
                         >;
                     }
@@ -288,6 +293,7 @@ describe('obj-parser', () => {
                                 mode: 'interleaved';
                                 vertices: number[];
                                 indices: number[];
+                                vertexCount: number;
                             }
                         >;
                     }
@@ -310,6 +316,7 @@ describe('obj-parser', () => {
                                 name: string;
                                 mode: 'interleaved';
                                 vertices: Float32Array;
+                                vertexCount: number;
                             }
                         >;
                     }
@@ -332,7 +339,8 @@ describe('obj-parser', () => {
                                 name: string;
                                 mode: 'interleaved';
                                 vertices: Float32Array;
-                                indices: Uint32Array;
+                                indices: ObjIndexBuffer;
+                                vertexCount: number;
                             }
                         >;
                     }
@@ -357,6 +365,7 @@ describe('obj-parser', () => {
                                 positions: number[];
                                 uvs: number[];
                                 normals: number[];
+                                vertexCount: number;
                             }
                         >;
                     }
@@ -382,6 +391,7 @@ describe('obj-parser', () => {
                                 uvs: number[];
                                 normals: number[];
                                 indices: number[];
+                                vertexCount: number;
                             }
                         >;
                     }
@@ -406,6 +416,7 @@ describe('obj-parser', () => {
                                 positions: Float32Array;
                                 uvs: Float32Array;
                                 normals: Float32Array;
+                                vertexCount: number;
                             }
                         >;
                     }
@@ -430,7 +441,8 @@ describe('obj-parser', () => {
                                 positions: Float32Array;
                                 uvs: Float32Array;
                                 normals: Float32Array;
-                                indices: Uint32Array;
+                                indices: ObjIndexBuffer;
+                                vertexCount: number;
                             }
                         >;
                     }
@@ -451,6 +463,7 @@ describe('obj-parser', () => {
                     -1, 0, 1, 0, 0, -0, 1, -0, 1, 0, 1, 1, 0, -0, 1, -0, 1, 0, -1, 1, 1, -0, 1, -0, -1, 0, 1, 0, 0, -0,
                     1, -0, 1, 0, -1, 1, 1, -0, 1, -0, -1, 0, -1, 0, 1, -0, 1, -0,
                 ],
+                vertexCount: 6, // non indexed, so 6 vertices for the plane, even though there are only 4 unique positions
             });
 
             expect(info).toEqual({
@@ -471,6 +484,7 @@ describe('obj-parser', () => {
                 vertices: [
                     -1, 0, 1, 0, 0, 1, 0, 1, 1, 0, 1, 0, -1, 1, 1, -1, 0, 1, 0, 0, 1, 0, -1, 1, 1, -1, 0, -1, 0, 1,
                 ],
+                vertexCount: 6, // non indexed, so 6 vertices for the plane, even though there are only 4 unique positions
             });
 
             expect(info).toEqual({
@@ -492,6 +506,7 @@ describe('obj-parser', () => {
                     -1, 0, 1, -0, 1, -0, 1, 0, 1, -0, 1, -0, 1, 0, -1, -0, 1, -0, -1, 0, 1, -0, 1, -0, 1, 0, -1, -0, 1,
                     -0, -1, 0, -1, -0, 1, -0,
                 ],
+                vertexCount: 6, // non indexed, so 6 vertices for the plane, even though there are only 4 unique positions
             });
 
             expect(info).toEqual({
@@ -510,6 +525,7 @@ describe('obj-parser', () => {
                 name: 'default',
                 mode: 'interleaved',
                 vertices: [-1, 0, 1, 1, 0, 1, 1, 0, -1, -1, 0, 1, 1, 0, -1, -1, 0, -1],
+                vertexCount: 6, // non indexed, so 6 vertices for the plane, even though there are only 4 unique positions
             });
 
             expect(info).toEqual({
@@ -533,6 +549,7 @@ describe('obj-parser', () => {
                     -1, 0, 1, 0, 0, -0, 1, -0, 1, 0, 1, 1, 0, -0, 1, -0, 1, 0, -1, 1, 1, -0, 1, -0, -1, 0, 1, 0, 0, -0,
                     1, -0, 1, 0, -1, 1, 1, -0, 1, -0, -1, 0, -1, 0, 1, -0, 1, -0,
                 ]),
+                vertexCount: 6, // non indexed, so 6 vertices for the plane, even though there are only 4 unique positions
             });
 
             expect(info).toEqual({
@@ -553,6 +570,7 @@ describe('obj-parser', () => {
                 vertices: new Float32Array([
                     -1, 0, 1, 0, 0, 1, 0, 1, 1, 0, 1, 0, -1, 1, 1, -1, 0, 1, 0, 0, 1, 0, -1, 1, 1, -1, 0, -1, 0, 1,
                 ]),
+                vertexCount: 6, // non indexed, so 6 vertices for the plane, even though there are only 4 unique positions
             });
 
             expect(info).toEqual({
@@ -574,6 +592,7 @@ describe('obj-parser', () => {
                     -1, 0, 1, -0, 1, -0, 1, 0, 1, -0, 1, -0, 1, 0, -1, -0, 1, -0, -1, 0, 1, -0, 1, -0, 1, 0, -1, -0, 1,
                     -0, -1, 0, -1, -0, 1, -0,
                 ]),
+                vertexCount: 6, // non indexed, so 6 vertices for the plane, even though there are only 4 unique positions
             });
 
             expect(info).toEqual({
@@ -592,6 +611,7 @@ describe('obj-parser', () => {
                 name: 'default',
                 mode: 'interleaved',
                 vertices: new Float32Array([-1, 0, 1, 1, 0, 1, 1, 0, -1, -1, 0, 1, 1, 0, -1, -1, 0, -1]),
+                vertexCount: 6, // non indexed, so 6 vertices for the plane, even though there are only 4 unique positions
             });
 
             expect(info).toEqual({
@@ -616,6 +636,7 @@ describe('obj-parser', () => {
                     1, -0,
                 ],
                 indices: [0, 1, 2, 0, 2, 3],
+                vertexCount: 4, // indexed, so only 4 vertices for the plane
             });
 
             expect(info).toEqual({
@@ -635,6 +656,7 @@ describe('obj-parser', () => {
                 mode: 'interleaved',
                 vertices: [-1, 0, 1, 0, 0, 1, 0, 1, 1, 0, 1, 0, -1, 1, 1, -1, 0, -1, 0, 1],
                 indices: [0, 1, 2, 0, 2, 3],
+                vertexCount: 4, // indexed, so only 4 vertices for the plane
             });
 
             expect(info).toEqual({
@@ -654,6 +676,7 @@ describe('obj-parser', () => {
                 mode: 'interleaved',
                 vertices: [-1, 0, 1, -0, 1, -0, 1, 0, 1, -0, 1, -0, 1, 0, -1, -0, 1, -0, -1, 0, -1, -0, 1, -0],
                 indices: [0, 1, 2, 0, 2, 3],
+                vertexCount: 4, // indexed, so only 4 vertices for the plane
             });
 
             expect(info).toEqual({
@@ -673,6 +696,7 @@ describe('obj-parser', () => {
                 mode: 'interleaved',
                 vertices: [-1, 0, 1, 1, 0, 1, 1, 0, -1, -1, 0, -1],
                 indices: [0, 1, 2, 0, 2, 3],
+                vertexCount: 4, // indexed, so only 4 vertices for the plane
             });
 
             expect(info).toEqual({
@@ -696,7 +720,8 @@ describe('obj-parser', () => {
                     -1, 0, 1, 0, 0, -0, 1, -0, 1, 0, 1, 1, 0, -0, 1, -0, 1, 0, -1, 1, 1, -0, 1, -0, -1, 0, -1, 0, 1, -0,
                     1, -0,
                 ]),
-                indices: new Uint32Array([0, 1, 2, 0, 2, 3]),
+                indices: { format: 'uint16', data: new Uint16Array([0, 1, 2, 0, 2, 3]) },
+                vertexCount: 4, // indexed, so only 4 vertices for the plane
             });
 
             expect(info).toEqual({
@@ -715,7 +740,8 @@ describe('obj-parser', () => {
                 name: 'default',
                 mode: 'interleaved',
                 vertices: new Float32Array([-1, 0, 1, 0, 0, 1, 0, 1, 1, 0, 1, 0, -1, 1, 1, -1, 0, -1, 0, 1]),
-                indices: new Uint32Array([0, 1, 2, 0, 2, 3]),
+                indices: { format: 'uint16', data: new Uint16Array([0, 1, 2, 0, 2, 3]) },
+                vertexCount: 4, // indexed, so only 4 vertices for the plane
             });
 
             expect(info).toEqual({
@@ -736,7 +762,8 @@ describe('obj-parser', () => {
                 vertices: new Float32Array([
                     -1, 0, 1, -0, 1, -0, 1, 0, 1, -0, 1, -0, 1, 0, -1, -0, 1, -0, -1, 0, -1, -0, 1, -0,
                 ]),
-                indices: new Uint32Array([0, 1, 2, 0, 2, 3]),
+                indices: { format: 'uint16', data: new Uint16Array([0, 1, 2, 0, 2, 3]) },
+                vertexCount: 4, // indexed, so only 4 vertices for the plane
             });
 
             expect(info).toEqual({
@@ -755,7 +782,8 @@ describe('obj-parser', () => {
                 name: 'default',
                 mode: 'interleaved',
                 vertices: new Float32Array([-1, 0, 1, 1, 0, 1, 1, 0, -1, -1, 0, -1]),
-                indices: new Uint32Array([0, 1, 2, 0, 2, 3]),
+                indices: { format: 'uint16', data: new Uint16Array([0, 1, 2, 0, 2, 3]) },
+                vertexCount: 4, // indexed, so only 4 vertices for the plane
             });
 
             expect(info).toEqual({
@@ -778,6 +806,7 @@ describe('obj-parser', () => {
                 positions: [-1, 0, 1, 1, 0, 1, 1, 0, -1, -1, 0, 1, 1, 0, -1, -1, 0, -1],
                 uvs: [0, 0, 1, 0, 1, 1, 0, 0, 1, 1, 0, 1],
                 normals: [-0, 1, -0, -0, 1, -0, -0, 1, -0, -0, 1, -0, -0, 1, -0, -0, 1, -0],
+                vertexCount: 6, // non indexed, so 6 vertices for the plane, even though there are only 4 unique positions
             });
         });
 
@@ -791,6 +820,7 @@ describe('obj-parser', () => {
                 positions: [-1, 0, 1, 1, 0, 1, 1, 0, -1, -1, 0, 1, 1, 0, -1, -1, 0, -1],
                 uvs: [0, 0, 1, 0, 1, 1, 0, 0, 1, 1, 0, 1],
                 normals: [],
+                vertexCount: 6, // non indexed, so 6 vertices for the plane, even though there are only 4 unique positions
             });
         });
 
@@ -804,6 +834,7 @@ describe('obj-parser', () => {
                 positions: [-1, 0, 1, 1, 0, 1, 1, 0, -1, -1, 0, 1, 1, 0, -1, -1, 0, -1],
                 uvs: [],
                 normals: [-0, 1, -0, -0, 1, -0, -0, 1, -0, -0, 1, -0, -0, 1, -0, -0, 1, -0],
+                vertexCount: 6, // non indexed, so 6 vertices for the plane, even though there are only 4 unique positions
             });
         });
 
@@ -817,6 +848,7 @@ describe('obj-parser', () => {
                 positions: [-1, 0, 1, 1, 0, 1, 1, 0, -1, -1, 0, 1, 1, 0, -1, -1, 0, -1],
                 uvs: [],
                 normals: [],
+                vertexCount: 6, // non indexed, so 6 vertices for the plane, even though there are only 4 unique positions
             });
         });
     });
@@ -832,6 +864,7 @@ describe('obj-parser', () => {
                 positions: new Float32Array([-1, 0, 1, 1, 0, 1, 1, 0, -1, -1, 0, 1, 1, 0, -1, -1, 0, -1]),
                 uvs: new Float32Array([0, 0, 1, 0, 1, 1, 0, 0, 1, 1, 0, 1]),
                 normals: new Float32Array([-0, 1, -0, -0, 1, -0, -0, 1, -0, -0, 1, -0, -0, 1, -0, -0, 1, -0]),
+                vertexCount: 6, // non indexed, so 6 vertices for the plane, even though there are only 4 unique positions
             });
         });
 
@@ -845,6 +878,7 @@ describe('obj-parser', () => {
                 positions: new Float32Array([-1, 0, 1, 1, 0, 1, 1, 0, -1, -1, 0, 1, 1, 0, -1, -1, 0, -1]),
                 uvs: new Float32Array([0, 0, 1, 0, 1, 1, 0, 0, 1, 1, 0, 1]),
                 normals: new Float32Array([]),
+                vertexCount: 6, // non indexed, so 6 vertices for the plane, even though there are only 4 unique positions
             });
         });
 
@@ -858,6 +892,7 @@ describe('obj-parser', () => {
                 positions: new Float32Array([-1, 0, 1, 1, 0, 1, 1, 0, -1, -1, 0, 1, 1, 0, -1, -1, 0, -1]),
                 uvs: new Float32Array([]),
                 normals: new Float32Array([-0, 1, -0, -0, 1, -0, -0, 1, -0, -0, 1, -0, -0, 1, -0, -0, 1, -0]),
+                vertexCount: 6, // non indexed, so 6 vertices for the plane, even though there are only 4 unique positions
             });
         });
 
@@ -871,6 +906,7 @@ describe('obj-parser', () => {
                 positions: new Float32Array([-1, 0, 1, 1, 0, 1, 1, 0, -1, -1, 0, 1, 1, 0, -1, -1, 0, -1]),
                 uvs: new Float32Array([]),
                 normals: new Float32Array([]),
+                vertexCount: 6, // non indexed, so 6 vertices for the plane, even though there are only 4 unique positions
             });
         });
     });
@@ -887,6 +923,7 @@ describe('obj-parser', () => {
                 uvs: [0, 0, 1, 0, 1, 1, 0, 1],
                 normals: [-0, 1, -0, -0, 1, -0, -0, 1, -0, -0, 1, -0],
                 indices: [0, 1, 2, 0, 2, 3],
+                vertexCount: 4, // indexed, so only 4 vertices for the plane
             });
         });
 
@@ -901,6 +938,7 @@ describe('obj-parser', () => {
                 uvs: [0, 0, 1, 0, 1, 1, 0, 1],
                 normals: [],
                 indices: [0, 1, 2, 0, 2, 3],
+                vertexCount: 4, // indexed, so only 4 vertices for the plane
             });
         });
 
@@ -915,6 +953,7 @@ describe('obj-parser', () => {
                 uvs: [],
                 normals: [-0, 1, -0, -0, 1, -0, -0, 1, -0, -0, 1, -0],
                 indices: [0, 1, 2, 0, 2, 3],
+                vertexCount: 4, // indexed, so only 4 vertices for the plane
             });
         });
 
@@ -929,6 +968,7 @@ describe('obj-parser', () => {
                 uvs: [],
                 normals: [],
                 indices: [0, 1, 2, 0, 2, 3],
+                vertexCount: 4, // indexed, so only 4 vertices for the plane
             });
         });
     });
@@ -944,7 +984,8 @@ describe('obj-parser', () => {
                 positions: new Float32Array([-1, 0, 1, 1, 0, 1, 1, 0, -1, -1, 0, -1]),
                 uvs: new Float32Array([0, 0, 1, 0, 1, 1, 0, 1]),
                 normals: new Float32Array([-0, 1, -0, -0, 1, -0, -0, 1, -0, -0, 1, -0]),
-                indices: new Uint32Array([0, 1, 2, 0, 2, 3]),
+                indices: { format: 'uint16', data: new Uint16Array([0, 1, 2, 0, 2, 3]) },
+                vertexCount: 4, // indexed, so only 4 vertices for the plane
             });
         });
 
@@ -958,7 +999,8 @@ describe('obj-parser', () => {
                 positions: new Float32Array([-1, 0, 1, 1, 0, 1, 1, 0, -1, -1, 0, -1]),
                 uvs: new Float32Array([0, 0, 1, 0, 1, 1, 0, 1]),
                 normals: new Float32Array([]),
-                indices: new Uint32Array([0, 1, 2, 0, 2, 3]),
+                indices: { format: 'uint16', data: new Uint16Array([0, 1, 2, 0, 2, 3]) },
+                vertexCount: 4, // indexed, so only 4 vertices for the plane
             });
         });
 
@@ -972,7 +1014,8 @@ describe('obj-parser', () => {
                 positions: new Float32Array([-1, 0, 1, 1, 0, 1, 1, 0, -1, -1, 0, -1]),
                 uvs: new Float32Array([]),
                 normals: new Float32Array([-0, 1, -0, -0, 1, -0, -0, 1, -0, -0, 1, -0]),
-                indices: new Uint32Array([0, 1, 2, 0, 2, 3]),
+                indices: { format: 'uint16', data: new Uint16Array([0, 1, 2, 0, 2, 3]) },
+                vertexCount: 4, // indexed, so only 4 vertices for the plane
             });
         });
 
@@ -986,7 +1029,8 @@ describe('obj-parser', () => {
                 positions: new Float32Array([-1, 0, 1, 1, 0, 1, 1, 0, -1, -1, 0, -1]),
                 uvs: new Float32Array([]),
                 normals: new Float32Array([]),
-                indices: new Uint32Array([0, 1, 2, 0, 2, 3]),
+                indices: { format: 'uint16', data: new Uint16Array([0, 1, 2, 0, 2, 3]) },
+                vertexCount: 4, // indexed, so only 4 vertices for the plane
             });
         });
     });
@@ -1011,6 +1055,7 @@ describe('obj-parser', () => {
                             positions: [-1, 0, -1, 1, 0, -1, 1, 0, -3, -1, 0, -1, 1, 0, -3, -1, 0, -3],
                             uvs: [0, 0, 1, 0, 1, 1, 0, 0, 1, 1, 0, 1],
                             normals: [-0, 1, -0, -0, 1, -0, -0, 1, -0, -0, 1, -0, -0, 1, -0, -0, 1, -0],
+                            vertexCount: 6,
                         },
                         'Material.002': {
                             name: 'Material.002',
@@ -1018,6 +1063,7 @@ describe('obj-parser', () => {
                             positions: [-1, 0, 3, 1, 0, 3, 1, 0, 1, -1, 0, 3, 1, 0, 1, -1, 0, 1],
                             uvs: [0, 0, 1, 0, 1, 1, 0, 0, 1, 1, 0, 1],
                             normals: [-0, 1, -0, -0, 1, -0, -0, 1, -0, -0, 1, -0, -0, 1, -0, -0, 1, -0],
+                            vertexCount: 6,
                         },
                     },
                 },
@@ -1039,6 +1085,7 @@ describe('obj-parser', () => {
                             positions: [-1, 0, -1, 1, 0, -1, 1, 0, -3, -1, 0, -1, 1, 0, -3, -1, 0, -3],
                             uvs: [0, 0, 1, 0, 1, 1, 0, 0, 1, 1, 0, 1],
                             normals: [-0, 1, -0, -0, 1, -0, -0, 1, -0, -0, 1, -0, -0, 1, -0, -0, 1, -0],
+                            vertexCount: 6,
                         },
                     },
                 },
@@ -1051,6 +1098,7 @@ describe('obj-parser', () => {
                             positions: [-1, 0, 3, 1, 0, 3, 1, 0, 1, -1, 0, 3, 1, 0, 1, -1, 0, 1],
                             uvs: [0, 0, 1, 0, 1, 1, 0, 0, 1, 1, 0, 1],
                             normals: [-0, 1, -0, -0, 1, -0, -0, 1, -0, -0, 1, -0, -0, 1, -0, -0, 1, -0],
+                            vertexCount: 6,
                         },
                     },
                 },
@@ -1063,6 +1111,7 @@ describe('obj-parser', () => {
                             positions: [1, 0, 1, 3, 0, 1, 3, 0, -1, 1, 0, 1, 3, 0, -1, 1, 0, -1],
                             uvs: [0, 0, 1, 0, 1, 1, 0, 0, 1, 1, 0, 1],
                             normals: [-0, 1, -0, -0, 1, -0, -0, 1, -0, -0, 1, -0, -0, 1, -0, -0, 1, -0],
+                            vertexCount: 6,
                         },
                     },
                 },
@@ -1075,6 +1124,7 @@ describe('obj-parser', () => {
                             positions: [-3, 0, 1, -1, 0, 1, -1, 0, -1, -3, 0, 1, -1, 0, -1, -3, 0, -1],
                             uvs: [0, 0, 1, 0, 1, 1, 0, 0, 1, 1, 0, 1],
                             normals: [-0, 1, -0, -0, 1, -0, -0, 1, -0, -0, 1, -0, -0, 1, -0, -0, 1, -0],
+                            vertexCount: 6,
                         },
                     },
                 },
@@ -1092,6 +1142,7 @@ describe('obj-parser', () => {
                 positions: [-1, 0, 1, 1, 0, 1, 1, 0, -1, -1, 0, 1, 1, 0, -1, -1, 0, -1],
                 uvs: [0, 0, 1, 0, 1, 1, 0, 0, 1, 1, 0, 1],
                 normals: [-0, 1, -0, -0, 1, -0, -0, 1, -0, -0, 1, -0, -0, 1, -0, -0, 1, -0],
+                vertexCount: 6,
             });
         });
     });
