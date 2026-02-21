@@ -1,8 +1,7 @@
-import { createComponent } from '@timefold/ecs';
 import { Vec3, Vec3Type } from '@timefold/math';
-import { DirLightComponent, T } from './types';
+import { DirLightComponent, engineRegistry } from './types';
 
-export const type = T.DirLight;
+export const type = engineRegistry.DirLight.type;
 
 type CreateArgs = {
     direction: Vec3Type;
@@ -15,7 +14,7 @@ export const create = (args: CreateArgs): DirLightComponent => {
     const color = args.color ?? Vec3.one();
     const intensity = args.intensity ?? 1;
 
-    return createComponent(type, {
+    return engineRegistry.DirLight.create({
         direction,
         color,
         intensity,

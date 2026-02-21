@@ -1,5 +1,5 @@
 # timefold
-A blazingly fast, modular and bundle size friendly ecs powered game engine for the web.
+Typescript first, data oriented game engine for the web.
 
 ## Info
 

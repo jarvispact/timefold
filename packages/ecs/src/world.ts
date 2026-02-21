@@ -1,34 +1,22 @@
 import { Component } from './component';
-import { IndexTupleByName } from './internal-utils';
-import { GenericCompiledPlugin } from './plugin';
-import { CompiledQuery, GenericCompiledQuery, QueryTypeOptions, SupportedQuery } from './query';
+import { CompiledQuery, GenericCompiledQuery, WithOptions, SupportedQuery } from './query';
 
 // TODO: merge queries from plugins and world queries
 
-export type CompiledWorld<
-    C extends Component,
-    PluginsByName extends Record<string, GenericCompiledPlugin>,
-    QueriesByName extends Record<string, GenericCompiledQuery>,
-> = {
-    plugins: PluginsByName;
+export type CompiledWorld<C extends Component, QueriesByName extends Record<string, GenericCompiledQuery>> = {
     queries: QueriesByName;
     createEntity: () => number;
     spawn: (entity: number, components: C[]) => void;
     getComponent: <T extends C['type']>(entity: number, type: T) => Extract<C, { type: T }> | undefined;
 };
 
-type CreateWorldArgs<PluginsByName, QueriesByName> = {
-    plugins: PluginsByName;
+type CreateWorldArgs<QueriesByName> = {
     queries: QueriesByName;
 };
 
-const createWorld = <
-    C extends Component,
-    PluginsByName extends Record<string, GenericCompiledPlugin>,
-    QueriesByName extends Record<string, GenericCompiledQuery>,
->(
-    args: CreateWorldArgs<PluginsByName, QueriesByName>,
-): CompiledWorld<C, PluginsByName, QueriesByName> => {
+const createWorld = <C extends Component, QueriesByName extends Record<string, GenericCompiledQuery>>(
+    args: CreateWorldArgs<QueriesByName>,
+): CompiledWorld<C, QueriesByName> => {
     let entityCounter = 0;
     const componentsByEntity = new Map<number, Map<number, C | undefined> | undefined>();
 
@@ -53,43 +41,37 @@ const createWorld = <
     };
 
     return {
-        plugins: args.plugins,
         queries: args.queries,
         createEntity,
         spawn,
         getComponent,
-    } as CompiledWorld<C, PluginsByName, QueriesByName>;
+    } as CompiledWorld<C, QueriesByName>;
 };
+
+type IndexTupleByName<
+    T extends GenericCompiledQuery[],
+    ByName extends Record<string, unknown> = NonNullable<unknown>,
+> = T extends [infer First extends GenericCompiledQuery, ...infer Rest extends GenericCompiledQuery[]]
+    ? IndexTupleByName<Rest, ByName & Record<First['name'], First>>
+    : ByName;
 
 type WorldBuilderApi<
     C extends Component,
-    PluginsByName extends Record<string, GenericCompiledPlugin>,
     QueriesByName extends Record<string, GenericCompiledQuery>,
     ForbiddenMethod extends string = never,
 > = Omit<
     {
-        withPlugins: <P extends GenericCompiledPlugin[]>(
-            ...plugins: P
-        ) => WorldBuilderApi<C, IndexTupleByName<P>, QueriesByName, 'withPlugins'>;
-        withQueries: <Q extends CompiledQuery<string, SupportedQuery<C['type'], QueryTypeOptions | undefined>[]>[]>(
+        withQueries: <Q extends CompiledQuery<string, SupportedQuery<C['type'], WithOptions | undefined>[]>[]>(
             ...queries: Q
-        ) => WorldBuilderApi<C, PluginsByName, IndexTupleByName<Q>, 'withQueries'>;
-        compile: () => CompiledWorld<C, PluginsByName, QueriesByName>;
+        ) => WorldBuilderApi<C, IndexTupleByName<Q>, 'withQueries'>;
+        compile: () => CompiledWorld<C, QueriesByName>;
     },
     ForbiddenMethod
 >;
 
 export const WorldBuilder = <C extends Component>() => {
-    const args: CreateWorldArgs<Record<string, GenericCompiledPlugin>, Record<string, GenericCompiledQuery>> = {
-        plugins: {},
+    const args: CreateWorldArgs<Record<string, GenericCompiledQuery>> = {
         queries: {},
-    };
-
-    const withPlugins = (...plugins: GenericCompiledPlugin[]) => {
-        for (const plugin of plugins) {
-            args.plugins[plugin.name] = plugin;
-        }
-        return api;
     };
 
     const withQueries = (...queries: GenericCompiledQuery[]) => {
@@ -99,14 +81,12 @@ export const WorldBuilder = <C extends Component>() => {
         return api;
     };
 
-    const compile = () =>
-        createWorld<C, Record<string, GenericCompiledPlugin>, Record<string, GenericCompiledQuery>>(args);
+    const compile = () => createWorld<C, Record<string, GenericCompiledQuery>>(args);
 
     const api = {
-        withPlugins,
         withQueries,
         compile,
-    } as unknown as WorldBuilderApi<C, NonNullable<unknown>, NonNullable<unknown>>;
+    } as unknown as WorldBuilderApi<C, NonNullable<unknown>>;
 
     return api;
 };

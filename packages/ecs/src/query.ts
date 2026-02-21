@@ -1,30 +1,29 @@
 import { Component } from './component';
+import { Prettify } from './internal';
 
-export type QueryTypeOptions = { include: false };
+export type WithOptions = { include: false };
 
-export type With<T extends number, O extends QueryTypeOptions | undefined = undefined> = O extends undefined
+export type With<T extends number, O extends WithOptions | undefined = undefined> = O extends undefined
     ? { with: T }
-    : { with: T; options: O };
+    : Prettify<{ with: T } & O>;
 
-export type Without<T extends number, O extends QueryTypeOptions | undefined = undefined> = O extends undefined
-    ? { without: T }
-    : { without: T; options: O };
+export type Without<T extends number> = { without: T };
 
-export type SupportedQuery<T extends number, O extends QueryTypeOptions | undefined> = With<T, O> | Without<T, O>;
+export type SupportedQuery<T extends number, O extends WithOptions | undefined> = With<T, O> | Without<T>;
 
-export type GenericCompiledQuery = CompiledQuery<string, SupportedQuery<number, QueryTypeOptions | undefined>[]>;
+export type GenericCompiledQuery = CompiledQuery<string, SupportedQuery<number, WithOptions | undefined>[]>;
 
-export type CompiledQuery<N extends string, Q extends SupportedQuery<number, QueryTypeOptions | undefined>[]> = {
+export type CompiledQuery<N extends string, Q extends SupportedQuery<number, WithOptions | undefined>[]> = {
     name: N;
     types: Q;
 };
 
 type GetUsedComponentType<
-    Q extends CompiledQuery<string, SupportedQuery<number, QueryTypeOptions | undefined>[]>,
+    Q extends CompiledQuery<string, SupportedQuery<number, WithOptions | undefined>[]>,
     Used extends number = never,
 > = Q['types'] extends [
-    infer First extends SupportedQuery<number, QueryTypeOptions | undefined>,
-    ...infer Rest extends SupportedQuery<number, QueryTypeOptions | undefined>[],
+    infer First extends SupportedQuery<number, WithOptions | undefined>,
+    ...infer Rest extends SupportedQuery<number, WithOptions | undefined>[],
 ]
     ? First extends With<infer Type>
         ? GetUsedComponentType<CompiledQuery<Q['name'], Rest>, Used | Type>
@@ -35,10 +34,7 @@ type GetUsedComponentType<
 
 type QueryBuilderApi<
     C extends Component = Component,
-    Q extends CompiledQuery<string, SupportedQuery<C['type'], QueryTypeOptions | undefined>[]> = CompiledQuery<
-        string,
-        []
-    >,
+    Q extends CompiledQuery<string, SupportedQuery<C['type'], WithOptions | undefined>[]> = CompiledQuery<string, []>,
     ForbiddenMethod extends string = never,
 > = Omit<
     {
@@ -47,25 +43,21 @@ type QueryBuilderApi<
         ) => QueryBuilderApi<C, CompiledQuery<Name, Q['types']>, 'name' | 'without' | 'compile'>; // must start with at least one `with` after `name`.
         with: <
             Type extends Exclude<C['type'], GetUsedComponentType<Q>>,
-            Options extends QueryTypeOptions | undefined = undefined,
+            Options extends WithOptions | undefined = undefined,
         >(
             type: Type,
             options?: Options,
         ) => QueryBuilderApi<C, CompiledQuery<Q['name'], [...Q['types'], With<Type, Options>]>, 'name'>; // `name` can only be set once so its not allowed after the first `with`.
-        without: <
-            Type extends Exclude<C['type'], GetUsedComponentType<Q>>,
-            Options extends QueryTypeOptions | undefined = undefined,
-        >(
+        without: <Type extends Exclude<C['type'], GetUsedComponentType<Q>>>(
             type: Type,
-            options?: Options,
-        ) => QueryBuilderApi<C, CompiledQuery<Q['name'], [...Q['types'], Without<Type, Options>]>, 'name' | 'with'>; // After the first `without` both `name` and `with` are not allowed anymore.
+        ) => QueryBuilderApi<C, CompiledQuery<Q['name'], [...Q['types'], Without<Type>]>, 'name' | 'with'>; // After the first `without` both `name` and `with` are not allowed anymore.
         compile: () => Q;
     },
     ForbiddenMethod
 >;
 
 export const QueryBuilder = <C extends Component>() => {
-    const query: CompiledQuery<string, SupportedQuery<C['type'], QueryTypeOptions | undefined>[]> = {
+    const query: CompiledQuery<string, SupportedQuery<C['type'], WithOptions | undefined>[]> = {
         name: '',
         types: [],
     };
@@ -75,13 +67,13 @@ export const QueryBuilder = <C extends Component>() => {
         return api;
     };
 
-    const withType = (type: number, options?: QueryTypeOptions) => {
-        query.types.push({ with: type, options });
+    const withType = (type: number, options?: WithOptions) => {
+        query.types.push({ with: type, ...options });
         return api;
     };
 
-    const withoutType = (type: number, options?: QueryTypeOptions) => {
-        query.types.push({ without: type, options });
+    const withoutType = (type: number) => {
+        query.types.push({ without: type });
         return api;
     };
 

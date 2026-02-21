@@ -1,8 +1,7 @@
-import { createComponent } from '@timefold/ecs';
 import { Mat3, Quat, QuatType, Vec3, Vec3Type } from '@timefold/math';
-import { T, TransformComponent, TransformData } from './types';
+import { TransformComponent, TransformData, engineRegistry } from './types';
 
-export const type = T.Transform;
+export const type = engineRegistry.Transform.type;
 
 type CreateArgs = {
     translation?: Vec3Type;
@@ -14,7 +13,7 @@ export const create = (args: CreateArgs = {}): TransformComponent => {
     const translation = args.translation ?? Vec3.zero();
     const rotation = args.rotation ?? Quat.create();
     const scale = args.scale ?? Vec3.one();
-    return createComponent(type, { translation, rotation, scale });
+    return engineRegistry.Transform.create({ translation, rotation, scale });
 };
 
 type CreateAndLookAtArgs = {

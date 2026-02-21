@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/no-non-null-assertion */
-import { WorldBuilder } from '@timefold/ecs';
+import { QueryBuilder, WorldBuilder } from '@timefold/ecs';
 import {
     DirLight,
     DomUtils,
@@ -17,7 +17,16 @@ import { ObjLoader } from '@timefold/obj';
 const canvas = DomUtils.getCanvasById('canvas');
 const aspect = canvas.width / canvas.height;
 
-const world = WorldBuilder<EngineComponent>().compile();
+const q1 = QueryBuilder<EngineComponent>()
+    .name('query1')
+    .with(T.Transform)
+    .with(T.PerspectiveCamera, { include: false })
+    .without(T.DirLight)
+    .compile();
+
+// type Test = Exclude<EngineComponent, { type: typeof T.Transform }>;
+
+const world = WorldBuilder<EngineComponent>().withQueries(q1).compile();
 
 const main = async () => {
     const camera = world.createEntity();

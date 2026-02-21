@@ -1,8 +1,7 @@
-import { createComponent } from '@timefold/ecs';
 import { MathUtils } from '@timefold/math';
-import { PerspectiveCameraComponent, T } from './types';
+import { PerspectiveCameraComponent, engineRegistry } from './types';
 
-export const type = T.PerspectiveCamera;
+export const type = engineRegistry.PerspectiveCamera.type;
 
 type CreateArgs = {
     aspect: number;
@@ -12,7 +11,7 @@ type CreateArgs = {
 };
 
 export const create = (args: CreateArgs): PerspectiveCameraComponent => {
-    return createComponent(type, {
+    return engineRegistry.PerspectiveCamera.create({
         aspect: args.aspect,
         fovy: args.fovy ?? MathUtils.degreesToRadians(65),
         near: args.near ?? 0.1,
