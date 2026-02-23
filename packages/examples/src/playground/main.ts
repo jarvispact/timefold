@@ -1,9 +1,11 @@
 /* eslint-disable @typescript-eslint/no-non-null-assertion */
-import { QueryBuilder, WorldBuilder } from '@timefold/ecs';
+
+import { createWorld, plugin, query } from '@timefold/ecs';
 import {
     DirLight,
     DomUtils,
     EngineComponent,
+    engineComponents,
     ImageLoader,
     PerspectiveCamera,
     PhongMaterial,
@@ -17,16 +19,29 @@ import { ObjLoader } from '@timefold/obj';
 const canvas = DomUtils.getCanvasById('canvas');
 const aspect = canvas.width / canvas.height;
 
-const q1 = QueryBuilder<EngineComponent>()
+// type Test = Exclude<EngineComponent, { type: typeof T.Transform }>;
+// type Test2 = EngineComponent | { type: 8 };
+
+const q1 = query<EngineComponent>()
     .name('query1')
     .with(T.Transform)
     .with(T.PerspectiveCamera, { include: false })
     .without(T.DirLight)
     .compile();
 
-// type Test = Exclude<EngineComponent, { type: typeof T.Transform }>;
+const q2 = query<EngineComponent>()
+    .name('query2')
+    .with(T.PhongMaterial)
+    .with(T.PerspectiveCamera, { include: false })
+    .compile();
 
-const world = WorldBuilder<EngineComponent>().withQueries(q1).compile();
+const p1 = plugin<EngineComponent>().name('plugin1').withQueries(q1).compile();
+
+const world = createWorld({
+    components: engineComponents,
+    plugins: [p1],
+    queries: [q2],
+});
 
 const main = async () => {
     const camera = world.createEntity();

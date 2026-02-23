@@ -36,7 +36,7 @@ type CreateT<
     ? CreateT<DefinitionArray, Tail, Result & Record<Head['name'], Tail['length']>>
     : Prettify<Result>;
 
-type ComponentsByName<
+type Registry<
     DefinitionArray extends GenericComponentDefinition[],
     ReverseDefinitionArray extends GenericComponentDefinition[] = Reverse<DefinitionArray>,
     Result extends Record<string, unknown> = NonNullable<unknown>,
@@ -44,13 +44,13 @@ type ComponentsByName<
     infer Head extends GenericComponentDefinition,
     ...infer Tail extends GenericComponentDefinition[],
 ]
-    ? ComponentsByName<DefinitionArray, Tail, Result & Record<Head['name'], ByNameEntry<Tail['length'], Head>>>
+    ? Registry<DefinitionArray, Tail, Result & Record<Head['name'], ByNameEntry<Tail['length'], Head>>>
     : Prettify<Result>;
 
 type ComponentRegistry<ComponentDefinitions extends GenericComponentDefinition[]> = {
     T: CreateT<ComponentDefinitions>;
     components: ComponentDefinitions;
-    registry: ComponentsByName<ComponentDefinitions>;
+    registry: Registry<ComponentDefinitions>;
 };
 
 type InferComponentFromDefinition<Type extends number, Definition extends GenericComponentDefinition> =

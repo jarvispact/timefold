@@ -23,6 +23,15 @@ export const string: StringSchema = {
     deserialize: (data) => data,
 };
 
+export type BooleanSchema = Schema<'boolean', boolean>;
+
+export const boolean: BooleanSchema = {
+    uri: 'boolean',
+    is: (data): data is boolean => typeof data === 'boolean',
+    serialize: (data) => data.toString(),
+    deserialize: (data) => data === 'true',
+};
+
 // typed arrays
 
 export type Uint8ClampedArraySchema = Schema<'Uint8ClampedArray', Uint8ClampedArray>;
@@ -182,7 +191,7 @@ export const union = <const Options extends GenericUnionItems>(...options: Optio
     };
 };
 
-// typedarray
+// typedArray
 
 export type TypedArraySchema = UnionSchema<
     [

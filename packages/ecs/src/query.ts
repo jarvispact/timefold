@@ -7,7 +7,7 @@ export type With<T extends number, O extends WithOptions | undefined = undefined
     ? { with: T }
     : Prettify<{ with: T } & O>;
 
-export type Without<T extends number> = { without: T };
+export type Without<T extends number> = Prettify<{ without: T }>;
 
 export type SupportedQuery<T extends number, O extends WithOptions | undefined> = With<T, O> | Without<T>;
 
@@ -56,28 +56,28 @@ type QueryBuilderApi<
     ForbiddenMethod
 >;
 
-export const QueryBuilder = <C extends Component>() => {
-    const query: CompiledQuery<string, SupportedQuery<C['type'], WithOptions | undefined>[]> = {
+export const query = <C extends Component>() => {
+    const qry: CompiledQuery<string, SupportedQuery<C['type'], WithOptions | undefined>[]> = {
         name: '',
         types: [],
     };
 
     const name = (name: string) => {
-        query.name = name;
+        qry.name = name;
         return api;
     };
 
     const withType = (type: number, options?: WithOptions) => {
-        query.types.push({ with: type, ...options });
+        qry.types.push({ with: type, ...options });
         return api;
     };
 
     const withoutType = (type: number) => {
-        query.types.push({ without: type });
+        qry.types.push({ without: type });
         return api;
     };
 
-    const compile = () => query;
+    const compile = () => qry;
 
     const api = {
         name,
