@@ -44,11 +44,7 @@ const world = createWorld({
 });
 
 const main = async () => {
-    const camera = world.createEntity();
-    const light = world.createEntity();
-    const cube = world.createEntity();
-
-    world.spawn(camera, [
+    const camera = world.spawn([
         Transform.createAndLookAt({ translation: Vec3.create(0, 3, 8), target: Vec3.zero() }),
         PerspectiveCamera.create({ aspect }),
     ]);
@@ -58,7 +54,7 @@ const main = async () => {
         target: Vec3.zero(),
     });
 
-    world.spawn(light, [
+    const light = world.spawn([
         lightTransformComponent,
         DirLight.create({
             direction: Transform.extractForward(Vec3.create(), lightTransformComponent.data),
@@ -67,7 +63,7 @@ const main = async () => {
         }),
     ]);
 
-    world.spawn(cube, [
+    const cube = world.spawn([
         Transform.create({ translation: Vec3.zero() }),
         PhongMaterial.create({ diffuseColor: Vec3.create(0.2, 0.5, 0.8) }),
     ]);

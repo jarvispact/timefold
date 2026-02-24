@@ -50,7 +50,7 @@ export default [
     files: ['**/*.test.ts'],
     languageOptions: {
       parserOptions: {
-        project: ['./packages/obj/tsconfig.test.json'],
+        project: ['./packages/ecs/tsconfig.test.json', './packages/obj/tsconfig.test.json'],
         tsconfigRootDir: import.meta.dirname,
       },
     },
