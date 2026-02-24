@@ -2,11 +2,20 @@ import { Component } from './component';
 import { IndexTupleByName } from './internal';
 import { CompiledQuery, GenericCompiledQuery, SupportedQuery, WithOptions } from './query';
 
-export type GenericCompiledPlugin = CompiledPlugin<string, Record<string, GenericCompiledQuery>>;
+export type GenericCompiledPlugin = CompiledPlugin<
+    string,
+    GenericCompiledQuery[],
+    Record<string, GenericCompiledQuery>
+>;
 
-export type CompiledPlugin<Name extends string, QueriesByName extends Record<string, GenericCompiledQuery>> = {
+export type CompiledPlugin<
+    Name extends string,
+    Queries extends GenericCompiledQuery[],
+    QueriesByName extends Record<string, GenericCompiledQuery> = IndexTupleByName<Queries>,
+> = {
     name: Name;
-    getQuery: <QueryName extends keyof QueriesByName>(queryName: QueryName) => QueriesByName[QueryName];
+    queries: Queries;
+    getQuery: <QueryName extends Queries[number]['name']>(queryName: QueryName) => QueriesByName[QueryName];
 };
 
 type PluginBuilderApi<
@@ -15,22 +24,22 @@ type PluginBuilderApi<
     ForbiddenMethod extends string = never,
 > = Omit<
     {
-        name: <Name extends string>(
-            name: Name,
-        ) => PluginBuilderApi<C, CompiledPlugin<Name, NonNullable<unknown>>, 'name'>;
+        name: <Name extends string>(name: Name) => PluginBuilderApi<C, CompiledPlugin<Name, []>, 'name'>;
         withQueries: <Q extends CompiledQuery<string, SupportedQuery<C['type'], WithOptions | undefined>[]>[]>(
             ...queries: Q
-        ) => PluginBuilderApi<C, CompiledPlugin<P['name'], IndexTupleByName<Q>>, 'name' | 'withQueries'>;
+        ) => PluginBuilderApi<C, CompiledPlugin<P['name'], Q>, 'name' | 'withQueries'>;
         compile: () => P;
     },
     ForbiddenMethod
 >;
 
 export const plugin = <C extends Component>() => {
+    const queryTuple: GenericCompiledQuery[] = [];
     const queriesByName: Record<string, GenericCompiledQuery> = {};
 
     const plugin: GenericCompiledPlugin = {
         name: '',
+        queries: queryTuple,
         getQuery: (name) => queriesByName[name],
     };
 
@@ -41,6 +50,7 @@ export const plugin = <C extends Component>() => {
 
     const withQueries = (...queries: GenericCompiledQuery[]) => {
         for (const qry of queries) {
+            queryTuple.push(qry);
             queriesByName[qry.name] = qry;
         }
 
@@ -55,9 +65,5 @@ export const plugin = <C extends Component>() => {
         compile,
     };
 
-    return api as unknown as PluginBuilderApi<
-        C,
-        CompiledPlugin<string, NonNullable<unknown>>,
-        'withQueries' | 'compile'
-    >;
+    return api as unknown as PluginBuilderApi<C, CompiledPlugin<string, []>, 'withQueries' | 'compile'>;
 };

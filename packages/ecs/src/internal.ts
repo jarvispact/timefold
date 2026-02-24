@@ -1,5 +1,8 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
+import { GenericCompiledPlugin } from './plugin';
+import { GenericCompiledQuery } from './query';
+
 export type Prettify<T extends Record<string, unknown>> = { [K in keyof T]: T[K] } & {};
 
 export type RemoveReadonly<T> = { -readonly [K in keyof T]: T[K] };
@@ -33,3 +36,10 @@ export const indexTupleByName = (tuple: { name: string }[]) => {
 
     return result;
 };
+
+export type GetQueryTuplesFromPlugins<
+    Plugins extends GenericCompiledPlugin[],
+    Queries extends GenericCompiledQuery[] = [],
+> = Plugins extends [infer Head extends GenericCompiledPlugin, ...infer Tail extends GenericCompiledPlugin[]]
+    ? GetQueryTuplesFromPlugins<Tail, [...Queries, ...Head['queries']]>
+    : Queries;
