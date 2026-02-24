@@ -5,115 +5,90 @@ import { Prettify, RemoveReadonly, Schema } from './internal';
 
 // primitive
 
-export type NumberSchema = Schema<'number', number>;
-
-export const number: NumberSchema = {
-    uri: 'number',
-    is: (data): data is number => typeof data === 'number',
-    serialize: (data) => data.toString(),
-    deserialize: (data) => Number.parseFloat(data),
+const uriToPrimitiveDeserialize = {
+    number: (data: string) => Number.parseFloat(data),
+    string: (data: string) => data,
+    boolean: (data: string) => data === 'true',
 };
+
+type StringToPrimitiveDeserialize = typeof uriToPrimitiveDeserialize;
+
+const primitiveSchema = <Uri extends keyof StringToPrimitiveDeserialize>(
+    uri: Uri,
+): Schema<Uri, ReturnType<StringToPrimitiveDeserialize[Uri]>> => {
+    return {
+        uri,
+        is: (data): data is ReturnType<StringToPrimitiveDeserialize[Uri]> => typeof data === uri,
+        serialize: (data) => data.toString(),
+        deserialize: (data: string) =>
+            uriToPrimitiveDeserialize[uri](data) as ReturnType<StringToPrimitiveDeserialize[Uri]>,
+    };
+};
+
+export type NumberSchema = Schema<'number', number>;
+export const number = primitiveSchema('number');
 
 export type StringSchema = Schema<'string', string>;
-
-export const string: StringSchema = {
-    uri: 'string',
-    is: (data): data is string => typeof data === 'string',
-    serialize: (data) => data,
-    deserialize: (data) => data,
-};
+export const string = primitiveSchema('string');
 
 export type BooleanSchema = Schema<'boolean', boolean>;
-
-export const boolean: BooleanSchema = {
-    uri: 'boolean',
-    is: (data): data is boolean => typeof data === 'boolean',
-    serialize: (data) => data.toString(),
-    deserialize: (data) => data === 'true',
-};
+export const boolean = primitiveSchema('boolean');
 
 // typed arrays
 
-export type Uint8ClampedArraySchema = Schema<'Uint8ClampedArray', Uint8ClampedArray>;
-
-export const uint8ClampedArray: Uint8ClampedArraySchema = {
-    uri: 'Uint8ClampedArray',
-    is: (data): data is Uint8ClampedArray => data instanceof Uint8ClampedArray,
-    serialize: (data) => `Uint8ClampedArray(${JSON.stringify(Array.from(data))})`,
-    deserialize: (data) => new Uint8ClampedArray(JSON.parse(data.replace('Uint8ClampedArray(', '').replace(')', ''))),
+const uriToTypedArrayConstructors = {
+    Uint8ClampedArray: Uint8ClampedArray<ArrayBufferLike>,
+    Uint8Array: Uint8Array<ArrayBufferLike>,
+    Int8Array: Int8Array<ArrayBufferLike>,
+    Uint16Array: Uint16Array<ArrayBufferLike>,
+    Int16Array: Int16Array<ArrayBufferLike>,
+    Uint32Array: Uint32Array<ArrayBufferLike>,
+    Int32Array: Int32Array<ArrayBufferLike>,
+    Float32Array: Float32Array<ArrayBufferLike>,
+    Float64Array: Float64Array<ArrayBufferLike>,
 };
+
+const typedArraySchema = <Uri extends keyof typeof uriToTypedArrayConstructors>(
+    uri: Uri,
+): Schema<Uri, InstanceType<(typeof uriToTypedArrayConstructors)[Uri]>> => {
+    return {
+        uri,
+        is: (data): data is InstanceType<(typeof uriToTypedArrayConstructors)[Uri]> =>
+            data instanceof uriToTypedArrayConstructors[uri],
+        serialize: (data) => `${uri}(${JSON.stringify(Array.from(data))})`,
+        deserialize: (data) =>
+            new uriToTypedArrayConstructors[uri](
+                JSON.parse(data.replace(`${uri}(`, '').replace(')', '')) as never,
+            ) as InstanceType<(typeof uriToTypedArrayConstructors)[Uri]>,
+    };
+};
+
+export type Uint8ClampedArraySchema = Schema<'Uint8ClampedArray', Uint8ClampedArray>;
+export const uint8ClampedArray = typedArraySchema('Uint8ClampedArray');
 
 export type Uint8ArraySchema = Schema<'Uint8Array', Uint8Array>;
-
-export const uint8Array: Uint8ArraySchema = {
-    uri: 'Uint8Array',
-    is: (data): data is Uint8Array => data instanceof Uint8Array,
-    serialize: (data) => `Uint8Array(${JSON.stringify(Array.from(data))})`,
-    deserialize: (data) => new Uint8Array(JSON.parse(data.replace('Uint8Array(', '').replace(')', ''))),
-};
+export const uint8Array = typedArraySchema('Uint8Array');
 
 export type Int8ArraySchema = Schema<'Int8Array', Int8Array>;
-
-export const int8Array: Int8ArraySchema = {
-    uri: 'Int8Array',
-    is: (data): data is Int8Array => data instanceof Int8Array,
-    serialize: (data) => `Int8Array(${JSON.stringify(Array.from(data))})`,
-    deserialize: (data) => new Int8Array(JSON.parse(data.replace('Int8Array(', '').replace(')', ''))),
-};
+export const int8Array = typedArraySchema('Int8Array');
 
 export type Uint16ArraySchema = Schema<'Uint16Array', Uint16Array>;
-
-export const uint16Array: Uint16ArraySchema = {
-    uri: 'Uint16Array',
-    is: (data): data is Uint16Array => data instanceof Uint16Array,
-    serialize: (data) => `Uint16Array(${JSON.stringify(Array.from(data))})`,
-    deserialize: (data) => new Uint16Array(JSON.parse(data.replace('Uint16Array(', '').replace(')', ''))),
-};
+export const uint16Array = typedArraySchema('Uint16Array');
 
 export type Int16ArraySchema = Schema<'Int16Array', Int16Array>;
-
-export const int16Array: Int16ArraySchema = {
-    uri: 'Int16Array',
-    is: (data): data is Int16Array => data instanceof Int16Array,
-    serialize: (data) => `Int16Array(${JSON.stringify(Array.from(data))})`,
-    deserialize: (data) => new Int16Array(JSON.parse(data.replace('Int16Array(', '').replace(')', ''))),
-};
+export const int16Array = typedArraySchema('Int16Array');
 
 export type Uint32ArraySchema = Schema<'Uint32Array', Uint32Array>;
-
-export const uint32Array: Uint32ArraySchema = {
-    uri: 'Uint32Array',
-    is: (data): data is Uint32Array => data instanceof Uint32Array,
-    serialize: (data) => `Uint32Array(${JSON.stringify(Array.from(data))})`,
-    deserialize: (data) => new Uint32Array(JSON.parse(data.replace('Uint32Array(', '').replace(')', ''))),
-};
+export const uint32Array = typedArraySchema('Uint32Array');
 
 export type Int32ArraySchema = Schema<'Int32Array', Int32Array>;
-
-export const int32Array: Int32ArraySchema = {
-    uri: 'Int32Array',
-    is: (data): data is Int32Array => data instanceof Int32Array,
-    serialize: (data) => `Int32Array(${JSON.stringify(Array.from(data))})`,
-    deserialize: (data) => new Int32Array(JSON.parse(data.replace('Int32Array(', '').replace(')', ''))),
-};
+export const int32Array = typedArraySchema('Int32Array');
 
 export type Float32ArraySchema = Schema<'Float32Array', Float32Array>;
-
-export const float32Array: Float32ArraySchema = {
-    uri: 'Float32Array',
-    is: (data): data is Float32Array => data instanceof Float32Array,
-    serialize: (data) => `Float32Array(${JSON.stringify(Array.from(data))})`,
-    deserialize: (data) => new Float32Array(JSON.parse(data.replace('Float32Array(', '').replace(')', ''))),
-};
+export const float32Array = typedArraySchema('Float32Array');
 
 export type Float64ArraySchema = Schema<'Float64Array', Float64Array>;
-
-export const float64Array: Float64ArraySchema = {
-    uri: 'Float64Array',
-    is: (data): data is Float64Array => data instanceof Float64Array,
-    serialize: (data) => `Float64Array(${JSON.stringify(Array.from(data))})`,
-    deserialize: (data) => new Float64Array(JSON.parse(data.replace('Float64Array(', '').replace(')', ''))),
-};
+export const float64Array = typedArraySchema('Float64Array');
 
 // tuple
 
