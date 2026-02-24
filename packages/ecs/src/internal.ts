@@ -43,3 +43,7 @@ export type GetQueryTuplesFromPlugins<
 > = Plugins extends [infer Head extends GenericCompiledPlugin, ...infer Tail extends GenericCompiledPlugin[]]
     ? GetQueryTuplesFromPlugins<Tail, [...Queries, ...Head['queries']]>
     : Queries;
+
+export type TupleOfLength<Length extends number, Type, Result extends Type[] = []> = Length extends Result['length']
+    ? Result
+    : TupleOfLength<Length, Type, [...Result, Type]>;

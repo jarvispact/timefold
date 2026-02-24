@@ -1,6 +1,12 @@
 import { Component, InferComponents } from './component';
 import { Entity } from './entity';
-import { GenericComponentDefinition, GetQueryTuplesFromPlugins, indexTupleByName, IndexTupleByName } from './internal';
+import {
+    GenericComponentDefinition,
+    GetQueryTuplesFromPlugins,
+    indexTupleByName,
+    IndexTupleByName,
+    TupleOfLength,
+} from './internal';
 import { GenericCompiledPlugin } from './plugin';
 import { GenericCompiledQuery } from './query';
 
@@ -18,6 +24,7 @@ export type World<
     getPlugin: <PluginName extends keyof PluginsByName>(pluginName: PluginName) => PluginsByName[PluginName];
     getQuery: <QueryName extends keyof QueriesByName>(queryName: QueryName) => QueriesByName[QueryName];
     createEntity: () => Entity;
+    createEntities: <Count extends number>(count: Count) => TupleOfLength<Count, Entity>;
     spawn: (...args: [Entity, C[]] | [C[]]) => Entity;
     despawn: (...entities: Entity[]) => void;
     getComponent: <T extends C['type']>(entity: Entity, type: T) => Extract<C, { type: T }> | undefined;
@@ -33,17 +40,27 @@ export const createWorld = <const Args extends CreateWorldArgs>(args: Args) => {
     type C = InferComponents<Args['components']>;
 
     let entityCounter = 0;
-    const entityIdRecycleBin: Entity[] = [];
+    const entityRecycleBin: Entity[] = [];
 
-    const componentsByEntity = new Map<number, Map<number, C | undefined> | undefined>();
+    const componentsByEntity = new Map<Entity, Map<number, C | undefined> | undefined>();
 
-    const createEntity = (): number => {
-        if (entityIdRecycleBin.length > 0) {
-            const entity = entityIdRecycleBin.pop() as Entity;
+    const createEntity = (): Entity => {
+        if (entityRecycleBin.length > 0) {
+            const entity = entityRecycleBin.pop() as Entity;
             return entity;
         }
 
         return entityCounter++;
+    };
+
+    const createEntities = (count: number) => {
+        const entities: Entity[] = [];
+
+        for (let i = 0; i < count; i++) {
+            entities.push(createEntity());
+        }
+
+        return entities;
     };
 
     const spawn = (...args: [Entity, C[]] | [C[]]): Entity => {
@@ -64,7 +81,7 @@ export const createWorld = <const Args extends CreateWorldArgs>(args: Args) => {
     };
 
     const despawn = (...entities: Entity[]) => {
-        entityIdRecycleBin.push(...entities);
+        entityRecycleBin.push(...entities);
     };
 
     const getComponent = (entity: number, type: Component['type']) => {
@@ -77,6 +94,7 @@ export const createWorld = <const Args extends CreateWorldArgs>(args: Args) => {
         getPlugin,
         getQuery,
         createEntity,
+        createEntities,
         spawn,
         despawn,
         getComponent,
