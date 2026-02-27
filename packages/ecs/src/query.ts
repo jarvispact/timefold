@@ -52,7 +52,7 @@ type QueryBuilderApi<
         includeEntity: () => QueryBuilderApi<
             C,
             CompiledQuery<Q['name'], true, Q['types']>,
-            'name' | 'includeEntity' | 'without' // After `includeEntity` you can only use `with` or `compile`
+            'name' | 'includeEntity' // After `includeEntity` you can only use `with`, `without` or `compile`
         >;
         with: <
             Type extends Exclude<C['type'], GetUsedComponentType<Q>>,
