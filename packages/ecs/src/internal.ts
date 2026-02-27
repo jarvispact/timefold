@@ -1,7 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
-import { GenericCompiledPlugin } from './plugin';
-import { GenericCompiledQuery } from './query';
+import { Schema } from './schema';
 
 export type Prettify<T extends Record<string, unknown>> = { [K in keyof T]: T[K] } & {};
 
@@ -10,13 +9,6 @@ export type RemoveReadonly<T> = { -readonly [K in keyof T]: T[K] };
 export type Reverse<T extends unknown[], Result extends unknown[] = []> = T extends [infer Head, ...infer Tail]
     ? Reverse<Tail, [Head, ...Result]>
     : Result;
-
-export type Schema<Uri extends string, Type> = {
-    uri: Uri;
-    is: (data: unknown) => data is Type;
-    serialize: (data: Type) => string;
-    deserialize: (data: string) => Type;
-};
 
 export type GenericComponentDefinition = { name: string; definition?: Schema<string, any> };
 
@@ -36,13 +28,6 @@ export const indexTupleByName = (tuple: { name: string }[]) => {
 
     return result;
 };
-
-export type GetQueryTuplesFromPlugins<
-    Plugins extends GenericCompiledPlugin[],
-    Queries extends GenericCompiledQuery[] = [],
-> = Plugins extends [infer Head extends GenericCompiledPlugin, ...infer Tail extends GenericCompiledPlugin[]]
-    ? GetQueryTuplesFromPlugins<Tail, [...Queries, ...Head['queries']]>
-    : Queries;
 
 export type TupleOfLength<Length extends number, Type, Result extends Type[] = []> = Length extends Result['length']
     ? Result

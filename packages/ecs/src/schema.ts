@@ -1,7 +1,14 @@
 /* eslint-disable @typescript-eslint/no-unsafe-return */
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
-import { Prettify, RemoveReadonly, Schema } from './internal';
+import { Prettify, RemoveReadonly } from './internal';
+
+export type Schema<Uri extends string, Type> = {
+    uri: Uri;
+    is: (data: unknown) => data is Type;
+    serialize: (data: Type) => string;
+    deserialize: (data: string) => Type;
+};
 
 // primitive
 

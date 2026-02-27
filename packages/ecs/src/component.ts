@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
-import { Schema, Reverse, Prettify, GenericComponentDefinition } from './internal';
-import { InferSchemaType } from './schema';
+import { Reverse, Prettify, GenericComponentDefinition } from './internal';
+import { InferSchemaType, Schema } from './schema';
 
 export type Component<Type extends number = number, Data = undefined> = Data extends undefined
     ? { type: Type }

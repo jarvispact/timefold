@@ -1,106 +1,71 @@
 import { Component, InferComponents } from './component';
 import { Entity } from './entity';
-import {
-    GenericComponentDefinition,
-    GetQueryTuplesFromPlugins,
-    indexTupleByName,
-    IndexTupleByName,
-    TupleOfLength,
-} from './internal';
-import { GenericCompiledPlugin } from './plugin';
+import { GenericComponentDefinition, IndexTupleByName, TupleOfLength } from './internal';
 import { GenericCompiledQuery } from './query';
 
-type CreateWorldArgs = {
+type WorldBuilderContext = {
     components: GenericComponentDefinition[];
-    plugins: GenericCompiledPlugin[];
     queries: GenericCompiledQuery[];
 };
 
-export type World<
-    C extends Component,
-    PluginsByName extends Record<string, GenericCompiledPlugin>,
-    QueriesByName extends Record<string, GenericCompiledQuery>,
+type World<
+    C extends Component = Component,
+    Q extends Record<string, GenericCompiledQuery> = Record<string, GenericCompiledQuery>,
 > = {
-    getPlugin: <PluginName extends keyof PluginsByName>(pluginName: PluginName) => PluginsByName[PluginName];
-    getQuery: <QueryName extends keyof QueriesByName>(queryName: QueryName) => QueriesByName[QueryName];
     createEntity: () => Entity;
     createEntities: <Count extends number>(count: Count) => TupleOfLength<Count, Entity>;
     spawn: (...args: [Entity, C[]] | [C[]]) => Entity;
     despawn: (...entities: Entity[]) => void;
     getComponent: <T extends C['type']>(entity: Entity, type: T) => Extract<C, { type: T }> | undefined;
+
+    getQuery: <QueryName extends keyof Q>(name: QueryName) => Q[QueryName];
 };
 
-export const createWorld = <const Args extends CreateWorldArgs>(args: Args) => {
-    const pluginsByName = indexTupleByName(args.plugins);
-    const queriesByName = indexTupleByName([...args.queries, ...args.plugins.flatMap((p) => p.queries)]);
+const createWorld = (args: WorldBuilderContext) => {
+    console.log({ args });
+    return {} as unknown as World;
+};
 
-    const getPlugin = (name: keyof typeof pluginsByName) => pluginsByName[name];
-    const getQuery = (name: keyof typeof queriesByName) => queriesByName[name];
+type WorldBuilderApi<
+    ComponentDefinitions extends GenericComponentDefinition[],
+    QueryDefinitions extends GenericCompiledQuery[],
+    ForbiddenMethod extends string = never,
+> = Omit<
+    {
+        withComponents: <C extends GenericComponentDefinition[]>(
+            components: C,
+        ) => WorldBuilderApi<C, QueryDefinitions, 'withComponents' | 'compile'>;
+        withQueries: <Q extends GenericCompiledQuery[]>(
+            ...queries: Q
+        ) => WorldBuilderApi<ComponentDefinitions, Q, 'withQueries'>;
+        compile: () => World<InferComponents<ComponentDefinitions>, IndexTupleByName<QueryDefinitions>>;
+    },
+    ForbiddenMethod
+>;
 
-    type C = InferComponents<Args['components']>;
-
-    let entityCounter = 0;
-    const entityRecycleBin: Entity[] = [];
-
-    const componentsByEntity = new Map<Entity, Map<number, C | undefined> | undefined>();
-
-    const createEntity = (): Entity => {
-        if (entityRecycleBin.length > 0) {
-            const entity = entityRecycleBin.pop() as Entity;
-            return entity;
-        }
-
-        return entityCounter++;
+export const worldBuilder = () => {
+    const ctx: WorldBuilderContext = {
+        components: [],
+        queries: [],
     };
 
-    const createEntities = (count: number) => {
-        const entities: Entity[] = [];
-
-        for (let i = 0; i < count; i++) {
-            entities.push(createEntity());
-        }
-
-        return entities;
+    const withComponents = (components: GenericComponentDefinition[]) => {
+        ctx.components = components;
+        return api;
     };
 
-    const spawn = (...args: [Entity, C[]] | [C[]]): Entity => {
-        const entity = args.length === 1 ? createEntity() : args[0];
-        const components = args.length === 1 ? args[0] : args[1];
-
-        if (!componentsByEntity.has(entity)) {
-            componentsByEntity.set(entity, new Map());
-        }
-
-        // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-        const entityComponents = componentsByEntity.get(entity)!;
-        for (const component of components) {
-            entityComponents.set(component.type, component);
-        }
-
-        return entity;
+    const withQueries = (queries: GenericCompiledQuery[]) => {
+        ctx.queries = queries;
+        return api;
     };
 
-    const despawn = (...entities: Entity[]) => {
-        entityRecycleBin.push(...entities);
+    const compile = () => createWorld(ctx);
+
+    const api = {
+        withComponents,
+        withQueries,
+        compile,
     };
 
-    const getComponent = (entity: number, type: Component['type']) => {
-        const components = componentsByEntity.get(entity);
-        if (!components) return undefined;
-        return components.get(type);
-    };
-
-    return {
-        getPlugin,
-        getQuery,
-        createEntity,
-        createEntities,
-        spawn,
-        despawn,
-        getComponent,
-    } as unknown as World<
-        InferComponents<Args['components']>,
-        IndexTupleByName<Args['plugins']>,
-        IndexTupleByName<Args['queries']> & IndexTupleByName<GetQueryTuplesFromPlugins<Args['plugins']>>
-    >;
+    return api as WorldBuilderApi<GenericComponentDefinition[], GenericCompiledQuery[], 'withQueries' | 'compile'>;
 };

@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-non-null-assertion */
 
-import { createWorld, plugin, query } from '@timefold/ecs';
+import { worldBuilder, query } from '@timefold/ecs';
 import {
     DirLight,
     DomUtils,
@@ -29,19 +29,19 @@ const q1 = query<EngineComponent>()
     .without(T.DirLight)
     .compile();
 
-const q2 = query<EngineComponent>()
-    .name('query2')
-    .with(T.PhongMaterial)
-    .with(T.PerspectiveCamera, { include: false })
+const q2 = query<EngineComponent>().name('query2').with(T.PhongMaterial).with(T.PerspectiveCamera).compile();
+
+const q3 = query<EngineComponent>().name('query3').includeEntity().compile();
+
+const q4 = query<EngineComponent>()
+    .name('query4')
+    .includeEntity()
+    .with(T.Transform)
+    .with(T.DirLight, { include: false })
+    .without(T.PhongMaterial)
     .compile();
 
-const p1 = plugin<EngineComponent>().name('plugin1').withQueries(q1).compile();
-
-const world = createWorld({
-    components: engineComponents,
-    plugins: [p1],
-    queries: [q2],
-});
+const world = worldBuilder().withComponents(engineComponents).withQueries(q1, q2, q3, q4).compile();
 
 const main = async () => {
     const camera = world.spawn([

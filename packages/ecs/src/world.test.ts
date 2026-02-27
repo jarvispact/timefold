@@ -1,8 +1,8 @@
 import { expect, it, describe, expectTypeOf } from 'vitest';
-import { createWorld } from './world';
+import { worldBuilder } from './world';
 
 describe('world', () => {
-    const newWorld = () => createWorld({ components: [], plugins: [], queries: [] });
+    const newWorld = () => worldBuilder().withComponents([]).withQueries().compile();
 
     describe('createEntity', () => {
         it('should return a sequence of entity ids', () => {
