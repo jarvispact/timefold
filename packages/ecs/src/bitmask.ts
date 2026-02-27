@@ -1,4 +1,3 @@
-// Can be used for a entity or query
 export type Bitmask = {
     with: Uint32Array;
     without: Uint32Array;

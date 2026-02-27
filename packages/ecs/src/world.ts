@@ -98,7 +98,7 @@ type WorldBuilderApi<
         ) => WorldBuilderApi<C, QueryDefinitions, 'withComponents' | 'compile'>;
         withQueries: <Q extends GenericCompiledQuery[]>(
             ...queries: Q
-        ) => WorldBuilderApi<ComponentDefinitions, Q, 'withQueries'>;
+        ) => WorldBuilderApi<ComponentDefinitions, Q, 'withComponents' | 'withQueries'>;
         compile: () => World<InferComponents<ComponentDefinitions>, IndexTupleByName<QueryDefinitions>>;
     },
     ForbiddenMethod
