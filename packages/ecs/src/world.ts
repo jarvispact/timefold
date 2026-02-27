@@ -1,8 +1,13 @@
-/* eslint-disable @typescript-eslint/no-non-null-assertion */
-
+import { addComponentToEntityBitmask, Bitmask, createBitmask, removeComponentFromEntityBitmask } from './bitmask';
 import { Component, InferComponents } from './component';
 import { Entity } from './entity';
-import { GenericComponentDefinition, indexTupleByName, IndexTupleByName, TupleOfLength } from './internal';
+import {
+    GenericComponentDefinition,
+    IndexTupleByName,
+    TupleOfLength,
+    createEntityManager,
+    createQueryManager,
+} from './internal';
 import { GenericCompiledQuery } from './query';
 
 type WorldBuilderContext = {
@@ -16,74 +21,94 @@ type World<
 > = {
     createEntity: () => Entity;
     createEntities: <Count extends number>(count: Count) => TupleOfLength<Count, Entity>;
+
     spawn: (...args: [Entity, C[]] | [C[]]) => Entity;
     despawn: (...entities: Entity[]) => void;
+
+    addComponent: (entity: Entity, component: C) => void;
+    removeComponent: (entity: Entity, componentType: C['type']) => void;
     getComponent: <T extends C['type']>(entity: Entity, type: T) => Extract<C, { type: T }> | undefined;
 
-    getQuery: <QueryName extends keyof Q>(name: QueryName) => Q[QueryName];
+    updateQueries: () => void;
+    getQueryResults: <QueryName extends keyof Q>(name: QueryName) => Q[QueryName];
 };
 
 const createWorld = (args: WorldBuilderContext) => {
-    const queriesByName = indexTupleByName(args.queries);
+    const MAX_COMPONENT_TYPE = args.components.length;
 
-    const getQuery = (name: keyof typeof queriesByName) => queriesByName[name];
+    const em = createEntityManager();
+    const qm = createQueryManager(MAX_COMPONENT_TYPE, args.queries);
 
-    let entityCounter = 0;
-    const entityIdRecycleBin: Entity[] = [];
-
-    const componentsByEntity = new Map<number, Map<number, Component | undefined>>();
-
-    const createEntity = (): Entity => {
-        if (entityIdRecycleBin.length > 0) {
-            return entityIdRecycleBin.pop() as Entity;
-        }
-        return entityCounter++ as Entity;
-    };
-
-    const createEntities = (count: number) => {
-        const result: Entity[] = [];
-
-        for (let i = 0; i < count; i++) {
-            result.push(createEntity());
-        }
-        return result;
-    };
+    const entityMap = new Map<Entity, { bitmask: Bitmask; components: Map<Component['type'], Component> }>();
 
     const spawn = (...spawnArgs: [Entity, Component[]] | [Component[]]): Entity => {
-        const entity = spawnArgs.length === 1 ? createEntity() : spawnArgs[0];
+        const entity = spawnArgs.length === 1 ? em.createEntity() : spawnArgs[0];
         const components = spawnArgs.length === 1 ? spawnArgs[0] : spawnArgs[1];
 
-        if (!componentsByEntity.has(entity)) {
-            componentsByEntity.set(entity, new Map());
-        }
+        if (entityMap.has(entity)) return entity;
 
-        const entityComponents = componentsByEntity.get(entity)!;
+        const entry = {
+            bitmask: createBitmask(MAX_COMPONENT_TYPE),
+            components: new Map(),
+        };
+
         for (const component of components) {
-            entityComponents.set(component.type, component);
+            entry.components.set(component.type, component);
+            addComponentToEntityBitmask(entry.bitmask, 'with', component.type);
         }
 
+        entityMap.set(entity, entry);
+        qm.addStructuralChange({ type: 'spawn' });
         return entity;
     };
 
     const despawn = (...entities: Entity[]) => {
         for (let i = 0; i < entities.length; i++) {
-            entityIdRecycleBin.push(entities[i]);
+            em.recycleEntity(entities[i]);
+            entityMap.delete(entities[i]);
         }
+
+        qm.addStructuralChange({ type: 'despawn' });
     };
 
-    const getComponent = (entity: Entity, type: Component['type']) => {
-        const components = componentsByEntity.get(entity);
-        if (!components) return undefined;
-        return components.get(type);
+    const addComponent = (entity: Entity, component: Component) => {
+        const entry = entityMap.get(entity);
+        if (!entry) return;
+
+        entry.components.set(component.type, component);
+        addComponentToEntityBitmask(entry.bitmask, 'with', component.type);
+        qm.addStructuralChange({ type: 'addComponent' });
+    };
+
+    const removeComponent = (entity: Entity, componentType: Component['type']) => {
+        const entry = entityMap.get(entity);
+        if (!entry) return;
+
+        entry.components.delete(componentType);
+        removeComponentFromEntityBitmask(entry.bitmask, 'with', componentType);
+        qm.addStructuralChange({ type: 'removeComponent' });
+    };
+
+    const getComponent = (entity: Entity, type: Component['type']): Component | undefined => {
+        const entry = entityMap.get(entity);
+        if (!entry) return undefined;
+
+        return entry.components.get(type);
     };
 
     return {
-        createEntity,
-        createEntities,
+        createEntity: em.createEntity,
+        createEntities: em.createEntities,
+
         spawn,
         despawn,
+
+        addComponent,
+        removeComponent,
         getComponent,
-        getQuery,
+
+        updateQueries: qm.updateQueries,
+        getQueryResults: qm.getQueryResults,
     } as unknown as World;
 };
 
