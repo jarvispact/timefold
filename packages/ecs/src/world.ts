@@ -1,6 +1,8 @@
+/* eslint-disable @typescript-eslint/no-non-null-assertion */
+
 import { Component, InferComponents } from './component';
 import { Entity } from './entity';
-import { GenericComponentDefinition, IndexTupleByName, TupleOfLength } from './internal';
+import { GenericComponentDefinition, indexTupleByName, IndexTupleByName, TupleOfLength } from './internal';
 import { GenericCompiledQuery } from './query';
 
 type WorldBuilderContext = {
@@ -22,8 +24,67 @@ type World<
 };
 
 const createWorld = (args: WorldBuilderContext) => {
-    console.log({ args });
-    return {} as unknown as World;
+    const queriesByName = indexTupleByName(args.queries);
+
+    const getQuery = (name: keyof typeof queriesByName) => queriesByName[name];
+
+    let entityCounter = 0;
+    const entityIdRecycleBin: Entity[] = [];
+
+    const componentsByEntity = new Map<number, Map<number, Component | undefined>>();
+
+    const createEntity = (): Entity => {
+        if (entityIdRecycleBin.length > 0) {
+            return entityIdRecycleBin.pop() as Entity;
+        }
+        return entityCounter++ as Entity;
+    };
+
+    const createEntities = (count: number) => {
+        const result: Entity[] = [];
+
+        for (let i = 0; i < count; i++) {
+            result.push(createEntity());
+        }
+        return result;
+    };
+
+    const spawn = (...spawnArgs: [Entity, Component[]] | [Component[]]): Entity => {
+        const entity = spawnArgs.length === 1 ? createEntity() : spawnArgs[0];
+        const components = spawnArgs.length === 1 ? spawnArgs[0] : spawnArgs[1];
+
+        if (!componentsByEntity.has(entity)) {
+            componentsByEntity.set(entity, new Map());
+        }
+
+        const entityComponents = componentsByEntity.get(entity)!;
+        for (const component of components) {
+            entityComponents.set(component.type, component);
+        }
+
+        return entity;
+    };
+
+    const despawn = (...entities: Entity[]) => {
+        for (let i = 0; i < entities.length; i++) {
+            entityIdRecycleBin.push(entities[i]);
+        }
+    };
+
+    const getComponent = (entity: Entity, type: Component['type']) => {
+        const components = componentsByEntity.get(entity);
+        if (!components) return undefined;
+        return components.get(type);
+    };
+
+    return {
+        createEntity,
+        createEntities,
+        spawn,
+        despawn,
+        getComponent,
+        getQuery,
+    } as unknown as World;
 };
 
 type WorldBuilderApi<
@@ -54,7 +115,7 @@ export const worldBuilder = () => {
         return api;
     };
 
-    const withQueries = (queries: GenericCompiledQuery[]) => {
+    const withQueries = (...queries: GenericCompiledQuery[]) => {
         ctx.queries = queries;
         return api;
     };
