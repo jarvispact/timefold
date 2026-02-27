@@ -5,10 +5,13 @@ export type Bitmask = {
 
 const DIVISOR = 32;
 
-export const createBitmask = (maxComponentType: number) => ({
-    with: new Uint32Array(maxComponentType / DIVISOR),
-    without: new Uint32Array(maxComponentType / DIVISOR),
-});
+export const createBitmask = (maxComponentType: number) => {
+    const size = ((maxComponentType + DIVISOR - 1) / DIVISOR) | 0;
+    return {
+        with: new Uint32Array(size),
+        without: new Uint32Array(size),
+    };
+};
 
 export function addComponentToEntityBitmask(bitmask: Bitmask, kind: 'with' | 'without', componentType: number) {
     bitmask[kind][componentType >> 5] |= 1 << (componentType & 31);

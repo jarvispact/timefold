@@ -8,7 +8,7 @@ import {
     createEntityManager,
     createQueryManager,
 } from './internal';
-import { GenericCompiledQuery } from './query';
+import { GenericCompiledQuery, InferQueryResultTuple } from './query';
 
 type WorldBuilderContext = {
     components: GenericComponentDefinition[];
@@ -30,16 +30,15 @@ type World<
     getComponent: <T extends C['type']>(entity: Entity, type: T) => Extract<C, { type: T }> | undefined;
 
     updateQueries: () => void;
-    getQueryResults: <QueryName extends keyof Q>(name: QueryName) => Q[QueryName];
+    getQueryResults: <QueryName extends keyof Q>(name: QueryName) => InferQueryResultTuple<C, Q[QueryName]>;
 };
 
 const createWorld = (args: WorldBuilderContext) => {
     const MAX_COMPONENT_TYPE = args.components.length;
 
     const em = createEntityManager();
-    const qm = createQueryManager(MAX_COMPONENT_TYPE, args.queries);
-
     const entityMap = new Map<Entity, { bitmask: Bitmask; components: Map<Component['type'], Component> }>();
+    const qm = createQueryManager(MAX_COMPONENT_TYPE, args.queries, entityMap);
 
     const spawn = (...spawnArgs: [Entity, Component[]] | [Component[]]): Entity => {
         const entity = spawnArgs.length === 1 ? em.createEntity() : spawnArgs[0];
@@ -58,17 +57,16 @@ const createWorld = (args: WorldBuilderContext) => {
         }
 
         entityMap.set(entity, entry);
-        qm.addStructuralChange({ type: 'spawn' });
+        qm.queueStructuralChange({ type: 'spawn', entity });
         return entity;
     };
 
     const despawn = (...entities: Entity[]) => {
         for (let i = 0; i < entities.length; i++) {
+            qm.queueStructuralChange({ type: 'despawn', entity: entities[i] });
             em.recycleEntity(entities[i]);
             entityMap.delete(entities[i]);
         }
-
-        qm.addStructuralChange({ type: 'despawn' });
     };
 
     const addComponent = (entity: Entity, component: Component) => {
@@ -77,7 +75,7 @@ const createWorld = (args: WorldBuilderContext) => {
 
         entry.components.set(component.type, component);
         addComponentToEntityBitmask(entry.bitmask, 'with', component.type);
-        qm.addStructuralChange({ type: 'addComponent' });
+        qm.queueStructuralChange({ type: 'addComponent', entity });
     };
 
     const removeComponent = (entity: Entity, componentType: Component['type']) => {
@@ -86,7 +84,7 @@ const createWorld = (args: WorldBuilderContext) => {
 
         entry.components.delete(componentType);
         removeComponentFromEntityBitmask(entry.bitmask, 'with', componentType);
-        qm.addStructuralChange({ type: 'removeComponent' });
+        qm.queueStructuralChange({ type: 'removeComponent', entity });
     };
 
     const getComponent = (entity: Entity, type: Component['type']): Component | undefined => {
