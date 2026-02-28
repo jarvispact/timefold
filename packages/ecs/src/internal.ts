@@ -57,20 +57,13 @@ export const createEntityManager = () => {
     };
 };
 
-type StructuralChange =
-    | { type: 'spawn'; entity: Entity }
-    | { type: 'addComponent'; entity: Entity }
-    | { type: 'removeComponent'; entity: Entity }
-    | { type: 'despawn'; entity: Entity };
-
 type WorldQuery = {
     bitmask: Bitmask;
     results: unknown[];
-    meta: { rid: number; vid: number }[]; // rid = reverse-id, vid = validity-id
-    sparse: number[]; // ID → dense index
-    sparseLen: number; // logical length of sparse/meta pool
-    resultComponentTypes: number[]; // ordered component types to include in result tuple
-    includeEntity: boolean; // whether to prepend entity ID to result tuple
+    rids: number[]; // dense index → entity id (reverse-id)
+    sparse: number[]; // entity id → dense index
+    buildResultTuple: (entity: Entity, components: Map<Component['type'], Component>) => unknown[];
+    writeResultTuple: (tuple: unknown[], entity: Entity, components: Map<Component['type'], Component>) => void;
 };
 
 type EntityMap = Map<Entity, { bitmask: Bitmask; components: Map<Component['type'], Component> }>;
@@ -103,53 +96,67 @@ export const createQueryManager = (
             }
         }
 
+        // Create specialized build/write functions per query to eliminate per-entity branching
+        const includeEntity = queryDef.includeEntity;
+
+        const buildResultTuple = includeEntity
+            ? (entity: Entity, components: Map<Component['type'], Component>) => {
+                  const tuple: unknown[] = [entity];
+                  for (let k = 0; k < resultComponentTypes.length; k++) {
+                      tuple.push(components.get(resultComponentTypes[k]));
+                  }
+                  return tuple;
+              }
+            : (_entity: Entity, components: Map<Component['type'], Component>) => {
+                  const tuple: unknown[] = [];
+                  for (let k = 0; k < resultComponentTypes.length; k++) {
+                      tuple.push(components.get(resultComponentTypes[k]));
+                  }
+                  return tuple;
+              };
+
+        const writeResultTuple = includeEntity
+            ? (tuple: unknown[], entity: Entity, components: Map<Component['type'], Component>) => {
+                  tuple[0] = entity;
+                  for (let k = 0; k < resultComponentTypes.length; k++) {
+                      tuple[k + 1] = components.get(resultComponentTypes[k]);
+                  }
+              }
+            : (tuple: unknown[], _entity: Entity, components: Map<Component['type'], Component>) => {
+                  for (let k = 0; k < resultComponentTypes.length; k++) {
+                      tuple[k] = components.get(resultComponentTypes[k]);
+                  }
+              };
+
         worldQueries.push({
             bitmask,
             results: [],
-            meta: [],
+            rids: [],
             sparse: [],
-            sparseLen: 0,
-            resultComponentTypes,
-            includeEntity: queryDef.includeEntity,
+            buildResultTuple,
+            writeResultTuple,
         });
     }
 
-    const structuralChangeQueue: StructuralChange[] = [];
+    // Structural change queue — plain entity id array (PACKED_SMI_ELEMENTS)
+    const changeQueue: number[] = [];
 
-    const queueStructuralChange = (change: StructuralChange) => {
-        structuralChangeQueue.push(change);
+    const queueStructuralChange = (entity: Entity) => {
+        changeQueue.push(entity as number);
     };
 
     const isInQuery = (wq: WorldQuery, entityId: number): boolean => {
         const denseIndex = wq.sparse[entityId] as number | undefined;
-        return denseIndex !== undefined && denseIndex < wq.results.length && wq.meta[denseIndex].rid === entityId;
-    };
-
-    const buildResultTuple = (wq: WorldQuery, entity: Entity, components: Map<Component['type'], Component>) => {
-        const tuple: unknown[] = [];
-        if (wq.includeEntity) tuple.push(entity);
-
-        for (let k = 0; k < wq.resultComponentTypes.length; k++) {
-            tuple.push(components.get(wq.resultComponentTypes[k]));
-        }
-
-        return tuple;
+        return denseIndex !== undefined && denseIndex < wq.results.length && wq.rids[denseIndex] === entityId;
     };
 
     const addToQuery = (wq: WorldQuery, entity: Entity, components: Map<Component['type'], Component>) => {
         const entityId = entity as number;
         const denseIndex = wq.results.length;
 
-        // Reuse freed slot in sparse/meta if available, otherwise grow
-        if (wq.sparseLen > denseIndex) {
-            // There's a freed meta/sparse slot we can reclaim — but we still append to dense
-            // The freed slots exist in meta beyond results.length; we don't reuse them for dense.
-        }
-
         wq.sparse[entityId] = denseIndex;
-        wq.results.push(buildResultTuple(wq, entity, components));
-        wq.meta[denseIndex] = { rid: entityId, vid: 0 };
-        if (wq.sparseLen <= denseIndex) wq.sparseLen = denseIndex + 1;
+        wq.results.push(wq.buildResultTuple(entity, components));
+        wq.rids[denseIndex] = entityId;
     };
 
     const removeFromQuery = (wq: WorldQuery, entity: Entity) => {
@@ -160,28 +167,27 @@ export const createQueryManager = (
         if (denseIndex !== lastDenseIndex) {
             // Swap with last
             wq.results[denseIndex] = wq.results[lastDenseIndex];
-            wq.meta[denseIndex] = wq.meta[lastDenseIndex];
+            wq.rids[denseIndex] = wq.rids[lastDenseIndex];
             // Update sparse for the swapped-in entity
-            wq.sparse[wq.meta[denseIndex].rid] = denseIndex;
+            wq.sparse[wq.rids[denseIndex]] = denseIndex;
         }
 
         wq.results.pop();
-        // Invalidate the removed entity's vid (in the now-freed meta slot)
-        wq.meta[lastDenseIndex] = { rid: entityId, vid: (wq.meta[lastDenseIndex]?.vid ?? 0) + 1 };
     };
 
-    const flushQueue = () => {
-        // Deduplicate entities — process each entity only once
-        const seen = new Set<number>();
+    // Reusable dedup set — cleared each flush instead of reallocated
+    const seen = new Set<number>();
 
-        for (let i = 0; i < structuralChangeQueue.length; i++) {
-            const change = structuralChangeQueue[i];
-            const entity = change.entity;
-            const entityId = entity as number;
+    const flushQueue = () => {
+        seen.clear();
+
+        for (let i = 0; i < changeQueue.length; i++) {
+            const entityId = changeQueue[i];
 
             if (seen.has(entityId)) continue;
             seen.add(entityId);
 
+            const entity = entityId as Entity;
             const entityEntry = entityMap.get(entity);
 
             for (let q = 0; q < worldQueries.length; q++) {
@@ -201,7 +207,7 @@ export const createQueryManager = (
                 } else if (matches && inQuery) {
                     // Update result tuple in place (component data may have changed)
                     const denseIndex = wq.sparse[entityId];
-                    wq.results[denseIndex] = buildResultTuple(wq, entity, entityEntry.components);
+                    wq.writeResultTuple(wq.results[denseIndex] as unknown[], entity, entityEntry.components);
                 } else if (!matches && inQuery) {
                     removeFromQuery(wq, entity);
                 }
@@ -209,7 +215,7 @@ export const createQueryManager = (
             }
         }
 
-        structuralChangeQueue.length = 0;
+        changeQueue.length = 0;
     };
 
     const getQueryResults = (name: string) => {

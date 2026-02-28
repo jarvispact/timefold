@@ -56,13 +56,13 @@ const createWorld = (args: WorldBuilderContext) => {
         }
 
         entityMap.set(entity, entry);
-        qm.queueStructuralChange({ type: 'spawn', entity });
+        qm.queueStructuralChange(entity);
         return entity;
     };
 
     const despawn = (...entities: Entity[]) => {
         for (let i = 0; i < entities.length; i++) {
-            qm.queueStructuralChange({ type: 'despawn', entity: entities[i] });
+            qm.queueStructuralChange(entities[i]);
             em.recycleEntity(entities[i]);
             entityMap.delete(entities[i]);
         }
@@ -74,7 +74,7 @@ const createWorld = (args: WorldBuilderContext) => {
 
         entry.components.set(component.type, component);
         addComponentToEntityBitmask(entry.bitmask, 'with', component.type);
-        qm.queueStructuralChange({ type: 'addComponent', entity });
+        qm.queueStructuralChange(entity);
     };
 
     const removeComponent = (entity: Entity, componentType: Component['type']) => {
@@ -83,7 +83,7 @@ const createWorld = (args: WorldBuilderContext) => {
 
         entry.components.delete(componentType);
         removeComponentFromEntityBitmask(entry.bitmask, 'with', componentType);
-        qm.queueStructuralChange({ type: 'removeComponent', entity });
+        qm.queueStructuralChange(entity);
     };
 
     const getComponent = (entity: Entity, type: Component['type']): Component | undefined => {
