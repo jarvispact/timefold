@@ -1,3 +1,6 @@
+/* eslint-disable @typescript-eslint/no-unsafe-return */
+/* eslint-disable @typescript-eslint/no-explicit-any */
+
 import { Component } from './component';
 import { Entity } from './entity';
 import { Prettify } from './internal';
@@ -14,16 +17,22 @@ export type GenericSupportedQuery = SupportedQuery<number, WithOptions | undefin
 
 export type SupportedQuery<T extends number, O extends WithOptions | undefined> = With<T, O> | Without<T>;
 
-export type GenericCompiledQuery = CompiledQuery<string, boolean, GenericSupportedQuery>;
+export type GenericCompiledQuery = CompiledQuery<string, boolean, GenericSupportedQuery, any>;
 
-export type CompiledQuery<N extends string, IncludeEntity extends boolean, Q extends GenericSupportedQuery> = {
+export type CompiledQuery<
+    N extends string,
+    IncludeEntity extends boolean,
+    Q extends GenericSupportedQuery,
+    MappedResult = undefined,
+> = {
     name: N;
     includeEntity: IncludeEntity;
     types: Q;
+    mapFn: (tuple: any) => MappedResult;
 };
 
 type GetUsedComponentType<
-    Q extends CompiledQuery<string, boolean, GenericSupportedQuery>,
+    Q extends CompiledQuery<string, boolean, GenericSupportedQuery, any>,
     Used extends number = never,
 > = Q['types'] extends [
     infer First extends SupportedQuery<number, WithOptions | undefined>,
@@ -38,7 +47,7 @@ type GetUsedComponentType<
 
 type QueryBuilderApi<
     C extends Component = Component,
-    Q extends CompiledQuery<string, boolean, SupportedQuery<C['type'], WithOptions | undefined>[]> = CompiledQuery<
+    Q extends CompiledQuery<string, boolean, SupportedQuery<C['type'], WithOptions | undefined>[], any> = CompiledQuery<
         string,
         boolean,
         []
@@ -48,11 +57,15 @@ type QueryBuilderApi<
     {
         name: <Name extends string>(
             name: Name,
-        ) => QueryBuilderApi<C, CompiledQuery<Name, Q['includeEntity'], Q['types']>, 'name' | 'without' | 'compile'>; // must start with at least one `with` or `includeEntity` after `name`.
+        ) => QueryBuilderApi<
+            C,
+            CompiledQuery<Name, Q['includeEntity'], Q['types']>,
+            'name' | 'without' | 'compile' | 'map'
+        >; // must start with at least one `with` or `includeEntity` after `name`.
         includeEntity: () => QueryBuilderApi<
             C,
             CompiledQuery<Q['name'], true, Q['types']>,
-            'name' | 'includeEntity' // After `includeEntity` you can only use `with`, `without` or `compile`
+            'name' | 'includeEntity' // After `includeEntity` you can only use `with`, `without`, `map` or `compile`
         >;
         with: <
             Type extends Exclude<C['type'], GetUsedComponentType<Q>>,
@@ -72,16 +85,26 @@ type QueryBuilderApi<
             CompiledQuery<Q['name'], Q['includeEntity'], [...Q['types'], Without<Type>]>,
             'name' | 'with' | 'includeEntity' // After the first `without` both `name` and `with` are not allowed anymore.
         >;
+        map: <R>(
+            fn: (tuple: InferRawResultTuple<C, Q>) => R,
+        ) => QueryBuilderApi<
+            C,
+            CompiledQuery<Q['name'], Q['includeEntity'], Q['types'], R>,
+            'name' | 'includeEntity' | 'with' | 'without' | 'map'
+        >;
         compile: () => Q;
     },
     ForbiddenMethod
 >;
+
+const identity = (x: any) => x;
 
 export const query = <C extends Component>() => {
     const qry: CompiledQuery<string, boolean, SupportedQuery<C['type'], WithOptions | undefined>[]> = {
         name: '',
         includeEntity: false,
         types: [],
+        mapFn: identity,
     };
 
     const name = (name: string) => {
@@ -104,6 +127,11 @@ export const query = <C extends Component>() => {
         return api;
     };
 
+    const map = (fn: (tuple: any) => any) => {
+        qry.mapFn = fn;
+        return api;
+    };
+
     const compile = () => qry;
 
     const api = {
@@ -111,30 +139,38 @@ export const query = <C extends Component>() => {
         includeEntity,
         with: withType,
         without: withoutType,
+        map,
         compile,
     };
 
     return api as unknown as QueryBuilderApi<
         C,
         CompiledQuery<string, boolean, []>,
-        'includeEntity' | 'with' | 'without' | 'compile' // must start with `name`
+        'includeEntity' | 'with' | 'without' | 'compile' | 'map' // must start with `name`
     >;
 };
 
-export type InferQueryResultTuple<
+type InferRawResultTuple<
     C extends Component,
     Q extends GenericCompiledQuery,
     ResultTuple extends unknown[] = [],
 > = Q['types'] extends [infer Head, ...infer Tail extends GenericSupportedQuery]
     ? Head extends With<infer Type>
         ? Head extends { include: false }
-            ? InferQueryResultTuple<C, CompiledQuery<Q['name'], Q['includeEntity'], Tail>, ResultTuple>
-            : InferQueryResultTuple<
+            ? InferRawResultTuple<C, CompiledQuery<Q['name'], Q['includeEntity'], Tail>, ResultTuple>
+            : InferRawResultTuple<
                   C,
                   CompiledQuery<Q['name'], Q['includeEntity'], Tail>,
                   [...ResultTuple, Extract<C, { type: Type }>]
               >
-        : InferQueryResultTuple<C, CompiledQuery<Q['name'], Q['includeEntity'], Tail>, ResultTuple>
+        : InferRawResultTuple<C, CompiledQuery<Q['name'], Q['includeEntity'], Tail>, ResultTuple>
     : Q['includeEntity'] extends true
       ? [Entity, ...ResultTuple]
       : ResultTuple;
+
+export type InferQueryResultTuple<C extends Component, Q extends GenericCompiledQuery> =
+    Q extends CompiledQuery<string, boolean, GenericSupportedQuery, infer MR>
+        ? [MR] extends [undefined]
+            ? InferRawResultTuple<C, Q>
+            : MR
+        : never;

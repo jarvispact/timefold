@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unsafe-return */
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
 import { addComponentToEntityBitmask, Bitmask, createBitmask, satisfiesBitmask } from './bitmask';
@@ -62,8 +63,13 @@ type WorldQuery = {
     results: unknown[];
     rids: number[]; // dense index → entity id (reverse-id)
     sparse: number[]; // entity id → dense index
-    buildResultTuple: (entity: Entity, components: Map<Component['type'], Component>) => unknown[];
-    writeResultTuple: (tuple: unknown[], entity: Entity, components: Map<Component['type'], Component>) => void;
+    buildResultTuple: (entity: Entity, components: Map<Component['type'], Component>) => unknown;
+    writeResultTuple: (
+        results: unknown[],
+        denseIndex: number,
+        entity: Entity,
+        components: Map<Component['type'], Component>,
+    ) => void;
 };
 
 type EntityMap = Map<Entity, { bitmask: Bitmask; components: Map<Component['type'], Component> }>;
@@ -98,8 +104,9 @@ export const createQueryManager = (
 
         // Create specialized build/write functions per query to eliminate per-entity branching
         const includeEntity = queryDef.includeEntity;
+        const mapFn = queryDef.mapFn;
 
-        const buildResultTuple = includeEntity
+        const buildRawTuple = includeEntity
             ? (entity: Entity, components: Map<Component['type'], Component>) => {
                   const tuple: unknown[] = [entity];
                   for (let k = 0; k < resultComponentTypes.length; k++) {
@@ -115,18 +122,17 @@ export const createQueryManager = (
                   return tuple;
               };
 
-        const writeResultTuple = includeEntity
-            ? (tuple: unknown[], entity: Entity, components: Map<Component['type'], Component>) => {
-                  tuple[0] = entity;
-                  for (let k = 0; k < resultComponentTypes.length; k++) {
-                      tuple[k + 1] = components.get(resultComponentTypes[k]);
-                  }
-              }
-            : (tuple: unknown[], _entity: Entity, components: Map<Component['type'], Component>) => {
-                  for (let k = 0; k < resultComponentTypes.length; k++) {
-                      tuple[k] = components.get(resultComponentTypes[k]);
-                  }
-              };
+        const buildResultTuple = (entity: Entity, components: Map<Component['type'], Component>) =>
+            mapFn(buildRawTuple(entity, components));
+
+        const writeResultTuple = (
+            results: unknown[],
+            denseIndex: number,
+            entity: Entity,
+            components: Map<Component['type'], Component>,
+        ) => {
+            results[denseIndex] = buildResultTuple(entity, components);
+        };
 
         worldQueries.push({
             bitmask,
@@ -207,7 +213,7 @@ export const createQueryManager = (
                 } else if (matches && inQuery) {
                     // Update result tuple in place (component data may have changed)
                     const denseIndex = wq.sparse[entityId];
-                    wq.writeResultTuple(wq.results[denseIndex] as unknown[], entity, entityEntry.components);
+                    wq.writeResultTuple(wq.results, denseIndex, entity, entityEntry.components);
                 } else if (!matches && inQuery) {
                     removeFromQuery(wq, entity);
                 }

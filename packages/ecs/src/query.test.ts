@@ -19,40 +19,68 @@ describe('query', () => {
             expectTypeOf<Test>().toEqualTypeOf<'includeEntity' | 'with'>();
         });
 
-        it('should allow `compile`, `with` and `without` after `includeEntity`', () => {
+        it('should allow `compile`, `with`, `without` and `map` after `includeEntity`', () => {
             const q = query().name('test').includeEntity();
             type Test = keyof typeof q;
-            expectTypeOf<Test>().toEqualTypeOf<'compile' | 'with' | 'without'>();
+            expectTypeOf<Test>().toEqualTypeOf<'compile' | 'with' | 'without' | 'map'>();
         });
 
-        it('should allow `compile`, `with` and `without` after `with`', () => {
+        it('should allow `compile`, `with`, `without` and `map` after `with`', () => {
             const q = query().name('test').with(1);
             type Test = keyof typeof q;
-            expectTypeOf<Test>().toEqualTypeOf<'compile' | 'with' | 'without'>();
+            expectTypeOf<Test>().toEqualTypeOf<'compile' | 'with' | 'without' | 'map'>();
         });
 
         it('should allow chaining of `with`', () => {
             const q = query().name('test').with(1).with(2);
             type Test = keyof typeof q;
-            expectTypeOf<Test>().toEqualTypeOf<'compile' | 'with' | 'without'>();
+            expectTypeOf<Test>().toEqualTypeOf<'compile' | 'with' | 'without' | 'map'>();
         });
 
-        it('should allow `compile`, `with` and `without` after `includeEntity`', () => {
+        it('should allow `compile`, `with`, `without` and `map` after `includeEntity`', () => {
             const q = query().name('test').includeEntity();
             type Test = keyof typeof q;
-            expectTypeOf<Test>().toEqualTypeOf<'compile' | 'with' | 'without'>();
+            expectTypeOf<Test>().toEqualTypeOf<'compile' | 'with' | 'without' | 'map'>();
+        });
+
+        it('should allow `map` after `with`', () => {
+            const q = query().name('test').with(1);
+            type Test = keyof typeof q;
+            expectTypeOf<Test>().toEqualTypeOf<'compile' | 'with' | 'without' | 'map'>();
+        });
+
+        it('should allow `map` after `includeEntity` and `with`', () => {
+            const q = query().name('test').includeEntity().with(1);
+            type Test = keyof typeof q;
+            expectTypeOf<Test>().toEqualTypeOf<'compile' | 'with' | 'without' | 'map'>();
+        });
+
+        it('should allow `map` after `without`', () => {
+            const q = query().name('test').includeEntity().without(1);
+            type Test = keyof typeof q;
+            expectTypeOf<Test>().toEqualTypeOf<'compile' | 'without' | 'map'>();
+        });
+
+        it('should only allow `compile` after `map`', () => {
+            type C = { type: 0 } | { type: 1 };
+            const q = query<C>()
+                .name('test')
+                .with(0)
+                .map(() => ({}));
+            type Test = keyof typeof q;
+            expectTypeOf<Test>().toEqualTypeOf<'compile'>();
         });
 
         it('should allow only allow `compile` and `without` after the first `without`', () => {
             const q = query().name('test').includeEntity().without(1);
             type Test = keyof typeof q;
-            expectTypeOf<Test>().toEqualTypeOf<'compile' | 'without'>();
+            expectTypeOf<Test>().toEqualTypeOf<'compile' | 'without' | 'map'>();
         });
 
         it('should allow chaining of without', () => {
             const q = query().name('test').includeEntity().without(1).without(2);
             type Test = keyof typeof q;
-            expectTypeOf<Test>().toEqualTypeOf<'compile' | 'without'>();
+            expectTypeOf<Test>().toEqualTypeOf<'compile' | 'without' | 'map'>();
         });
 
         it('should remove used types from the union', () => {
@@ -80,11 +108,12 @@ describe('query', () => {
         it('should return the correct compiled query type. Case 1', () => {
             const q = query().name('test').includeEntity().with(1).compile();
 
-            expect(q).toEqual({
+            expect(q).toMatchObject({
                 name: 'test',
                 includeEntity: true,
                 types: [{ with: 1 }],
             });
+            expect(q.mapFn).toBeTypeOf('function');
 
             type Test = typeof q;
             expectTypeOf<Test>().toEqualTypeOf<CompiledQuery<'test', true, [With<1>]>>();
@@ -93,11 +122,12 @@ describe('query', () => {
         it('should return the correct compiled query type. Case 2', () => {
             const q = query().name('test').with(1).compile();
 
-            expect(q).toEqual({
+            expect(q).toMatchObject({
                 name: 'test',
                 includeEntity: false,
                 types: [{ with: 1 }],
             });
+            expect(q.mapFn).toBeTypeOf('function');
 
             type Test = typeof q;
             expectTypeOf<Test>().toEqualTypeOf<CompiledQuery<'test', boolean, [With<1>]>>();
@@ -106,11 +136,12 @@ describe('query', () => {
         it('should return the correct compiled query type. Case 3', () => {
             const q = query().name('test').includeEntity().without(1).compile();
 
-            expect(q).toEqual({
+            expect(q).toMatchObject({
                 name: 'test',
                 includeEntity: true,
                 types: [{ without: 1 }],
             });
+            expect(q.mapFn).toBeTypeOf('function');
 
             type Test = typeof q;
             expectTypeOf<Test>().toEqualTypeOf<CompiledQuery<'test', true, [Without<1>]>>();
@@ -119,7 +150,7 @@ describe('query', () => {
         it('should return the correct compiled query type. Case 4', () => {
             const q = query().name('test').includeEntity().with(1).without(2).compile();
 
-            expect(q).toEqual({
+            expect(q).toMatchObject({
                 name: 'test',
                 includeEntity: true,
                 types: [{ with: 1 }, { without: 2 }],
@@ -129,14 +160,32 @@ describe('query', () => {
             expectTypeOf<Test>().toEqualTypeOf<CompiledQuery<'test', true, [With<1>, Without<2>]>>();
         });
 
+        it('should return a compiled query with mapFn when using .map()', () => {
+            type C = Component<0> | Component<1, number>;
+
+            const q = query<C>()
+                .name('test')
+                .includeEntity()
+                .with(0)
+                .with(1)
+                .map(([entity, _, b]) => ({ entity, b }))
+                .compile();
+
+            expect(q.name).toBe('test');
+            expect(q.includeEntity).toBe(true);
+            expect(q.types).toEqual([{ with: 0 }, { with: 1 }]);
+            expect(q.mapFn).toBeTypeOf('function');
+        });
+
         it('should return the correct compiled query type. Case 5', () => {
             const q = query().name('test').includeEntity().with(1).with(2).without(3).without(4).compile();
 
-            expect(q).toEqual({
+            expect(q).toMatchObject({
                 name: 'test',
                 includeEntity: true,
                 types: [{ with: 1 }, { with: 2 }, { without: 3 }, { without: 4 }],
             });
+            expect(q.mapFn).toBeTypeOf('function');
 
             type Test = typeof q;
             expectTypeOf<Test>().toEqualTypeOf<
@@ -195,6 +244,30 @@ describe('query', () => {
                 .compile();
             type Test3 = InferQueryResultTuple<C, typeof q3>;
             expectTypeOf<Test3>().toEqualTypeOf<[Entity]>();
+        });
+
+        it('should return the mapped type when `.map()` is used', () => {
+            type C = Component<0> | Component<1, number> | Component<2, string>;
+
+            const q1 = query<C>()
+                .name('test')
+                .includeEntity()
+                .with(0)
+                .with(1)
+                .map(([entity, _a, b]) => ({ entity, b }))
+                .compile();
+
+            type Test1 = InferQueryResultTuple<C, typeof q1>;
+            expectTypeOf<Test1>().toEqualTypeOf<{ entity: Entity; b: Component<1, number> }>();
+
+            const q2 = query<C>()
+                .name('test')
+                .with(2)
+                .map(([c]) => c.data)
+                .compile();
+
+            type Test2 = InferQueryResultTuple<C, typeof q2>;
+            expectTypeOf<Test2>().toEqualTypeOf<string>();
         });
     });
 });

@@ -107,7 +107,14 @@ describe('world', () => {
             const qBC = query().name('bc').with(T.B).with(T.C).compile();
             const qEAB = query().name('eab').includeEntity().with(T.A).with(T.B).compile();
             const qEBC = query().name('ebc').includeEntity().with(T.B).with(T.C).compile();
-            const world = newQueryWorld(qAB, qBC, qEAB, qEBC);
+            const qMapped = query()
+                .name('mapped')
+                .includeEntity()
+                .with(T.A)
+                .with(T.B)
+                .map(([entity, , b]) => ({ entity, b }))
+                .compile();
+            const world = newQueryWorld(qAB, qBC, qEAB, qEBC, qMapped);
 
             const e0 = world.createEntity();
             const e1 = world.createEntity();
@@ -130,6 +137,8 @@ describe('world', () => {
 
             expect(world.getQueryResults('eab')).toEqual([[e0, ae0, be0]]);
             expect(world.getQueryResults('ebc')).toEqual([[e1, be1, ce1]]);
+
+            expect(world.getQueryResults('mapped')).toEqual([{ entity: e0, b: be0 }]);
         });
 
         it('should return the correct query result when adding components to entities', () => {
@@ -137,7 +146,14 @@ describe('world', () => {
             const qBC = query().name('bc').with(T.B).with(T.C).compile();
             const qEAB = query().name('eab').includeEntity().with(T.A).with(T.B).compile();
             const qEBC = query().name('ebc').includeEntity().with(T.B).with(T.C).compile();
-            const world = newQueryWorld(qAB, qBC, qEAB, qEBC);
+            const qMapped = query()
+                .name('mapped')
+                .includeEntity()
+                .with(T.A)
+                .with(T.B)
+                .map(([entity, , b]) => ({ entity, b }))
+                .compile();
+            const world = newQueryWorld(qAB, qBC, qEAB, qEBC, qMapped);
 
             const e0 = world.createEntity();
             const e1 = world.createEntity();
@@ -159,6 +175,7 @@ describe('world', () => {
             expect(world.getQueryResults('bc')).toEqual([]);
             expect(world.getQueryResults('eab')).toEqual([]);
             expect(world.getQueryResults('ebc')).toEqual([]);
+            expect(world.getQueryResults('mapped')).toEqual([]);
 
             world.addComponent(e0, be0);
             world.addComponent(e1, ce1);
@@ -170,6 +187,8 @@ describe('world', () => {
 
             expect(world.getQueryResults('eab')).toEqual([[e0, ae0, be0]]);
             expect(world.getQueryResults('ebc')).toEqual([[e1, be1, ce1]]);
+
+            expect(world.getQueryResults('mapped')).toEqual([{ entity: e0, b: be0 }]);
         });
 
         it('should return the correct query result when removing components from entities', () => {
@@ -177,7 +196,14 @@ describe('world', () => {
             const qBC = query().name('bc').with(T.B).with(T.C).compile();
             const qEAB = query().name('eab').includeEntity().with(T.A).with(T.B).compile();
             const qEBC = query().name('ebc').includeEntity().with(T.B).with(T.C).compile();
-            const world = newQueryWorld(qAB, qBC, qEAB, qEBC);
+            const qMapped = query()
+                .name('mapped')
+                .includeEntity()
+                .with(T.A)
+                .with(T.B)
+                .map(([entity, , b]) => ({ entity, b }))
+                .compile();
+            const world = newQueryWorld(qAB, qBC, qEAB, qEBC, qMapped);
 
             const e0 = world.createEntity();
             const e1 = world.createEntity();
@@ -199,6 +225,7 @@ describe('world', () => {
             expect(world.getQueryResults('bc')).toEqual([[be1, ce1]]);
             expect(world.getQueryResults('eab')).toEqual([[e0, ae0, be0]]);
             expect(world.getQueryResults('ebc')).toEqual([[e1, be1, ce1]]);
+            expect(world.getQueryResults('mapped')).toEqual([{ entity: e0, b: be0 }]);
 
             world.removeComponent(e0, T.B);
             world.removeComponent(e1, T.C);
@@ -209,6 +236,7 @@ describe('world', () => {
             expect(world.getQueryResults('bc')).toEqual([]);
             expect(world.getQueryResults('eab')).toEqual([]);
             expect(world.getQueryResults('ebc')).toEqual([]);
+            expect(world.getQueryResults('mapped')).toEqual([]);
         });
 
         it('should return the correct query result when despawning entities', () => {
@@ -216,7 +244,14 @@ describe('world', () => {
             const qBC = query().name('bc').with(T.B).with(T.C).compile();
             const qEAB = query().name('eab').includeEntity().with(T.A).with(T.B).compile();
             const qEBC = query().name('ebc').includeEntity().with(T.B).with(T.C).compile();
-            const world = newQueryWorld(qAB, qBC, qEAB, qEBC);
+            const qMapped = query()
+                .name('mapped')
+                .includeEntity()
+                .with(T.A)
+                .with(T.B)
+                .map(([entity, , b]) => ({ entity, b }))
+                .compile();
+            const world = newQueryWorld(qAB, qBC, qEAB, qEBC, qMapped);
 
             const e0 = world.createEntity();
             const e1 = world.createEntity();
@@ -238,6 +273,7 @@ describe('world', () => {
             expect(world.getQueryResults('bc')).toEqual([[be1, ce1]]);
             expect(world.getQueryResults('eab')).toEqual([[e0, ae0, be0]]);
             expect(world.getQueryResults('ebc')).toEqual([[e1, be1, ce1]]);
+            expect(world.getQueryResults('mapped')).toEqual([{ entity: e0, b: be0 }]);
 
             world.despawn(e0);
             world.despawn(e1);
@@ -248,13 +284,20 @@ describe('world', () => {
             expect(world.getQueryResults('bc')).toEqual([]);
             expect(world.getQueryResults('eab')).toEqual([]);
             expect(world.getQueryResults('ebc')).toEqual([]);
+            expect(world.getQueryResults('mapped')).toEqual([]);
         });
 
         it('should update queries correctly across different actions', () => {
             const qAB = query().name('ab').with(T.A).with(T.B).compile();
             const qBC = query().name('bc').with(T.B).with(T.C).compile();
             const qCD = query().name('cd').with(T.C).with(T.D).compile();
-            const world = newQueryWorld(qAB, qBC, qCD);
+            const qMapped = query()
+                .name('mapped')
+                .with(T.A)
+                .with(T.B)
+                .map(([, b]) => ({ b }))
+                .compile();
+            const world = newQueryWorld(qAB, qBC, qCD, qMapped);
 
             const e0 = world.createEntity();
 
@@ -269,6 +312,7 @@ describe('world', () => {
             expect(world.getQueryResults('ab')).toEqual([]);
             expect(world.getQueryResults('bc')).toEqual([]);
             expect(world.getQueryResults('cd')).toEqual([]);
+            expect(world.getQueryResults('mapped')).toEqual([]);
 
             world.addComponent(e0, b);
             world.updateQueries();
@@ -276,6 +320,7 @@ describe('world', () => {
             expect(world.getQueryResults('ab')).toEqual([[a, b]]);
             expect(world.getQueryResults('bc')).toEqual([]);
             expect(world.getQueryResults('cd')).toEqual([]);
+            expect(world.getQueryResults('mapped')).toEqual([{ b }]);
 
             world.addComponent(e0, c);
             world.updateQueries();
@@ -283,6 +328,7 @@ describe('world', () => {
             expect(world.getQueryResults('ab')).toEqual([[a, b]]);
             expect(world.getQueryResults('bc')).toEqual([[b, c]]);
             expect(world.getQueryResults('cd')).toEqual([]);
+            expect(world.getQueryResults('mapped')).toEqual([{ b }]);
 
             world.addComponent(e0, d);
             world.updateQueries();
@@ -290,6 +336,7 @@ describe('world', () => {
             expect(world.getQueryResults('ab')).toEqual([[a, b]]);
             expect(world.getQueryResults('bc')).toEqual([[b, c]]);
             expect(world.getQueryResults('cd')).toEqual([[c, d]]);
+            expect(world.getQueryResults('mapped')).toEqual([{ b }]);
 
             world.removeComponent(e0, T.A);
             world.updateQueries();
@@ -297,6 +344,7 @@ describe('world', () => {
             expect(world.getQueryResults('ab')).toEqual([]);
             expect(world.getQueryResults('bc')).toEqual([[b, c]]);
             expect(world.getQueryResults('cd')).toEqual([[c, d]]);
+            expect(world.getQueryResults('mapped')).toEqual([]);
 
             world.removeComponent(e0, T.B);
             world.updateQueries();
@@ -304,6 +352,7 @@ describe('world', () => {
             expect(world.getQueryResults('ab')).toEqual([]);
             expect(world.getQueryResults('bc')).toEqual([]);
             expect(world.getQueryResults('cd')).toEqual([[c, d]]);
+            expect(world.getQueryResults('mapped')).toEqual([]);
 
             world.addComponent(e0, a);
             world.addComponent(e0, b);
@@ -312,6 +361,7 @@ describe('world', () => {
             expect(world.getQueryResults('ab')).toEqual([[a, b]]);
             expect(world.getQueryResults('bc')).toEqual([[b, c]]);
             expect(world.getQueryResults('cd')).toEqual([[c, d]]);
+            expect(world.getQueryResults('mapped')).toEqual([{ b }]);
 
             world.despawn(e0);
             world.updateQueries();
@@ -319,6 +369,7 @@ describe('world', () => {
             expect(world.getQueryResults('ab')).toEqual([]);
             expect(world.getQueryResults('bc')).toEqual([]);
             expect(world.getQueryResults('cd')).toEqual([]);
+            expect(world.getQueryResults('mapped')).toEqual([]);
         });
     });
 });
