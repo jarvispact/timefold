@@ -83,13 +83,18 @@ describe('world', () => {
         });
     });
 
-    describe('updateQueries', () => {
+    describe('queries', () => {
         const { T, components, registry } = componentRegistry([
-            { name: 'Position', definition: s.struct('Position', { x: s.number, y: s.number }) },
-            { name: 'Velocity', definition: s.struct('Velocity', { vx: s.number, vy: s.number }) },
-            { name: 'Health', definition: s.struct('Health', { hp: s.number }) },
-            { name: 'Tag' },
+            { name: 'A' },
+            { name: 'B', definition: s.struct('B', { x: s.number, y: s.number }) },
+            { name: 'C', definition: s.struct('C', { x: s.number, y: s.number, z: s.number }) },
+            { name: 'D', definition: s.struct('D', { data: s.float32Array }) },
         ]);
+
+        const createA = () => registry.A.create();
+        const createB = (x: number, y: number) => registry.B.create({ x, y });
+        const createC = (x: number, y: number, z: number) => registry.C.create({ x, y, z });
+        const createD = (data: Float32Array) => registry.D.create({ data });
 
         const newQueryWorld = <Q extends GenericCompiledQuery[]>(...queries: Q) =>
             worldBuilder()
@@ -97,217 +102,223 @@ describe('world', () => {
                 .withQueries(...queries)
                 .compile();
 
-        it('should add spawned entities with matching components to query results', () => {
-            const q = query().name('movable').with(T.Position).with(T.Velocity).compile();
-            const world = newQueryWorld(q);
+        it('should return the correct query result when spawning entities', () => {
+            const qAB = query().name('ab').with(T.A).with(T.B).compile();
+            const qBC = query().name('bc').with(T.B).with(T.C).compile();
+            const qEAB = query().name('eab').includeEntity().with(T.A).with(T.B).compile();
+            const qEBC = query().name('ebc').includeEntity().with(T.B).with(T.C).compile();
+            const world = newQueryWorld(qAB, qBC, qEAB, qEBC);
 
-            world.spawn([registry.Position.create({ x: 1, y: 2 }), registry.Velocity.create({ vx: 3, vy: 4 })]);
+            const e0 = world.createEntity();
+            const e1 = world.createEntity();
+            const e2 = world.createEntity();
 
+            const ae0 = createA();
+            const be0 = createB(1, 2);
+            const be1 = createB(3, 4);
+            const ce1 = createC(5, 6, 7);
+            const ae2 = createA();
+            const ce2 = createC(8, 9, 10);
+
+            world.spawn(e0, [ae0, be0]);
+            world.spawn(e1, [be1, ce1]);
+            world.spawn(e2, [ae2, ce2]);
             world.updateQueries();
 
-            const results = world.getQueryResults('movable');
-            expect(results).toHaveLength(1);
-            expect(results[0]).toEqual([
-                { type: T.Position, data: { x: 1, y: 2 } },
-                { type: T.Velocity, data: { vx: 3, vy: 4 } },
-            ]);
+            expect(world.getQueryResults('ab')).toEqual([[ae0, be0]]);
+            expect(world.getQueryResults('bc')).toEqual([[be1, ce1]]);
+
+            expect(world.getQueryResults('eab')).toEqual([[e0, ae0, be0]]);
+            expect(world.getQueryResults('ebc')).toEqual([[e1, be1, ce1]]);
         });
 
-        it('should not add entities that do not match the query', () => {
-            const q = query().name('movable').with(T.Position).with(T.Velocity).compile();
-            const world = newQueryWorld(q);
+        it('should return the correct query result when adding components to entities', () => {
+            const qAB = query().name('ab').with(T.A).with(T.B).compile();
+            const qBC = query().name('bc').with(T.B).with(T.C).compile();
+            const qEAB = query().name('eab').includeEntity().with(T.A).with(T.B).compile();
+            const qEBC = query().name('ebc').includeEntity().with(T.B).with(T.C).compile();
+            const world = newQueryWorld(qAB, qBC, qEAB, qEBC);
 
-            world.spawn([registry.Position.create({ x: 1, y: 2 })]);
+            const e0 = world.createEntity();
+            const e1 = world.createEntity();
+            const e2 = world.createEntity();
+
+            const ae0 = createA();
+            const be0 = createB(1, 2);
+            const be1 = createB(3, 4);
+            const ce1 = createC(5, 6, 7);
+            const ae2 = createA();
+            const ce2 = createC(8, 9, 10);
+
+            world.spawn(e0, [ae0]);
+            world.spawn(e1, [be1]);
+            world.spawn(e2, [ae2]);
             world.updateQueries();
 
-            const results = world.getQueryResults('movable');
-            expect(results).toHaveLength(0);
+            expect(world.getQueryResults('ab')).toEqual([]);
+            expect(world.getQueryResults('bc')).toEqual([]);
+            expect(world.getQueryResults('eab')).toEqual([]);
+            expect(world.getQueryResults('ebc')).toEqual([]);
+
+            world.addComponent(e0, be0);
+            world.addComponent(e1, ce1);
+            world.addComponent(e2, ce2);
+            world.updateQueries();
+
+            expect(world.getQueryResults('ab')).toEqual([[ae0, be0]]);
+            expect(world.getQueryResults('bc')).toEqual([[be1, ce1]]);
+
+            expect(world.getQueryResults('eab')).toEqual([[e0, ae0, be0]]);
+            expect(world.getQueryResults('ebc')).toEqual([[e1, be1, ce1]]);
         });
 
-        it('should add entity to query when a component is added that completes the match', () => {
-            const q = query().name('movable').with(T.Position).with(T.Velocity).compile();
-            const world = newQueryWorld(q);
+        it('should return the correct query result when removing components from entities', () => {
+            const qAB = query().name('ab').with(T.A).with(T.B).compile();
+            const qBC = query().name('bc').with(T.B).with(T.C).compile();
+            const qEAB = query().name('eab').includeEntity().with(T.A).with(T.B).compile();
+            const qEBC = query().name('ebc').includeEntity().with(T.B).with(T.C).compile();
+            const world = newQueryWorld(qAB, qBC, qEAB, qEBC);
 
-            const e0 = world.spawn([registry.Position.create({ x: 1, y: 2 })]);
+            const e0 = world.createEntity();
+            const e1 = world.createEntity();
+            const e2 = world.createEntity();
+
+            const ae0 = createA();
+            const be0 = createB(1, 2);
+            const be1 = createB(3, 4);
+            const ce1 = createC(5, 6, 7);
+            const ae2 = createA();
+            const ce2 = createC(8, 9, 10);
+
+            world.spawn(e0, [ae0, be0]);
+            world.spawn(e1, [be1, ce1]);
+            world.spawn(e2, [ae2, ce2]);
             world.updateQueries();
-            expect(world.getQueryResults('movable')).toHaveLength(0);
 
-            world.addComponent(e0, registry.Velocity.create({ vx: 5, vy: 6 }));
+            expect(world.getQueryResults('ab')).toEqual([[ae0, be0]]);
+            expect(world.getQueryResults('bc')).toEqual([[be1, ce1]]);
+            expect(world.getQueryResults('eab')).toEqual([[e0, ae0, be0]]);
+            expect(world.getQueryResults('ebc')).toEqual([[e1, be1, ce1]]);
+
+            world.removeComponent(e0, T.B);
+            world.removeComponent(e1, T.C);
+            world.removeComponent(e2, T.C);
             world.updateQueries();
 
-            const results = world.getQueryResults('movable');
-            expect(results).toHaveLength(1);
-            expect(results[0]).toEqual([
-                { type: T.Position, data: { x: 1, y: 2 } },
-                { type: T.Velocity, data: { vx: 5, vy: 6 } },
-            ]);
+            expect(world.getQueryResults('ab')).toEqual([]);
+            expect(world.getQueryResults('bc')).toEqual([]);
+            expect(world.getQueryResults('eab')).toEqual([]);
+            expect(world.getQueryResults('ebc')).toEqual([]);
         });
 
-        it('should remove entity from query when a required component is removed', () => {
-            const q = query().name('movable').with(T.Position).with(T.Velocity).compile();
-            const world = newQueryWorld(q);
+        it('should return the correct query result when despawning entities', () => {
+            const qAB = query().name('ab').with(T.A).with(T.B).compile();
+            const qBC = query().name('bc').with(T.B).with(T.C).compile();
+            const qEAB = query().name('eab').includeEntity().with(T.A).with(T.B).compile();
+            const qEBC = query().name('ebc').includeEntity().with(T.B).with(T.C).compile();
+            const world = newQueryWorld(qAB, qBC, qEAB, qEBC);
 
-            const e0 = world.spawn([
-                registry.Position.create({ x: 1, y: 2 }),
-                registry.Velocity.create({ vx: 3, vy: 4 }),
-            ]);
+            const e0 = world.createEntity();
+            const e1 = world.createEntity();
+            const e2 = world.createEntity();
+
+            const ae0 = createA();
+            const be0 = createB(1, 2);
+            const be1 = createB(3, 4);
+            const ce1 = createC(5, 6, 7);
+            const ae2 = createA();
+            const ce2 = createC(8, 9, 10);
+
+            world.spawn(e0, [ae0, be0]);
+            world.spawn(e1, [be1, ce1]);
+            world.spawn(e2, [ae2, ce2]);
             world.updateQueries();
-            expect(world.getQueryResults('movable')).toHaveLength(1);
 
-            world.removeComponent(e0, T.Velocity);
+            expect(world.getQueryResults('ab')).toEqual([[ae0, be0]]);
+            expect(world.getQueryResults('bc')).toEqual([[be1, ce1]]);
+            expect(world.getQueryResults('eab')).toEqual([[e0, ae0, be0]]);
+            expect(world.getQueryResults('ebc')).toEqual([[e1, be1, ce1]]);
+
+            world.despawn(e0);
+            world.despawn(e1);
+            world.despawn(e2);
             world.updateQueries();
 
-            expect(world.getQueryResults('movable')).toHaveLength(0);
+            expect(world.getQueryResults('ab')).toEqual([]);
+            expect(world.getQueryResults('bc')).toEqual([]);
+            expect(world.getQueryResults('eab')).toEqual([]);
+            expect(world.getQueryResults('ebc')).toEqual([]);
         });
 
-        it('should remove despawned entities from query results', () => {
-            const q = query().name('movable').with(T.Position).with(T.Velocity).compile();
-            const world = newQueryWorld(q);
+        it('should update queries correctly across different actions', () => {
+            const qAB = query().name('ab').with(T.A).with(T.B).compile();
+            const qBC = query().name('bc').with(T.B).with(T.C).compile();
+            const qCD = query().name('cd').with(T.C).with(T.D).compile();
+            const world = newQueryWorld(qAB, qBC, qCD);
 
-            const e0 = world.spawn([
-                registry.Position.create({ x: 1, y: 2 }),
-                registry.Velocity.create({ vx: 3, vy: 4 }),
-            ]);
+            const e0 = world.createEntity();
 
-            world.spawn([registry.Position.create({ x: 10, y: 20 }), registry.Velocity.create({ vx: 30, vy: 40 })]);
+            const a = createA();
+            const b = createB(0, 1);
+            const c = createC(1, 2, 3);
+            const d = createD(new Float32Array([4, 5, 6]));
 
+            world.spawn(e0, [a]);
             world.updateQueries();
-            expect(world.getQueryResults('movable')).toHaveLength(2);
+
+            expect(world.getQueryResults('ab')).toEqual([]);
+            expect(world.getQueryResults('bc')).toEqual([]);
+            expect(world.getQueryResults('cd')).toEqual([]);
+
+            world.addComponent(e0, b);
+            world.updateQueries();
+
+            expect(world.getQueryResults('ab')).toEqual([[a, b]]);
+            expect(world.getQueryResults('bc')).toEqual([]);
+            expect(world.getQueryResults('cd')).toEqual([]);
+
+            world.addComponent(e0, c);
+            world.updateQueries();
+
+            expect(world.getQueryResults('ab')).toEqual([[a, b]]);
+            expect(world.getQueryResults('bc')).toEqual([[b, c]]);
+            expect(world.getQueryResults('cd')).toEqual([]);
+
+            world.addComponent(e0, d);
+            world.updateQueries();
+
+            expect(world.getQueryResults('ab')).toEqual([[a, b]]);
+            expect(world.getQueryResults('bc')).toEqual([[b, c]]);
+            expect(world.getQueryResults('cd')).toEqual([[c, d]]);
+
+            world.removeComponent(e0, T.A);
+            world.updateQueries();
+
+            expect(world.getQueryResults('ab')).toEqual([]);
+            expect(world.getQueryResults('bc')).toEqual([[b, c]]);
+            expect(world.getQueryResults('cd')).toEqual([[c, d]]);
+
+            world.removeComponent(e0, T.B);
+            world.updateQueries();
+
+            expect(world.getQueryResults('ab')).toEqual([]);
+            expect(world.getQueryResults('bc')).toEqual([]);
+            expect(world.getQueryResults('cd')).toEqual([[c, d]]);
+
+            world.addComponent(e0, a);
+            world.addComponent(e0, b);
+            world.updateQueries();
+
+            expect(world.getQueryResults('ab')).toEqual([[a, b]]);
+            expect(world.getQueryResults('bc')).toEqual([[b, c]]);
+            expect(world.getQueryResults('cd')).toEqual([[c, d]]);
 
             world.despawn(e0);
             world.updateQueries();
 
-            const results = world.getQueryResults('movable');
-            expect(results).toHaveLength(1);
-            expect(results[0]).toEqual([
-                { type: T.Position, data: { x: 10, y: 20 } },
-                { type: T.Velocity, data: { vx: 30, vy: 40 } },
-            ]);
-        });
-
-        it('should support include: false — component required for match but excluded from result tuple', () => {
-            const q = query().name('tagged-positions').with(T.Position).with(T.Tag, { include: false }).compile();
-            const world = newQueryWorld(q);
-
-            world.spawn([registry.Position.create({ x: 1, y: 2 }), registry.Tag.create()]);
-            world.updateQueries();
-
-            const results = world.getQueryResults('tagged-positions');
-            expect(results).toHaveLength(1);
-            // Only Position in the result, Tag is excluded
-            expect(results[0]).toEqual([{ type: T.Position, data: { x: 1, y: 2 } }]);
-        });
-
-        it('should not match when include: false component is missing', () => {
-            const q = query().name('tagged-positions').with(T.Position).with(T.Tag, { include: false }).compile();
-            const world = newQueryWorld(q);
-
-            world.spawn([registry.Position.create({ x: 1, y: 2 })]);
-            world.updateQueries();
-
-            expect(world.getQueryResults('tagged-positions')).toHaveLength(0);
-        });
-
-        it('should prepend entity ID when includeEntity is true', () => {
-            const q = query().name('with-entity').includeEntity().with(T.Position).compile();
-            const world = newQueryWorld(q);
-
-            const e0 = world.spawn([registry.Position.create({ x: 5, y: 10 })]);
-            world.updateQueries();
-
-            const results = world.getQueryResults('with-entity');
-            expect(results).toHaveLength(1);
-            expect(results[0]).toEqual([e0, { type: T.Position, data: { x: 5, y: 10 } }]);
-        });
-
-        it('should exclude entities with forbidden components (without)', () => {
-            const q = query().name('healthy-no-tag').with(T.Health).without(T.Tag).compile();
-            const world = newQueryWorld(q);
-
-            world.spawn([registry.Health.create({ hp: 100 })]);
-            world.spawn([registry.Health.create({ hp: 50 }), registry.Tag.create()]);
-            world.updateQueries();
-
-            const results = world.getQueryResults('healthy-no-tag');
-            expect(results).toHaveLength(1);
-            expect(results[0]).toEqual([{ type: T.Health, data: { hp: 100 } }]);
-        });
-
-        it('should remove entity from query when a forbidden component is added', () => {
-            const q = query().name('healthy-no-tag').with(T.Health).without(T.Tag).compile();
-            const world = newQueryWorld(q);
-
-            const e0 = world.spawn([registry.Health.create({ hp: 100 })]);
-            world.updateQueries();
-            expect(world.getQueryResults('healthy-no-tag')).toHaveLength(1);
-
-            world.addComponent(e0, registry.Tag.create());
-            world.updateQueries();
-
-            expect(world.getQueryResults('healthy-no-tag')).toHaveLength(0);
-        });
-
-        it('should track multiple queries independently', () => {
-            const q1 = query().name('positions').with(T.Position).compile();
-            const q2 = query().name('velocities').with(T.Velocity).compile();
-            const world = newQueryWorld(q1, q2);
-
-            world.spawn([registry.Position.create({ x: 1, y: 2 })]);
-            world.spawn([registry.Velocity.create({ vx: 3, vy: 4 })]);
-            world.spawn([registry.Position.create({ x: 5, y: 6 }), registry.Velocity.create({ vx: 7, vy: 8 })]);
-            world.updateQueries();
-
-            const positions = world.getQueryResults('positions');
-            const velocities = world.getQueryResults('velocities');
-
-            expect(positions).toHaveLength(2); // e0 and e2
-            expect(velocities).toHaveLength(2); // e1 and e2
-        });
-
-        it('should handle swap-and-pop correctly when removing non-last entity', () => {
-            const q = query().name('positions').includeEntity().with(T.Position).compile();
-            const world = newQueryWorld(q);
-
-            const e0 = world.spawn([registry.Position.create({ x: 1, y: 2 })]);
-            const e1 = world.spawn([registry.Position.create({ x: 3, y: 4 })]);
-            const e2 = world.spawn([registry.Position.create({ x: 5, y: 6 })]);
-            world.updateQueries();
-            expect(world.getQueryResults('positions')).toHaveLength(3);
-
-            // Remove first entity — should swap e2 into slot 0
-            world.despawn(e0);
-            world.updateQueries();
-
-            const results = world.getQueryResults('positions');
-            expect(results).toHaveLength(2);
-
-            // After swap-and-pop, results should contain e1 and e2 in swapped order
-            expect(results).toEqual([
-                [e2, { type: 0, data: { x: 5, y: 6 } }],
-                [e1, { type: 0, data: { x: 3, y: 4 } }],
-            ]);
-        });
-
-        it('should update result tuple in place when component data changes via addComponent', () => {
-            const q = query().name('movable').with(T.Position).with(T.Velocity).compile();
-            const world = newQueryWorld(q);
-
-            const e0 = world.spawn([
-                registry.Position.create({ x: 1, y: 2 }),
-                registry.Velocity.create({ vx: 3, vy: 4 }),
-            ]);
-            world.updateQueries();
-
-            // Replace the Position component with new data
-            world.addComponent(e0, registry.Position.create({ x: 99, y: 100 }));
-            world.updateQueries();
-
-            const results = world.getQueryResults('movable');
-            expect(results).toHaveLength(1);
-            expect(results[0]).toEqual([
-                { type: T.Position, data: { x: 99, y: 100 } },
-                { type: T.Velocity, data: { vx: 3, vy: 4 } },
-            ]);
+            expect(world.getQueryResults('ab')).toEqual([]);
+            expect(world.getQueryResults('bc')).toEqual([]);
+            expect(world.getQueryResults('cd')).toEqual([]);
         });
     });
 });

@@ -35,7 +35,6 @@ type World<
 
 const createWorld = (args: WorldBuilderContext) => {
     const MAX_COMPONENT_TYPE = args.components.length;
-
     const em = createEntityManager();
     const entityMap = new Map<Entity, { bitmask: Bitmask; components: Map<Component['type'], Component> }>();
     const qm = createQueryManager(MAX_COMPONENT_TYPE, args.queries, entityMap);
@@ -105,7 +104,7 @@ const createWorld = (args: WorldBuilderContext) => {
         removeComponent,
         getComponent,
 
-        updateQueries: qm.updateQueries,
+        updateQueries: qm.flushQueue,
         getQueryResults: qm.getQueryResults,
     } as unknown as World;
 };

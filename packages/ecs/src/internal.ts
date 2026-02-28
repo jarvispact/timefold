@@ -23,16 +23,6 @@ export type IndexTupleByName<
     ? IndexTupleByName<Rest, ByName & Record<First['name'], First>>
     : ByName;
 
-export const indexTupleByName = (tuple: { name: string }[]) => {
-    const result: Record<string, unknown> = {};
-
-    for (const item of tuple) {
-        result[item.name] = item;
-    }
-
-    return result;
-};
-
 export type TupleOfLength<Length extends number, Type, Result extends Type[] = []> = Length extends Result['length']
     ? Result
     : TupleOfLength<Length, Type, [...Result, Type]>;
@@ -138,9 +128,11 @@ export const createQueryManager = (
     const buildResultTuple = (wq: WorldQuery, entity: Entity, components: Map<Component['type'], Component>) => {
         const tuple: unknown[] = [];
         if (wq.includeEntity) tuple.push(entity);
+
         for (let k = 0; k < wq.resultComponentTypes.length; k++) {
             tuple.push(components.get(wq.resultComponentTypes[k]));
         }
+
         return tuple;
     };
 
@@ -178,7 +170,7 @@ export const createQueryManager = (
         wq.meta[lastDenseIndex] = { rid: entityId, vid: (wq.meta[lastDenseIndex]?.vid ?? 0) + 1 };
     };
 
-    const updateQueries = () => {
+    const flushQueue = () => {
         // Deduplicate entities — process each entity only once
         const seen = new Set<number>();
 
@@ -228,7 +220,7 @@ export const createQueryManager = (
 
     return {
         queueStructuralChange,
-        updateQueries,
+        flushQueue,
         getQueryResults,
     };
 };
