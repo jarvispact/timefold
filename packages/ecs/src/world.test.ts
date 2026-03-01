@@ -1,6 +1,7 @@
-import { expect, it, describe, expectTypeOf } from 'vitest';
+import { expect, it, describe, expectTypeOf, vi } from 'vitest';
 import { worldBuilder } from './world';
-import { createComponent, defineComponents } from './component';
+import { createComponent, defineComponents, InferComponents } from './component';
+import { DefineEcsEvent, EcsEvent, GenericEcsEvent } from './event';
 import { GenericCompiledQuery, query } from './query';
 import * as s from './schema';
 
@@ -370,6 +371,107 @@ describe('world', () => {
             expect(world.getQueryResults('bc')).toEqual([]);
             expect(world.getQueryResults('cd')).toEqual([]);
             expect(world.getQueryResults('mapped')).toEqual([]);
+        });
+    });
+
+    describe('events', () => {
+        const components = defineComponents({
+            A: undefined,
+            B: s.struct({ x: s.number, y: s.number }),
+        });
+
+        type WorldComponent = InferComponents<typeof components>;
+        type WorldResources = { deltaTime: number };
+
+        type E1 = DefineEcsEvent<'E1'>;
+        type E2 = DefineEcsEvent<'E2', { a: string }>;
+        type E3 = DefineEcsEvent<'E3', { b: number }>;
+        type WorldEvent = E1 | E2 | E3;
+
+        it('should return the correct type when no event type was passed', () => {
+            // eslint-disable-next-line @typescript-eslint/no-unused-vars
+            const world = worldBuilder().withComponents(components).withQueries().compile();
+            type World = typeof world;
+            type Emit = Parameters<World['emit']>[0];
+            type On = Parameters<World['on']>[0];
+
+            expectTypeOf<Emit>().toExtend<GenericEcsEvent>();
+            expectTypeOf<On>().toExtend<EcsEvent<WorldComponent, NonNullable<unknown>>['type']>();
+
+            expectTypeOf<GenericEcsEvent>().toExtend<Emit>();
+            expectTypeOf<EcsEvent<WorldComponent, NonNullable<unknown>>['type']>().toExtend<On>();
+        });
+
+        it('should return the correct type when passed as generic', () => {
+            // eslint-disable-next-line @typescript-eslint/no-unused-vars
+            const world = worldBuilder<WorldResources, WorldEvent>().withComponents(components).withQueries().compile();
+            type World = typeof world;
+            type Emit = Parameters<World['emit']>[0];
+            type On = Parameters<World['on']>[0];
+
+            expectTypeOf<Emit>().toExtend<WorldEvent>();
+            expectTypeOf<On>().toExtend<(WorldEvent | EcsEvent<WorldComponent, WorldResources>)['type']>();
+
+            expectTypeOf<WorldEvent>().toExtend<Emit>();
+            expectTypeOf<(WorldEvent | EcsEvent<WorldComponent, WorldResources>)['type']>().toExtend<On>();
+        });
+
+        it('should call all event handlers', () => {
+            const world = worldBuilder<WorldResources, WorldEvent>().withComponents(components).withQueries().compile();
+
+            const mockE1 = vi.fn();
+            world.on('E1', mockE1);
+
+            const mockE2 = vi.fn();
+            world.on('E2', mockE2);
+
+            const mockE3 = vi.fn();
+            world.on('E3', mockE3);
+
+            const mockSpawn = vi.fn();
+            world.on('ecs/spawn-entity', mockSpawn);
+
+            const mockAdd = vi.fn();
+            world.on('ecs/add-component', mockAdd);
+
+            const mockRemove = vi.fn();
+            world.on('ecs/remove-component', mockRemove);
+
+            const mockDespawn = vi.fn();
+            world.on('ecs/despawn-entity', mockDespawn);
+
+            const mockSetResource = vi.fn();
+            world.on('ecs/set-resource', mockSetResource);
+
+            const mockRemoveResource = vi.fn();
+            world.on('ecs/remove-resource', mockRemoveResource);
+
+            world.emit({ type: 'E1' });
+            world.emit({ type: 'E2', payload: { a: 'foo' } });
+            world.emit({ type: 'E3', payload: { b: 42 } });
+
+            const e0 = world.createEntity();
+            const a = createComponent('A');
+            const b = createComponent('B', { x: 0, y: 0 });
+
+            world.spawn(e0, [a]);
+            world.addComponent(e0, b);
+            world.removeComponent(e0, 'B');
+            world.despawn(e0);
+
+            world.setResource('deltaTime', 0.16);
+            world.removeResource('deltaTime');
+
+            expect(mockE1.mock.lastCall).toEqual([undefined]);
+            expect(mockE2.mock.lastCall).toEqual([{ a: 'foo' }]);
+            expect(mockE3.mock.lastCall).toEqual([{ b: 42 }]);
+
+            expect(mockSpawn.mock.lastCall).toEqual([{ entity: e0, components: [a] }]);
+            expect(mockAdd.mock.lastCall).toEqual([{ entity: e0, component: b }]);
+            expect(mockRemove.mock.lastCall).toEqual([{ entity: e0, component: b }]);
+            expect(mockDespawn.mock.lastCall).toEqual([{ entity: e0 }]);
+            expect(mockSetResource.mock.lastCall).toEqual([{ name: 'deltaTime', data: 0.16 }]);
+            expect(mockRemoveResource.mock.lastCall).toEqual([{ name: 'deltaTime', data: 0.16 }]);
         });
     });
 });

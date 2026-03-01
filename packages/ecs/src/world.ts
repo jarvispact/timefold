@@ -3,7 +3,16 @@
 import { addComponentToEntityBitmask, Bitmask, createBitmask, removeComponentFromEntityBitmask } from './bitmask';
 import { Component, InferComponents } from './component';
 import { Entity } from './entity';
-import { EcsEvent, GenericEcsEvent, RemoveResourceEcsEvent, SetResourceEcsEvent } from './event';
+import {
+    AddComponentEcsEvent,
+    DespawnEntityEcsEvent,
+    EcsEvent,
+    GenericEcsEvent,
+    RemoveComponentEcsEvent,
+    RemoveResourceEcsEvent,
+    SetResourceEcsEvent,
+    SpawnEntityEcsEvent,
+} from './event';
 import { IndexTupleByName, TupleOfLength, createEntityManager, createQueryManager } from './internal';
 import { GenericCompiledQuery, InferQueryResultTuple } from './query';
 import { GenericResources } from './resource';
@@ -82,6 +91,7 @@ const createWorld = (args: WorldBuilderContext) => {
         for (const component of components) {
             entry.components.set(component.type, component);
             const numericType = componentTypeMap.get(component.type);
+
             if (numericType !== undefined) {
                 addComponentToEntityBitmask(entry.bitmask, 'with', numericType);
             }
@@ -89,22 +99,36 @@ const createWorld = (args: WorldBuilderContext) => {
 
         entityMap.set(entity, entry);
         qm.queueStructuralChange(entity);
+
+        const spawnEvent: SpawnEntityEcsEvent<Component> = {
+            type: 'ecs/spawn-entity',
+            payload: { entity, components },
+        };
+
+        emit(spawnEvent as never);
         return entity;
     };
 
-    const despawn = (...entities: Entity[]) => {
+    const despawn = (...entities: Entity[]): World => {
         for (let i = 0; i < entities.length; i++) {
             qm.queueStructuralChange(entities[i]);
             em.recycleEntity(entities[i]);
             entityMap.delete(entities[i]);
+
+            const despawnEvent: DespawnEntityEcsEvent = {
+                type: 'ecs/despawn-entity',
+                payload: { entity: entities[i] },
+            };
+
+            emit(despawnEvent as never);
         }
 
         return world;
     };
 
-    const addComponent = (entity: Entity, component: Component) => {
+    const addComponent = (entity: Entity, component: Component): World => {
         const entry = entityMap.get(entity);
-        if (!entry) return;
+        if (!entry) return world;
 
         entry.components.set(component.type, component);
         const numericType = componentTypeMap.get(component.type);
@@ -114,12 +138,22 @@ const createWorld = (args: WorldBuilderContext) => {
         }
 
         qm.queueStructuralChange(entity);
+
+        const addEvent: AddComponentEcsEvent<Component> = {
+            type: 'ecs/add-component',
+            payload: { entity, component },
+        };
+
+        emit(addEvent as never);
         return world;
     };
 
-    const removeComponent = (entity: Entity, componentType: string) => {
+    const removeComponent = (entity: Entity, componentType: string): World => {
         const entry = entityMap.get(entity);
-        if (!entry) return;
+        if (!entry) return world;
+
+        const component = entry.components.get(componentType);
+        if (!component) return world;
 
         entry.components.delete(componentType);
         const numericType = componentTypeMap.get(componentType);
@@ -129,6 +163,13 @@ const createWorld = (args: WorldBuilderContext) => {
         }
 
         qm.queueStructuralChange(entity);
+
+        const removeEvent: RemoveComponentEcsEvent<Component> = {
+            type: 'ecs/remove-component',
+            payload: { entity, component },
+        };
+
+        emit(removeEvent as never);
         return world;
     };
 
@@ -139,9 +180,9 @@ const createWorld = (args: WorldBuilderContext) => {
         return entry.components.get(type);
     };
 
-    const emit = (event: EcsEvent<Component, GenericResources>) => {
+    const emit = (event: EcsEvent<Component, GenericResources>): World => {
         const subscribers = subscribersByEventType[event.type];
-        if (!subscribers) return;
+        if (!subscribers) return world;
 
         for (let i = 0; i < subscribers.length; i++) {
             const subscriber = subscribers[i];
@@ -160,7 +201,7 @@ const createWorld = (args: WorldBuilderContext) => {
                 ? [Payload]
                 : []
         ) => void,
-    ) => {
+    ): World => {
         if (!subscribersByEventType[type]) {
             subscribersByEventType[type] = [];
         }
@@ -169,7 +210,7 @@ const createWorld = (args: WorldBuilderContext) => {
         return world;
     };
 
-    const setResource = (name: string, data: unknown) => {
+    const setResource = (name: string, data: unknown): World => {
         resources[name] = data;
 
         const event: SetResourceEcsEvent<GenericResources, keyof GenericResources> = {
@@ -185,7 +226,7 @@ const createWorld = (args: WorldBuilderContext) => {
         return resources[name];
     };
 
-    const removeResource = (name: string) => {
+    const removeResource = (name: string): World => {
         const data = resources[name];
 
         const event: RemoveResourceEcsEvent<GenericResources, keyof GenericResources> = {

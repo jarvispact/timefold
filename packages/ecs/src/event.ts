@@ -18,6 +18,21 @@ export type SpawnEntityEcsEvent<C extends Component> = {
     payload: { entity: Entity; components: C[] };
 };
 
+export type DespawnEntityEcsEvent = {
+    type: 'ecs/despawn-entity';
+    payload: { entity: Entity };
+};
+
+export type AddComponentEcsEvent<C extends Component> = {
+    type: 'ecs/add-component';
+    payload: { entity: Entity; component: C };
+};
+
+export type RemoveComponentEcsEvent<C extends Component> = {
+    type: 'ecs/remove-component';
+    payload: { entity: Entity; component: C };
+};
+
 export type SetResourceEcsEvent<R extends GenericResources, K extends keyof R> = {
     type: 'ecs/set-resource';
     payload: { name: K; data: R[K] };
@@ -30,5 +45,8 @@ export type RemoveResourceEcsEvent<R extends GenericResources, K extends keyof R
 
 export type EcsEvent<C extends Component, R extends GenericResources> =
     | SpawnEntityEcsEvent<C>
+    | DespawnEntityEcsEvent
+    | AddComponentEcsEvent<C>
+    | RemoveComponentEcsEvent<C>
     | SetResourceEcsEvent<R, keyof R>
     | RemoveResourceEcsEvent<R, keyof R>;
