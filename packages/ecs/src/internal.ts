@@ -1,3 +1,5 @@
+/* eslint-disable @typescript-eslint/no-unnecessary-condition */
+/* eslint-disable @typescript-eslint/no-non-null-assertion */
 /* eslint-disable @typescript-eslint/no-unsafe-return */
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
@@ -63,21 +65,22 @@ type WorldQuery = {
     results: unknown[];
     rids: number[]; // dense index → entity id (reverse-id)
     sparse: number[]; // entity id → dense index
-    buildResultTuple: (entity: Entity, components: Map<Component['type'], Component>) => unknown;
+    buildResultTuple: (entity: Entity, components: Map<string, Component>) => unknown;
     writeResultTuple: (
         results: unknown[],
         denseIndex: number,
         entity: Entity,
-        components: Map<Component['type'], Component>,
+        components: Map<string, Component>,
     ) => void;
 };
 
-type EntityMap = Map<Entity, { bitmask: Bitmask; components: Map<Component['type'], Component> }>;
+type EntityMap = Map<Entity, { bitmask: Bitmask; components: Map<string, Component> }>;
 
 export const createQueryManager = (
     maxComponentType: number,
     queryDefinitions: GenericCompiledQuery[],
     entityMap: EntityMap,
+    componentTypeMap: Map<string, number>,
 ) => {
     const worldQueries: WorldQuery[] = [];
     const nameToIndex = new Map<string, number>();
@@ -87,18 +90,19 @@ export const createQueryManager = (
         nameToIndex.set(queryDef.name, i);
 
         const bitmask = createBitmask(maxComponentType);
-        const resultComponentTypes: number[] = [];
+        const resultComponentTypes: string[] = [];
 
         for (let j = 0; j < queryDef.types.length; j++) {
             const entry = queryDef.types[j];
             if ('with' in entry) {
-                addComponentToEntityBitmask(bitmask, 'with', entry.with);
-                // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
+                const numericType = componentTypeMap.get(entry.with)!;
+                addComponentToEntityBitmask(bitmask, 'with', numericType);
                 if (!('include' in entry && !entry.include)) {
                     resultComponentTypes.push(entry.with);
                 }
             } else {
-                addComponentToEntityBitmask(bitmask, 'without', entry.without);
+                const numericType = componentTypeMap.get(entry.without)!;
+                addComponentToEntityBitmask(bitmask, 'without', numericType);
             }
         }
 
@@ -107,14 +111,14 @@ export const createQueryManager = (
         const mapFn = queryDef.mapFn;
 
         const buildRawTuple = includeEntity
-            ? (entity: Entity, components: Map<Component['type'], Component>) => {
+            ? (entity: Entity, components: Map<string, Component>) => {
                   const tuple: unknown[] = [entity];
                   for (let k = 0; k < resultComponentTypes.length; k++) {
                       tuple.push(components.get(resultComponentTypes[k]));
                   }
                   return tuple;
               }
-            : (_entity: Entity, components: Map<Component['type'], Component>) => {
+            : (_entity: Entity, components: Map<string, Component>) => {
                   const tuple: unknown[] = [];
                   for (let k = 0; k < resultComponentTypes.length; k++) {
                       tuple.push(components.get(resultComponentTypes[k]));
@@ -122,14 +126,14 @@ export const createQueryManager = (
                   return tuple;
               };
 
-        const buildResultTuple = (entity: Entity, components: Map<Component['type'], Component>) =>
+        const buildResultTuple = (entity: Entity, components: Map<string, Component>) =>
             mapFn(buildRawTuple(entity, components));
 
         const writeResultTuple = (
             results: unknown[],
             denseIndex: number,
             entity: Entity,
-            components: Map<Component['type'], Component>,
+            components: Map<string, Component>,
         ) => {
             results[denseIndex] = buildResultTuple(entity, components);
         };
@@ -144,7 +148,6 @@ export const createQueryManager = (
         });
     }
 
-    // Structural change queue — plain entity id array (PACKED_SMI_ELEMENTS)
     const changeQueue: number[] = [];
 
     const queueStructuralChange = (entity: Entity) => {
@@ -156,7 +159,7 @@ export const createQueryManager = (
         return denseIndex !== undefined && denseIndex < wq.results.length && wq.rids[denseIndex] === entityId;
     };
 
-    const addToQuery = (wq: WorldQuery, entity: Entity, components: Map<Component['type'], Component>) => {
+    const addToQuery = (wq: WorldQuery, entity: Entity, components: Map<string, Component>) => {
         const entityId = entity as number;
         const denseIndex = wq.results.length;
 
@@ -181,7 +184,6 @@ export const createQueryManager = (
         wq.results.pop();
     };
 
-    // Reusable dedup set — cleared each flush instead of reallocated
     const seen = new Set<number>();
 
     const flushQueue = () => {
@@ -201,7 +203,6 @@ export const createQueryManager = (
                 const inQuery = isInQuery(wq, entityId);
 
                 if (!entityEntry) {
-                    // Entity was despawned — remove from any query it's in
                     if (inQuery) removeFromQuery(wq, entity);
                     continue;
                 }
@@ -211,13 +212,11 @@ export const createQueryManager = (
                 if (matches && !inQuery) {
                     addToQuery(wq, entity, entityEntry.components);
                 } else if (matches && inQuery) {
-                    // Update result tuple in place (component data may have changed)
                     const denseIndex = wq.sparse[entityId];
                     wq.writeResultTuple(wq.results, denseIndex, entity, entityEntry.components);
                 } else if (!matches && inQuery) {
                     removeFromQuery(wq, entity);
                 }
-                // !matches && !inQuery → no-op
             }
         }
 

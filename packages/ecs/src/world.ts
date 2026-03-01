@@ -1,17 +1,14 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
+
 import { addComponentToEntityBitmask, Bitmask, createBitmask, removeComponentFromEntityBitmask } from './bitmask';
 import { Component, InferComponents } from './component';
 import { Entity } from './entity';
-import {
-    GenericComponentDefinition,
-    IndexTupleByName,
-    TupleOfLength,
-    createEntityManager,
-    createQueryManager,
-} from './internal';
+import { IndexTupleByName, TupleOfLength, createEntityManager, createQueryManager } from './internal';
 import { GenericCompiledQuery, InferQueryResultTuple } from './query';
+import { Schema } from './schema';
 
 type WorldBuilderContext = {
-    components: GenericComponentDefinition[];
+    components: Record<string, Schema<string, any> | undefined>;
     queries: GenericCompiledQuery[];
 };
 
@@ -34,10 +31,17 @@ type World<
 };
 
 const createWorld = (args: WorldBuilderContext) => {
-    const MAX_COMPONENT_TYPE = args.components.length;
+    const componentKeys = Object.keys(args.components);
+    const MAX_COMPONENT_TYPE = componentKeys.length;
+    const componentTypeMap = new Map<string, number>();
+
+    for (let i = 0; i < componentKeys.length; i++) {
+        componentTypeMap.set(componentKeys[i], i);
+    }
+
     const em = createEntityManager();
-    const entityMap = new Map<Entity, { bitmask: Bitmask; components: Map<Component['type'], Component> }>();
-    const qm = createQueryManager(MAX_COMPONENT_TYPE, args.queries, entityMap);
+    const entityMap = new Map<Entity, { bitmask: Bitmask; components: Map<string, Component> }>();
+    const qm = createQueryManager(MAX_COMPONENT_TYPE, args.queries, entityMap, componentTypeMap);
 
     const spawn = (...spawnArgs: [Entity, Component[]] | [Component[]]): Entity => {
         const entity = spawnArgs.length === 1 ? em.createEntity() : spawnArgs[0];
@@ -47,12 +51,15 @@ const createWorld = (args: WorldBuilderContext) => {
 
         const entry = {
             bitmask: createBitmask(MAX_COMPONENT_TYPE),
-            components: new Map(),
+            components: new Map<string, Component>(),
         };
 
         for (const component of components) {
             entry.components.set(component.type, component);
-            addComponentToEntityBitmask(entry.bitmask, 'with', component.type);
+            const numericType = componentTypeMap.get(component.type);
+            if (numericType !== undefined) {
+                addComponentToEntityBitmask(entry.bitmask, 'with', numericType);
+            }
         }
 
         entityMap.set(entity, entry);
@@ -73,20 +80,26 @@ const createWorld = (args: WorldBuilderContext) => {
         if (!entry) return;
 
         entry.components.set(component.type, component);
-        addComponentToEntityBitmask(entry.bitmask, 'with', component.type);
+        const numericType = componentTypeMap.get(component.type);
+        if (numericType !== undefined) {
+            addComponentToEntityBitmask(entry.bitmask, 'with', numericType);
+        }
         qm.queueStructuralChange(entity);
     };
 
-    const removeComponent = (entity: Entity, componentType: Component['type']) => {
+    const removeComponent = (entity: Entity, componentType: string) => {
         const entry = entityMap.get(entity);
         if (!entry) return;
 
         entry.components.delete(componentType);
-        removeComponentFromEntityBitmask(entry.bitmask, 'with', componentType);
+        const numericType = componentTypeMap.get(componentType);
+        if (numericType !== undefined) {
+            removeComponentFromEntityBitmask(entry.bitmask, 'with', numericType);
+        }
         qm.queueStructuralChange(entity);
     };
 
-    const getComponent = (entity: Entity, type: Component['type']): Component | undefined => {
+    const getComponent = (entity: Entity, type: string): Component | undefined => {
         const entry = entityMap.get(entity);
         if (!entry) return undefined;
 
@@ -110,12 +123,12 @@ const createWorld = (args: WorldBuilderContext) => {
 };
 
 type WorldBuilderApi<
-    ComponentDefinitions extends GenericComponentDefinition[],
+    ComponentDefinitions extends Record<string, Schema<string, any> | undefined>,
     QueryDefinitions extends GenericCompiledQuery[],
     ForbiddenMethod extends string = never,
 > = Omit<
     {
-        withComponents: <C extends GenericComponentDefinition[]>(
+        withComponents: <C extends Record<string, Schema<string, any> | undefined>>(
             components: C,
         ) => WorldBuilderApi<C, QueryDefinitions, 'withComponents' | 'compile'>;
         withQueries: <Q extends GenericCompiledQuery[]>(
@@ -128,11 +141,11 @@ type WorldBuilderApi<
 
 export const worldBuilder = () => {
     const ctx: WorldBuilderContext = {
-        components: [],
+        components: {},
         queries: [],
     };
 
-    const withComponents = (components: GenericComponentDefinition[]) => {
+    const withComponents = (components: Record<string, Schema<string, any> | undefined>) => {
         ctx.components = components;
         return api;
     };
@@ -150,5 +163,9 @@ export const worldBuilder = () => {
         compile,
     };
 
-    return api as WorldBuilderApi<GenericComponentDefinition[], GenericCompiledQuery[], 'withQueries' | 'compile'>;
+    return api as WorldBuilderApi<
+        Record<string, Schema<string, any> | undefined>,
+        GenericCompiledQuery[],
+        'withQueries' | 'compile'
+    >;
 };

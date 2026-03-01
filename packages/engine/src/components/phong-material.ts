@@ -1,7 +1,7 @@
 import { Vec3, Vec3Type } from '@timefold/math';
-import { engineRegistry, PhongMaterialComponent } from './types';
+import { createComponent, PhongMaterialComponent } from './types';
 
-export const type = engineRegistry.PhongMaterial.type;
+export const type = 'PhongMaterial' as const;
 
 type CreateArgs = {
     diffuseColor?: Vec3Type;
@@ -12,7 +12,7 @@ type CreateArgs = {
 };
 
 export const create = (args: CreateArgs = {}): PhongMaterialComponent => {
-    return engineRegistry.PhongMaterial.create({
+    return createComponent('PhongMaterial', {
         ambientColor: Vec3.fromScalar(0.1),
         diffuseColor: args.diffuseColor ?? Vec3.fromScalar(0.7),
         specularColor: args.specularColor ?? Vec3.fromScalar(0.2),

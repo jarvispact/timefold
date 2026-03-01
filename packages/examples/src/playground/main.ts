@@ -9,7 +9,6 @@ import {
     ImageLoader,
     PerspectiveCamera,
     PhongMaterial,
-    T,
     Transform,
 } from '@timefold/engine';
 import { Quat, Vec3 } from '@timefold/math';
@@ -19,26 +18,23 @@ import { ObjLoader } from '@timefold/obj';
 const canvas = DomUtils.getCanvasById('canvas');
 const aspect = canvas.width / canvas.height;
 
-// type Test = Exclude<EngineComponent, { type: typeof T.Transform }>;
-// type Test2 = EngineComponent | { type: 8 };
-
 const q1 = query<EngineComponent>()
     .name('query1')
-    .with(T.Transform)
-    .with(T.PerspectiveCamera, { include: false })
-    .without(T.DirLight)
+    .with('Transform')
+    .with('PerspectiveCamera', { include: false })
+    .without('DirLight')
     .compile();
 
-const q2 = query<EngineComponent>().name('query2').with(T.PhongMaterial).with(T.PerspectiveCamera).compile();
+const q2 = query<EngineComponent>().name('query2').with('PhongMaterial').with('PerspectiveCamera').compile();
 
 const q3 = query<EngineComponent>().name('query3').includeEntity().compile();
 
 const q4 = query<EngineComponent>()
     .name('query4')
     .includeEntity()
-    .with(T.Transform)
-    .with(T.DirLight, { include: false })
-    .without(T.PhongMaterial)
+    .with('Transform')
+    .with('DirLight', { include: false })
+    .without('PhongMaterial')
     .compile();
 
 const world = worldBuilder().withComponents(engineComponents).withQueries(q1, q2, q3, q4).compile();
@@ -69,12 +65,12 @@ const main = async () => {
     ]);
 
     // Extract component data for the renderer
-    const cameraTransform = world.getComponent(camera, T.Transform)!.data;
-    const cameraData = world.getComponent(camera, T.PerspectiveCamera)!.data;
-    const lightData = world.getComponent(light, T.DirLight)!.data;
-    const cubeTransform = world.getComponent(cube, T.Transform)!.data;
-    const cubeMaterial = world.getComponent(cube, T.PhongMaterial)!.data;
-    const lightTransform = world.getComponent(light, T.Transform)!.data;
+    const cameraTransform = world.getComponent(camera, 'Transform')!.data;
+    const cameraData = world.getComponent(camera, 'PerspectiveCamera')!.data;
+    const lightData = world.getComponent(light, 'DirLight')!.data;
+    const cubeTransform = world.getComponent(cube, 'Transform')!.data;
+    const cubeMaterial = world.getComponent(cube, 'PhongMaterial')!.data;
+    const lightTransform = world.getComponent(light, 'Transform')!.data;
 
     const result = await ObjLoader.load('./cube-blender-default-settings.obj', {
         mode: 'non-interleaved-typed-array-indexed',

@@ -7,15 +7,15 @@ import { Prettify } from './internal';
 
 export type WithOptions = { include: false };
 
-export type With<T extends number, O extends WithOptions | undefined = undefined> = O extends undefined
+export type With<T extends Component['type'], O extends WithOptions | undefined = undefined> = O extends undefined
     ? { with: T }
     : Prettify<{ with: T } & O>;
 
-export type Without<T extends number> = Prettify<{ without: T }>;
+export type Without<T extends Component['type']> = Prettify<{ without: T }>;
 
-export type GenericSupportedQuery = SupportedQuery<number, WithOptions | undefined>[];
+export type GenericSupportedQuery = SupportedQuery<Component['type'], WithOptions | undefined>[];
 
-export type SupportedQuery<T extends number, O extends WithOptions | undefined> = With<T, O> | Without<T>;
+export type SupportedQuery<T extends Component['type'], O extends WithOptions | undefined> = With<T, O> | Without<T>;
 
 export type GenericCompiledQuery = CompiledQuery<string, boolean, GenericSupportedQuery, any>;
 
@@ -33,9 +33,9 @@ export type CompiledQuery<
 
 type GetUsedComponentType<
     Q extends CompiledQuery<string, boolean, GenericSupportedQuery, any>,
-    Used extends number = never,
+    Used extends string = never,
 > = Q['types'] extends [
-    infer First extends SupportedQuery<number, WithOptions | undefined>,
+    infer First extends SupportedQuery<string, WithOptions | undefined>,
     ...infer Rest extends GenericSupportedQuery,
 ]
     ? First extends With<infer Type>
@@ -117,12 +117,12 @@ export const query = <C extends Component>() => {
         return api;
     };
 
-    const withType = (type: number, options?: WithOptions) => {
+    const withType = (type: string, options?: WithOptions) => {
         qry.types.push({ with: type, ...options });
         return api;
     };
 
-    const withoutType = (type: number) => {
+    const withoutType = (type: string) => {
         qry.types.push({ without: type });
         return api;
     };
