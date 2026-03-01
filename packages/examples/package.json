@@ -10,6 +10,9 @@
     "dev:playground": "sed 's/{example-folder}/playground/g' index.html.template > index.html && vite --port 9093",
     "build:playground": "sed 's/{example-folder}/playground/g' index.html.template > index.html && vite build",
 
+    "dev:hello-ecs": "sed 's/{example-folder}/hello-ecs/g' index.html.template > index.html && vite --port 9093",
+    "build:hello-ecs": "sed 's/{example-folder}/hello-ecs/g' index.html.template > index.html && vite build",
+
     "preview": "vite preview --port 9191"
   },
   "dependencies": {

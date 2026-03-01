@@ -2,7 +2,7 @@ import { MathUtils } from '@timefold/math';
 import { PerspectiveCameraComponent } from './types';
 import { createComponent } from '@timefold/ecs';
 
-export const type = 'PerspectiveCamera' as const;
+export const type: PerspectiveCameraComponent['type'] = 'PerspectiveCamera';
 
 type CreateArgs = {
     aspect: number;

@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-unsafe-return */
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
-import { Prettify, RemoveReadonly } from './internal';
+import { Prettify, QuatType, RemoveReadonly, Vec2Type, Vec3Type } from './internal';
 
 export type Schema<Uri extends string, Type> = {
     uri: Uri;
@@ -136,6 +136,17 @@ export const tuple = <const Items extends GenericTupleItems>(...items: Items): T
     };
 };
 
+// math
+
+export type Vec2Schema = Schema<'vec2', Vec2Type>;
+export const vec2 = tuple(number, number) as unknown as Vec2Schema;
+
+export type Vec3Schema = Schema<'vec3', Vec3Type>;
+export const vec3 = tuple(number, number, number) as unknown as Vec3Schema;
+
+export type QuatSchema = Schema<'quat', QuatType>;
+export const quat = tuple(number, number, number, number) as unknown as QuatSchema;
+
 // union
 
 type GenericUnionItems = Schema<string, any>[];
@@ -211,7 +222,7 @@ export type StructSchema<Fields extends GenericStructFields> = Schema<
     { [K in keyof Fields]: InferFieldValue<Fields[K]> }
 >;
 
-export const struct = <const Fields extends GenericStructFields>(fields: Fields): StructSchema<Fields> => {
+export const struct = <Fields extends GenericStructFields>(fields: Fields): StructSchema<Fields> => {
     return {
         uri: 'struct',
         is: (data): data is { [K in keyof Fields]: InferFieldValue<Fields[K]> } => {

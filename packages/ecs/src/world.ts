@@ -27,20 +27,20 @@ type World<
     getComponent: <T extends C['type']>(entity: Entity, type: T) => Extract<C, { type: T }> | undefined;
 
     updateQueries: () => void;
-    getQueryResults: <QueryName extends keyof Q>(name: QueryName) => InferQueryResultTuple<C, Q[QueryName]>;
+    getQueryResults: <QueryName extends keyof Q>(name: QueryName) => InferQueryResultTuple<C, Q[QueryName]>[];
 };
 
 const createWorld = (args: WorldBuilderContext) => {
     const componentKeys = Object.keys(args.components);
     const MAX_COMPONENT_TYPE = componentKeys.length;
     const componentTypeMap = new Map<string, number>();
+    const entityMap = new Map<Entity, { bitmask: Bitmask; components: Map<string, Component> }>();
 
     for (let i = 0; i < componentKeys.length; i++) {
         componentTypeMap.set(componentKeys[i], i);
     }
 
     const em = createEntityManager();
-    const entityMap = new Map<Entity, { bitmask: Bitmask; components: Map<string, Component> }>();
     const qm = createQueryManager(MAX_COMPONENT_TYPE, args.queries, entityMap, componentTypeMap);
 
     const spawn = (...spawnArgs: [Entity, Component[]] | [Component[]]): Entity => {
@@ -163,9 +163,5 @@ export const worldBuilder = () => {
         compile,
     };
 
-    return api as WorldBuilderApi<
-        Record<string, Schema<string, any> | undefined>,
-        GenericCompiledQuery[],
-        'withQueries' | 'compile'
-    >;
+    return api as WorldBuilderApi<NonNullable<unknown>, GenericCompiledQuery[], 'withQueries' | 'compile'>;
 };

@@ -9,6 +9,8 @@ import { Entity } from './entity';
 import { GenericCompiledQuery } from './query';
 import { Schema } from './schema';
 
+export type AssumeString<T> = T extends string ? T : never;
+
 export type Prettify<T extends Record<string, unknown>> = { [K in keyof T]: T[K] } & {};
 
 export type RemoveReadonly<T> = { -readonly [K in keyof T]: T[K] };
@@ -235,3 +237,24 @@ export const createQueryManager = (
         getQueryResults,
     };
 };
+
+// Copy paste from '@timefold/math' to not have a dependency between packages.
+type TypedArray =
+    | Uint8ClampedArray
+    | Uint8Array
+    | Int8Array
+    | Uint16Array
+    | Int16Array
+    | Uint32Array
+    | Int32Array
+    | Float32Array
+    | Float64Array;
+
+export type Vec2ArrayType = [number, number];
+export type Vec2Type = Vec2ArrayType | TypedArray;
+
+export type Vec3ArrayType = [number, number, number];
+export type Vec3Type = Vec3ArrayType | TypedArray;
+
+export type QuatArrayType = [number, number, number, number];
+export type QuatType = QuatArrayType | TypedArray;

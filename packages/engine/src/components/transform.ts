@@ -2,7 +2,7 @@ import { Mat3, Quat, QuatType, Vec3, Vec3Type } from '@timefold/math';
 import { TransformComponent, TransformData } from './types';
 import { createComponent } from '@timefold/ecs';
 
-export const type = 'Transform' as const;
+export const type: TransformComponent['type'] = 'Transform';
 
 type CreateArgs = {
     translation?: Vec3Type;

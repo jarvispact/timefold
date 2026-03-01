@@ -1,9 +1,9 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
-import { Prettify, RemoveReadonly } from './internal';
+import { AssumeString } from './internal';
 import { Schema } from './schema';
 
-export type Component<Type extends string = string, Data = undefined> = Data extends undefined
+export type Component<Type extends string = string, Data = undefined> = [Data] extends [undefined]
     ? { type: Type }
     : { type: Type; data: Data };
 
@@ -12,10 +12,10 @@ export const createComponent = <Type extends string, Data = undefined>(type: Typ
 };
 
 export type InferComponents<D extends Record<string, Schema<string, any> | undefined>> = {
-    [K in keyof D & string]: D[K] extends Schema<string, infer Type>
-        ? Component<K, Prettify<RemoveReadonly<Type>>>
-        : Component<K>;
-}[keyof D & string];
+    [K in keyof D]: D[K] extends Schema<string, infer Type>
+        ? Component<AssumeString<K>, Type>
+        : Component<AssumeString<K>>;
+}[keyof D];
 
-export const defineComponents = <const D extends Record<string, Schema<string, any> | undefined>>(definitions: D) =>
+export const defineComponents = <D extends Record<string, Schema<string, any> | undefined>>(definitions: D) =>
     definitions;

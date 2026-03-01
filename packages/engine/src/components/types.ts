@@ -1,5 +1,13 @@
-import { Component, defineComponents, InferComponents, InferSchemaType, number, struct } from '@timefold/ecs';
-import { quat, vec3 } from '../math-schemas';
+import {
+    Component,
+    defineComponents,
+    InferComponents,
+    InferSchemaType,
+    number,
+    quat,
+    struct,
+    vec3,
+} from '@timefold/ecs';
 
 const TransformSchema = struct({
     translation: vec3,

@@ -2,7 +2,7 @@ import { Vec3, Vec3Type } from '@timefold/math';
 import { PhongMaterialComponent } from './types';
 import { createComponent } from '@timefold/ecs';
 
-export const type = 'PhongMaterial' as const;
+export const type: PhongMaterialComponent['type'] = 'PhongMaterial';
 
 type CreateArgs = {
     diffuseColor?: Vec3Type;
