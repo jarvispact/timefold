@@ -3,8 +3,10 @@
 import { addComponentToEntityBitmask, Bitmask, createBitmask, removeComponentFromEntityBitmask } from './bitmask';
 import { Component, InferComponents } from './component';
 import { Entity } from './entity';
+import { EcsEvent, GenericEcsEvent, RemoveResourceEcsEvent, SetResourceEcsEvent } from './event';
 import { IndexTupleByName, TupleOfLength, createEntityManager, createQueryManager } from './internal';
 import { GenericCompiledQuery, InferQueryResultTuple } from './query';
+import { GenericResources } from './resource';
 import { Schema } from './schema';
 
 type WorldBuilderContext = {
@@ -15,20 +17,40 @@ type WorldBuilderContext = {
 type World<
     C extends Component = Component,
     Q extends Record<string, GenericCompiledQuery> = Record<string, GenericCompiledQuery>,
+    R extends GenericResources = GenericResources,
+    E extends GenericEcsEvent = never,
 > = {
     createEntity: () => Entity;
     createEntities: <Count extends number>(count: Count) => TupleOfLength<Count, Entity>;
 
     spawn: (...args: [Entity, C[]] | [C[]]) => Entity;
-    despawn: (...entities: Entity[]) => void;
+    despawn: (...entities: Entity[]) => World<C, Q, R, E>;
 
-    addComponent: (entity: Entity, component: C) => void;
-    removeComponent: (entity: Entity, componentType: C['type']) => void;
+    addComponent: (entity: Entity, component: C) => World<C, Q, R, E>;
+    removeComponent: (entity: Entity, componentType: C['type']) => World<C, Q, R, E>;
     getComponent: <T extends C['type']>(entity: Entity, type: T) => Extract<C, { type: T }> | undefined;
 
-    updateQueries: () => void;
+    updateQueries: () => World<C, Q, R, E>;
     getQueryResults: <QueryName extends keyof Q>(name: QueryName) => InferQueryResultTuple<C, Q[QueryName]>[];
+
+    setResource: <Name extends keyof R>(name: Name, data: R[Name]) => World<C, Q, R, E>;
+    getResource: <Name extends keyof R>(name: Name) => R[Name];
+    removeResource: (name: keyof R) => World<C, Q, R, E>;
+
+    emit: (event: E['type'] extends never ? GenericEcsEvent : E) => World<C, Q, R, E>;
+    on: <EventType extends (E | EcsEvent<C, R>)['type']>(
+        type: EventType,
+        cb: (
+            ...payload: Extract<E | EcsEvent<C, R>, { type: EventType }> extends {
+                payload: infer Payload;
+            }
+                ? [Payload]
+                : []
+        ) => void,
+    ) => World<C, Q, R, E>;
 };
+
+type EventSubscriber = (payload: unknown) => void;
 
 const createWorld = (args: WorldBuilderContext) => {
     const componentKeys = Object.keys(args.components);
@@ -42,6 +64,9 @@ const createWorld = (args: WorldBuilderContext) => {
 
     const em = createEntityManager();
     const qm = createQueryManager(MAX_COMPONENT_TYPE, args.queries, entityMap, componentTypeMap);
+
+    const subscribersByEventType: Record<string, EventSubscriber[] | undefined> = {};
+    const resources: GenericResources = {};
 
     const spawn = (...spawnArgs: [Entity, Component[]] | [Component[]]): Entity => {
         const entity = spawnArgs.length === 1 ? em.createEntity() : spawnArgs[0];
@@ -73,6 +98,8 @@ const createWorld = (args: WorldBuilderContext) => {
             em.recycleEntity(entities[i]);
             entityMap.delete(entities[i]);
         }
+
+        return world;
     };
 
     const addComponent = (entity: Entity, component: Component) => {
@@ -81,10 +108,13 @@ const createWorld = (args: WorldBuilderContext) => {
 
         entry.components.set(component.type, component);
         const numericType = componentTypeMap.get(component.type);
+
         if (numericType !== undefined) {
             addComponentToEntityBitmask(entry.bitmask, 'with', numericType);
         }
+
         qm.queueStructuralChange(entity);
+        return world;
     };
 
     const removeComponent = (entity: Entity, componentType: string) => {
@@ -93,10 +123,13 @@ const createWorld = (args: WorldBuilderContext) => {
 
         entry.components.delete(componentType);
         const numericType = componentTypeMap.get(componentType);
+
         if (numericType !== undefined) {
             removeComponentFromEntityBitmask(entry.bitmask, 'with', numericType);
         }
+
         qm.queueStructuralChange(entity);
+        return world;
     };
 
     const getComponent = (entity: Entity, type: string): Component | undefined => {
@@ -106,7 +139,67 @@ const createWorld = (args: WorldBuilderContext) => {
         return entry.components.get(type);
     };
 
-    return {
+    const emit = (event: EcsEvent<Component, GenericResources>) => {
+        const subscribers = subscribersByEventType[event.type];
+        if (!subscribers) return;
+
+        for (let i = 0; i < subscribers.length; i++) {
+            const subscriber = subscribers[i];
+            subscriber((event as unknown as { payload: unknown }).payload);
+        }
+
+        return world;
+    };
+
+    const on = <EventType extends EcsEvent<Component, GenericResources>['type']>(
+        type: EventType,
+        cb: (
+            ...payload: Extract<EcsEvent<Component, GenericResources>, { type: EventType }> extends {
+                payload: infer Payload;
+            }
+                ? [Payload]
+                : []
+        ) => void,
+    ) => {
+        if (!subscribersByEventType[type]) {
+            subscribersByEventType[type] = [];
+        }
+
+        subscribersByEventType[type].push(cb as EventSubscriber);
+        return world;
+    };
+
+    const setResource = (name: string, data: unknown) => {
+        resources[name] = data;
+
+        const event: SetResourceEcsEvent<GenericResources, keyof GenericResources> = {
+            type: 'ecs/set-resource',
+            payload: { name, data } as never,
+        };
+
+        emit(event as never);
+        return world;
+    };
+
+    const getResource = (name: string) => {
+        return resources[name];
+    };
+
+    const removeResource = (name: string) => {
+        const data = resources[name];
+
+        const event: RemoveResourceEcsEvent<GenericResources, keyof GenericResources> = {
+            type: 'ecs/remove-resource',
+            payload: { name, data } as never,
+        };
+
+        emit(event as never);
+
+        resources[name] = undefined;
+        return world;
+    };
+
+    const world = {
         createEntity: em.createEntity,
         createEntities: em.createEntities,
 
@@ -119,27 +212,38 @@ const createWorld = (args: WorldBuilderContext) => {
 
         updateQueries: qm.flushQueue,
         getQueryResults: qm.getQueryResults,
+
+        emit,
+        on,
+
+        setResource,
+        getResource,
+        removeResource,
     } as unknown as World;
+
+    return world;
 };
 
 type WorldBuilderApi<
-    ComponentDefinitions extends Record<string, Schema<string, any> | undefined>,
-    QueryDefinitions extends GenericCompiledQuery[],
+    C extends Record<string, Schema<string, any> | undefined>,
+    Q extends GenericCompiledQuery[],
+    R extends GenericResources = GenericResources,
+    E extends GenericEcsEvent = never,
     ForbiddenMethod extends string = never,
 > = Omit<
     {
         withComponents: <C extends Record<string, Schema<string, any> | undefined>>(
             components: C,
-        ) => WorldBuilderApi<C, QueryDefinitions, 'withComponents' | 'compile'>;
+        ) => WorldBuilderApi<C, Q, R, E, 'withComponents' | 'compile'>;
         withQueries: <Q extends GenericCompiledQuery[]>(
             ...queries: Q
-        ) => WorldBuilderApi<ComponentDefinitions, Q, 'withComponents' | 'withQueries'>;
-        compile: () => World<InferComponents<ComponentDefinitions>, IndexTupleByName<QueryDefinitions>>;
+        ) => WorldBuilderApi<C, Q, R, E, 'withComponents' | 'withQueries'>;
+        compile: () => World<InferComponents<C>, IndexTupleByName<Q>, R, E>;
     },
     ForbiddenMethod
 >;
 
-export const worldBuilder = () => {
+export const worldBuilder = <R extends GenericResources, E extends GenericEcsEvent = never>() => {
     const ctx: WorldBuilderContext = {
         components: {},
         queries: [],
@@ -163,5 +267,5 @@ export const worldBuilder = () => {
         compile,
     };
 
-    return api as WorldBuilderApi<NonNullable<unknown>, GenericCompiledQuery[], 'withQueries' | 'compile'>;
+    return api as WorldBuilderApi<NonNullable<unknown>, GenericCompiledQuery[], R, E, 'withQueries' | 'compile'>;
 };
