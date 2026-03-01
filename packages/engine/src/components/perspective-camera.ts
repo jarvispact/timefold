@@ -1,5 +1,6 @@
 import { MathUtils } from '@timefold/math';
-import { createComponent, PerspectiveCameraComponent } from './types';
+import { PerspectiveCameraComponent } from './types';
+import { createComponent } from '@timefold/ecs';
 
 export const type = 'PerspectiveCamera' as const;
 

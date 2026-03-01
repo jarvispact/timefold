@@ -1,5 +1,6 @@
 import { Vec3, Vec3Type } from '@timefold/math';
-import { createComponent, DirLightComponent } from './types';
+import { DirLightComponent } from './types';
+import { createComponent } from '@timefold/ecs';
 
 export const type = 'DirLight' as const;
 

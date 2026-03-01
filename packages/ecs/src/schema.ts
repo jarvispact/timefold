@@ -206,17 +206,14 @@ export const typedArray: TypedArraySchema = union(
 type GenericStructFields = Record<string, Schema<string, any>>;
 type InferFieldValue<Field> = Field extends Schema<string, infer Type> ? Type : never;
 
-export type StructSchema<Uri extends string, Fields extends GenericStructFields> = Schema<
-    Uri,
+export type StructSchema<Fields extends GenericStructFields> = Schema<
+    'struct',
     { [K in keyof Fields]: InferFieldValue<Fields[K]> }
 >;
 
-export const struct = <Uri extends string, const Fields extends GenericStructFields>(
-    uri: Uri,
-    fields: Fields,
-): StructSchema<Uri, Fields> => {
+export const struct = <const Fields extends GenericStructFields>(fields: Fields): StructSchema<Fields> => {
     return {
-        uri,
+        uri: 'struct',
         is: (data): data is { [K in keyof Fields]: InferFieldValue<Fields[K]> } => {
             if (typeof data !== 'object' || data === null) {
                 return false;

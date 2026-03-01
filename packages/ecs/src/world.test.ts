@@ -86,9 +86,9 @@ describe('world', () => {
     describe('queries', () => {
         const components = defineComponents({
             A: undefined,
-            B: s.struct('B', { x: s.number, y: s.number }),
-            C: s.struct('C', { x: s.number, y: s.number, z: s.number }),
-            D: s.struct('D', { data: s.float32Array }),
+            B: s.struct({ x: s.number, y: s.number }),
+            C: s.struct({ x: s.number, y: s.number, z: s.number }),
+            D: s.struct({ data: s.float32Array }),
         });
 
         const createA = () => createComponent('A');

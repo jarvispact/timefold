@@ -1,5 +1,6 @@
 import { Vec3, Vec3Type } from '@timefold/math';
-import { createComponent, PhongMaterialComponent } from './types';
+import { PhongMaterialComponent } from './types';
+import { createComponent } from '@timefold/ecs';
 
 export const type = 'PhongMaterial' as const;
 

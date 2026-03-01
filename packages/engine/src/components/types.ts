@@ -1,21 +1,13 @@
-import {
-    Component,
-    createComponent,
-    defineComponents,
-    InferComponents,
-    InferSchemaType,
-    number,
-    struct,
-} from '@timefold/ecs';
+import { Component, defineComponents, InferComponents, InferSchemaType, number, struct } from '@timefold/ecs';
 import { quat, vec3 } from '../math-schemas';
 
-const TransformSchema = struct('Transform', {
+const TransformSchema = struct({
     translation: vec3,
     rotation: quat,
     scale: vec3,
 });
 
-const PhongMaterialSchema = struct('PhongMaterial', {
+const PhongMaterialSchema = struct({
     ambientColor: vec3,
     diffuseColor: vec3,
     specularColor: vec3,
@@ -23,14 +15,14 @@ const PhongMaterialSchema = struct('PhongMaterial', {
     opacity: number,
 });
 
-const PerspectiveCameraSchema = struct('PerspectiveCamera', {
+const PerspectiveCameraSchema = struct({
     aspect: number,
     fovy: number,
     near: number,
     far: number,
 });
 
-const DirLightSchema = struct('DirLight', {
+const DirLightSchema = struct({
     direction: vec3,
     color: vec3,
     intensity: number,
@@ -56,5 +48,3 @@ export type DirLightData = InferSchemaType<typeof DirLightSchema>;
 export type DirLightComponent = Component<'DirLight', DirLightData>;
 
 export type EngineComponent = InferComponents<typeof engineComponents>;
-
-export { createComponent };
