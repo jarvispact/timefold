@@ -1,10 +1,11 @@
-import { createComponent, defineComponents, InferComponents, number, query, vec2, worldBuilder } from '@timefold/ecs';
+import { createComponent, defineComponents, InferComponents, query, worldBuilder } from '@timefold/ecs';
+import * as S from '@timefold/ecs/schema';
 import { Vec2 } from '@timefold/math';
 
 const components = defineComponents({
-    Position: vec2,
-    Velocity: vec2,
-    Health: number,
+    Position: S.vec2,
+    Velocity: S.vec2,
+    Health: S.number,
     Renderable: undefined,
 });
 

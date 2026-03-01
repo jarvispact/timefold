@@ -1,39 +1,31 @@
-import {
-    Component,
-    defineComponents,
-    InferComponents,
-    InferSchemaType,
-    number,
-    quat,
-    struct,
-    vec3,
-} from '@timefold/ecs';
+import { Component, defineComponents, InferComponents } from '@timefold/ecs';
+import * as S from '@timefold/ecs/schema';
 
-const TransformSchema = struct({
-    translation: vec3,
-    rotation: quat,
-    scale: vec3,
+const TransformSchema = S.struct({
+    translation: S.vec3,
+    rotation: S.quat,
+    scale: S.vec3,
 });
 
-const PhongMaterialSchema = struct({
-    ambientColor: vec3,
-    diffuseColor: vec3,
-    specularColor: vec3,
-    shininess: number,
-    opacity: number,
+const PhongMaterialSchema = S.struct({
+    ambientColor: S.vec3,
+    diffuseColor: S.vec3,
+    specularColor: S.vec3,
+    shininess: S.number,
+    opacity: S.number,
 });
 
-const PerspectiveCameraSchema = struct({
-    aspect: number,
-    fovy: number,
-    near: number,
-    far: number,
+const PerspectiveCameraSchema = S.struct({
+    aspect: S.number,
+    fovy: S.number,
+    near: S.number,
+    far: S.number,
 });
 
-const DirLightSchema = struct({
-    direction: vec3,
-    color: vec3,
-    intensity: number,
+const DirLightSchema = S.struct({
+    direction: S.vec3,
+    color: S.vec3,
+    intensity: S.number,
 });
 
 export const engineComponents = defineComponents({
@@ -43,16 +35,16 @@ export const engineComponents = defineComponents({
     DirLight: DirLightSchema,
 });
 
-export type TransformData = InferSchemaType<typeof TransformSchema>;
+export type TransformData = S.InferSchemaType<typeof TransformSchema>;
 export type TransformComponent = Component<'Transform', TransformData>;
 
-export type PhongMaterialData = InferSchemaType<typeof PhongMaterialSchema>;
+export type PhongMaterialData = S.InferSchemaType<typeof PhongMaterialSchema>;
 export type PhongMaterialComponent = Component<'PhongMaterial', PhongMaterialData>;
 
-export type PerspectiveCameraData = InferSchemaType<typeof PerspectiveCameraSchema>;
+export type PerspectiveCameraData = S.InferSchemaType<typeof PerspectiveCameraSchema>;
 export type PerspectiveCameraComponent = Component<'PerspectiveCamera', PerspectiveCameraData>;
 
-export type DirLightData = InferSchemaType<typeof DirLightSchema>;
+export type DirLightData = S.InferSchemaType<typeof DirLightSchema>;
 export type DirLightComponent = Component<'DirLight', DirLightData>;
 
 export type EngineComponent = InferComponents<typeof engineComponents>;
