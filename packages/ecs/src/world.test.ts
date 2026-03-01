@@ -374,6 +374,65 @@ describe('world', () => {
         });
     });
 
+    describe('resources', () => {
+        type WorldResources = {
+            deltaTime: number;
+            name: string;
+            config: { width: number; height: number };
+        };
+
+        const newResourceWorld = () => worldBuilder<WorldResources>().withComponents({}).withQueries().compile();
+
+        it('should return the correct type for setResource and getResource', () => {
+            // eslint-disable-next-line @typescript-eslint/no-unused-vars
+            const world = newResourceWorld();
+            type World = typeof world;
+            type SetResourceName = Parameters<World['setResource']>[0];
+            type RemoveResourceName = Parameters<World['removeResource']>[0];
+
+            expectTypeOf<SetResourceName>().toExtend<'deltaTime' | 'name' | 'config'>();
+            expectTypeOf<RemoveResourceName>().toExtend<'deltaTime' | 'name' | 'config'>();
+        });
+
+        it('should set and get a resource', () => {
+            const world = newResourceWorld();
+
+            world.setResource('deltaTime', 0.16);
+            expect(world.getResource('deltaTime')).toBe(0.16);
+
+            world.setResource('name', 'hello');
+            expect(world.getResource('name')).toBe('hello');
+
+            world.setResource('config', { width: 800, height: 600 });
+            expect(world.getResource('config')).toEqual({ width: 800, height: 600 });
+        });
+
+        it('should overwrite a resource', () => {
+            const world = newResourceWorld();
+
+            world.setResource('deltaTime', 0.16);
+            expect(world.getResource('deltaTime')).toBe(0.16);
+
+            world.setResource('deltaTime', 0.32);
+            expect(world.getResource('deltaTime')).toBe(0.32);
+        });
+
+        it('should remove a resource', () => {
+            const world = newResourceWorld();
+
+            world.setResource('deltaTime', 0.16);
+            expect(world.getResource('deltaTime')).toBe(0.16);
+
+            world.removeResource('deltaTime');
+            expect(world.getResource('deltaTime')).toBeUndefined();
+        });
+
+        it('should return undefined for a resource that was never set', () => {
+            const world = newResourceWorld();
+            expect(world.getResource('deltaTime')).toBeUndefined();
+        });
+    });
+
     describe('events', () => {
         const components = defineComponents({
             A: undefined,
