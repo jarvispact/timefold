@@ -73,70 +73,7 @@ const renderSystem = () => {
 };
 
 spawnSystem();
-// world.updateQueries();
 movementSystem();
 updateHealthSystem();
 renderSystem();
 console.log({ movableEntities, livelyEntities });
-
-/**
-// =======================
-// =======================
-// =======================
-// variant1
-
-Register systems on the builder instance. The systems need to be passed everything as a argument because world does not exist yet.
-
-Also we need to resolve the system order/dependencies inside the world. This could get very complex as i want to support various system stages and sync and async systems. Nested arrays express async systems that can be executed in parallel.
-
-const spawnEnemies = (world) => { ... }
-const spawnPlayers = (world) => { ... }
-const positionCamera = (world) => { ... }
-const applyGravity = (world) => { ... }
-const movementSystem = (world) => { ... }
-const updateHealthSystem = (world) => { ... }
-const renderToTexture = (world) => { ... }
-const postProcess = (world) => { ... }
-const renderToScreen = (world) => { ... }
-
-const world = worldBuilder()
-    .withComponents(components)
-    .withQueries(renderable, movable, lively)
-    .withSystems(spawnEnemies, spawnPlayers, positionCamera, applyGravity, movementSystem, updateHealthSystem, renderToTexture, postProcess, renderToScreen)
-    .compile();
-
-So we need to define the order / dependencies for each stage. Something like:
-
-{
-    startup: [[spawnEnemies, spawnPlayers], positionCamera],
-    update: [applyGravity, [movementSystem, updateHealthSystem]],
-    render: [renderToTexture, postProcess, renderToScreen],
-}
-
-Then we kick off the frame:
-world.run();
-
-// =======================
-// =======================
-// =======================
-// variant2
-
-const world = worldBuilder().withComponents(components).withQueries(renderable, movable, lively).compile();
-
-const spawnEnemies = (world) => { ... }
-const spawnPlayers = (world) => { ... }
-const positionCamera = () => { ... }
-const applyGravity = () => { ... }
-const movementSystem = () => { ... }
-const updateHealthSystem = () => { ... }
-const renderToTexture = () => { ... }
-const postProcess = () => { ... }
-const renderToScreen = () => { ... }
-
-Final order can be composed by the consumer in a single array without stages. Nested arrays express async systems that can be executed in parallel.
-
-const systemsInOrder = [[spawnEnemies, spawnPlayers], positionCamera, applyGravity, [movementSystem, updateHealthSystem], renderToTexture, postProcess, renderToScreen];
-
-Then we kick off the frame:
-world.run(systemsInOrder);
- */
