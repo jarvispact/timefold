@@ -109,4 +109,30 @@ The function should perform the exact same math operations in all cases, just ho
 //   Per-frame average: A=1.3596ms  B=0.6875ms  C=0.6187ms
 //   C) JS Arrays + Direct Write is 10.00% faster than B) ArrayBuffer Views (trimmed mean)
 //   C) JS Arrays + Direct Write is 54.49% faster than A) JS Arrays + Copy (trimmed mean)
-import './js-array-vs-arraybuffer';
+// import './js-array-vs-arraybuffer';
+
+// ===============================================================
+// Performance of world updates - dense query array iteration
+
+/**
+
+Results:
+
+Results (ms per 1,000 frames):
+   mean=321.89  median=321.14  stddev=7.93
+   per-frame average: 0.3219ms
+   per-frame FPS equivalent: 3107 (if this was the only work)
+
+Results (ms per 1,000 frames):
+   mean=325.61  median=325.07  stddev=7.34
+   per-frame average: 0.3256ms
+   per-frame FPS equivalent: 3071 (if this was the only work)
+
+Results (ms per 1,000 frames):
+   mean=330.98  median=329.62  stddev=7.04
+   per-frame average: 0.3310ms
+   per-frame FPS equivalent: 3021 (if this was the only work)
+
+ */
+
+import './ecs-world-update';
