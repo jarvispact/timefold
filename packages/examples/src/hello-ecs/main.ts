@@ -1,79 +1,82 @@
-import { createComponent, defineComponents, InferComponents, query, worldBuilder } from '@timefold/ecs';
+import { createComponent, defineComponents, InferComponents, query, system, worldBuilder } from '@timefold/ecs';
 import * as S from '@timefold/ecs/schema';
 import { Vec2 } from '@timefold/math';
+
+// 1. Define components
 
 const components = defineComponents({
     Position: S.vec2,
     Velocity: S.vec2,
-    Health: S.number,
-    Renderable: undefined,
+    Moveable: undefined,
 });
 
 type WorldComponent = InferComponents<typeof components>;
 
-const renderable = query<WorldComponent>()
-    .name('renderable')
-    .with('Position')
-    .with('Renderable', { include: false })
-    .map(([pos]) => ({ pos: pos.data }))
-    .compile();
+// 2. Define queries
 
-const movable = query<WorldComponent>()
-    .name('movable')
+const moveQuery = query<WorldComponent>()
+    .name('move')
     .with('Position')
     .with('Velocity')
-    .map(([pos, vel]) => ({ pos: pos.data, vel: vel.data }))
+    .with('Moveable', { include: false })
+    .map(([pos, vel]) => ({ position: pos.data, velocity: vel.data }))
     .compile();
 
-const lively = query<WorldComponent>()
-    .name('lively')
-    .with('Health')
-    .map(([health]) => ({ health: health.data }))
+const renderQuery = query<WorldComponent>()
+    .name('render')
+    .includeEntity()
+    .with('Position')
+    .map(([entity, pos]) => ({ entity, position: pos.data }))
     .compile();
 
-const world = worldBuilder().withComponents(components).withQueries(renderable, movable, lively).compile();
+// 3. Build world
 
-const renderableEntities = world.getQueryResults('renderable');
-const movableEntities = world.getQueryResults('movable');
-const livelyEntities = world.getQueryResults('lively');
+const world = worldBuilder().withComponents(components).withQueries(moveQuery, renderQuery).compile();
 
-const spawnSystem = () => {
-    for (let i = 0; i < 10; i++) {
-        const entity = world.createEntity();
-        world.spawn(entity, [
-            createComponent('Position', Vec2.create(i, i)),
-            createComponent('Velocity', Vec2.create(1, 0)),
-            createComponent('Health', 100),
-        ]);
+// 4. Get query result references (stable arrays, updated by world.update)
+
+const moveables = world.getQueryResults('move');
+const renderables = world.getQueryResults('render');
+
+// 5. Define systems
+
+const spawnSystem = system(() => {
+    world.spawn([
+        createComponent('Position', Vec2.create(0, 0)),
+        createComponent('Velocity', Vec2.create(1, 0)),
+        createComponent('Moveable'),
+    ]);
+    world.spawn([
+        createComponent('Position', Vec2.create(0, 0)),
+        createComponent('Velocity', Vec2.create(0, 2)),
+        createComponent('Moveable'),
+    ]);
+    world.spawn([createComponent('Position', Vec2.create(5, 5)), createComponent('Velocity', Vec2.create(0, 0))]);
+});
+
+const movementSystem = system(() => {
+    for (let i = 0; i < moveables.length; i++) {
+        Vec2.add(moveables[i].position, moveables[i].velocity);
     }
-};
+});
 
-const movementSystem = () => {
-    console.log('movement system', movableEntities.length);
+let nextPrintTime = 0;
 
-    for (const item of movableEntities) {
-        Vec2.add(item.pos, item.vel);
+const renderSystem = system(() => {
+    const now = performance.now();
+    if (now < nextPrintTime) return;
+
+    nextPrintTime = now + 1000;
+
+    for (let i = 0; i < renderables.length; i++) {
+        const { entity, position } = renderables[i];
+        console.log(`entity ${entity} at (${position[0]}, ${position[1]})`);
     }
-};
+});
 
-const updateHealthSystem = () => {
-    console.log('health system', livelyEntities.length);
+// 6. Run
 
-    for (const item of livelyEntities) {
-        item.health -= 1;
-    }
-};
-
-const renderSystem = () => {
-    console.log('render system', renderableEntities.length);
-
-    for (const item of renderableEntities) {
-        console.log(`Entity at position (${item.pos[0]}, ${item.pos[1]})`);
-    }
-};
-
-spawnSystem();
-movementSystem();
-updateHealthSystem();
-renderSystem();
-console.log({ movableEntities, livelyEntities });
+world.run({
+    startup: [spawnSystem],
+    update: [movementSystem, renderSystem],
+});

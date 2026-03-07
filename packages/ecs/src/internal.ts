@@ -8,6 +8,7 @@ import { Component } from './component';
 import { Entity } from './entity';
 import { GenericCompiledQuery } from './query';
 import { Schema } from './schema';
+import { AsyncSystem } from './system';
 
 export type AssumeString<T> = T extends string ? T : never;
 
@@ -189,6 +190,8 @@ export const createQueryManager = (
     const seen = new Set<number>();
 
     const flushQueue = () => {
+        if (changeQueue.length === 0) return;
+
         seen.clear();
 
         for (let i = 0; i < changeQueue.length; i++) {
@@ -258,3 +261,5 @@ export type Vec3Type = Vec3ArrayType | TypedArray;
 
 export type QuatArrayType = [number, number, number, number];
 export type QuatType = QuatArrayType | TypedArray;
+
+export const callAsyncSystem = (system: AsyncSystem) => system.fn();

@@ -13,10 +13,11 @@ import {
     SetResourceEcsEvent,
     SpawnEntityEcsEvent,
 } from './event';
-import { IndexTupleByName, TupleOfLength, createEntityManager, createQueryManager } from './internal';
+import { IndexTupleByName, TupleOfLength, callAsyncSystem, createEntityManager, createQueryManager } from './internal';
 import { GenericCompiledQuery, InferQueryResultTuple } from './query';
 import { GenericResources } from './resource';
 import { Schema } from './schema';
+import { SyncSystem, SystemListEntry } from './system';
 
 type WorldBuilderContext = {
     components: Record<string, Schema<string, any> | undefined>;
@@ -57,6 +58,13 @@ type World<
                 : []
         ) => void,
     ) => World<C, Q, R, E>;
+
+    startup: (sys: SyncSystem[]) => void;
+    startupAsync: (sys: SystemListEntry[]) => Promise<void>;
+    update: (sys: SyncSystem[]) => void;
+    updateAsync: (sys: SystemListEntry[]) => Promise<void>;
+    run: (args: { startup: SyncSystem[]; update: SyncSystem[] }) => void;
+    runAsync: (args: { startup: SystemListEntry[]; update: SystemListEntry[] }) => Promise<void>;
 };
 
 type EventSubscriber = (payload: unknown) => void;
@@ -240,6 +248,59 @@ const createWorld = (args: WorldBuilderContext) => {
         return world;
     };
 
+    const runSystemsSync = (systems: SyncSystem[]) => {
+        for (let i = 0; i < systems.length; i++) {
+            systems[i].fn();
+        }
+    };
+
+    const runSystemsAsync = async (systems: SystemListEntry[]) => {
+        for (let i = 0; i < systems.length; i++) {
+            const system = systems[i];
+            if (Array.isArray(system)) {
+                await Promise.all(system.map(callAsyncSystem));
+            } else if (system.async) {
+                await system.fn();
+            } else {
+                system.fn();
+            }
+        }
+    };
+
+    const update = (systems: SyncSystem[]) => {
+        qm.flushQueue();
+        runSystemsSync(systems);
+    };
+
+    const updateAsync = async (systems: SystemListEntry[]) => {
+        qm.flushQueue();
+        await runSystemsAsync(systems);
+    };
+
+    const run = (args: { startup: SyncSystem[]; update: SyncSystem[] }) => {
+        runSystemsSync(args.startup);
+
+        const tick = () => {
+            update(args.update);
+            window.requestAnimationFrame(tick);
+        };
+
+        window.requestAnimationFrame(tick);
+    };
+
+    const runAsync = async (args: { startup: SystemListEntry[]; update: SystemListEntry[] }) => {
+        await runSystemsAsync(args.startup);
+
+        const tick = async () => {
+            await updateAsync(args.update);
+            // eslint-disable-next-line @typescript-eslint/no-misused-promises
+            window.requestAnimationFrame(tick);
+        };
+
+        // eslint-disable-next-line @typescript-eslint/no-misused-promises
+        window.requestAnimationFrame(tick);
+    };
+
     const world = {
         createEntity: em.createEntity,
         createEntities: em.createEntities,
@@ -260,6 +321,13 @@ const createWorld = (args: WorldBuilderContext) => {
         setResource,
         getResource,
         removeResource,
+
+        startup: runSystemsSync,
+        startupAsync: runSystemsAsync,
+        update,
+        updateAsync,
+        run,
+        runAsync,
     } as unknown as World;
 
     return world;
