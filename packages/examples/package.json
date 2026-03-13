@@ -12,6 +12,9 @@
 
     "dev:hello-ecs": "sed 's/{example-folder}/hello-ecs/g' index.html.template > index.html && vite --port 9093",
     "build:hello-ecs": "sed 's/{example-folder}/hello-ecs/g' index.html.template > index.html && vite build",
+    
+    "dev:webgpu-api": "sed 's/{example-folder}/webgpu-api/g' index.html.template > index.html && vite --port 9093",
+    "build:webgpu-api": "sed 's/{example-folder}/webgpu-api/g' index.html.template > index.html && vite build",
 
     "preview": "vite preview --port 9191"
   },

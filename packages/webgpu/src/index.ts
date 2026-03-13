@@ -1,3 +1,2 @@
-export const webgpu = (test: string) => {
-    return { webgpu: test };
-};
+export * as WebgpuUtils from './utils';
+export * from './types';
