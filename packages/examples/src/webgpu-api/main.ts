@@ -194,6 +194,7 @@ const FrameBgl = Bgl.group([Bgl.uniform(FrameUniforms, 'frame')]);
 
 const ObjectBgl = Bgl.group([Bgl.uniform(ObjectUniforms, 'object')]);
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 const Groups = Bgl.groups([FrameBgl, ObjectBgl]);
 
 const frameBindGroupLayout = device.createBindGroupLayout({
