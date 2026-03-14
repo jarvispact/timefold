@@ -70,6 +70,7 @@ export const getBufferSizeAndViewConfigForStruct = <Definition extends WgslStruc
     structDefinition: Definition,
     viewConfig: Record<string, unknown> = {},
 ) => {
+    console.log({ structDefinition });
     // TODO: compute final buffer size in bytes and recursively build the view config
     return { bufferSize: 0, viewConfig: viewConfig as unknown as ViewConfig<WgslStruct<string, Definition>> };
 };
@@ -79,6 +80,7 @@ export const getBufferSizeAndViewConfigForSizedArray = <Element extends WgslArra
     size: Size,
     viewConfig: unknown[] = [],
 ) => {
+    console.log({ element, size });
     // TODO: compute final buffer size in bytes and recursively build the view config
     return { bufferSize: 0, viewConfig: viewConfig as unknown as ViewConfig<WgslSizedArray<Element, Size>> };
 };
@@ -88,6 +90,7 @@ export const getBufferSizeAndViewConfigForRuntimeArray = <Element extends WgslAr
     maxSize: number,
     viewConfig: unknown[] = [],
 ) => {
+    console.log({ element, maxSize });
     // TODO: compute final buffer size in bytes and recursively build the view config
     return { bufferSize: 0, viewConfig: viewConfig as unknown as ViewConfig<WgslRuntimeArray<Element>> };
 };

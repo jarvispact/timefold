@@ -17,7 +17,7 @@ type StructDefinitionValueGeneric =
 
 export type WgslStructDefinitionGeneric = Record<string, StructDefinitionValueGeneric>;
 
-export type WgslGetWgslOptions = { expandNested?: boolean };
+export type WgslStructGetWgslOptions = { expandNested?: boolean };
 
 export type WgslStruct<Name extends string, Definition extends WgslStructDefinitionGeneric> = {
     type: 'struct';
@@ -27,7 +27,7 @@ export type WgslStruct<Name extends string, Definition extends WgslStructDefinit
     bufferSize: number;
     viewConfig: ViewConfig<WgslStruct<Name, Definition>>;
 
-    getWgsl: (options?: WgslGetWgslOptions) => string;
+    getWgsl: (options?: WgslStructGetWgslOptions) => string;
 };
 
 // sized array
@@ -41,8 +41,6 @@ export type WgslSizedArray<Element extends WgslArrayElementGeneric, Size extends
 
     bufferSize: number;
     viewConfig: ViewConfig<WgslSizedArray<Element, Size>>;
-
-    getWgsl: (options?: WgslGetWgslOptions) => string;
 };
 
 // runtime array
@@ -54,6 +52,4 @@ export type WgslRuntimeArray<Element extends WgslArrayElementGeneric> = {
 
     bufferSize: number;
     viewConfig: ViewConfig<WgslRuntimeArray<Element>>;
-
-    getWgsl: (options?: WgslGetWgslOptions) => string;
 };

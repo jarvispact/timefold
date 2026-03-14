@@ -1,4 +1,4 @@
-import { expect, it, describe } from 'vitest';
+import { expect, it, describe, expectTypeOf } from 'vitest';
 import { struct } from './wgsl';
 
 describe('wgsl', () => {
@@ -10,6 +10,10 @@ describe('wgsl', () => {
 
             expect(Test.bufferSize).toEqual(64);
             expect(Test.viewConfig).toEqual({ model_matrix: { scalar: 'f32', byteOffset: 0, componentCount: 16 } });
+
+            expectTypeOf<typeof Test.viewConfig>().toEqualTypeOf<{
+                model_matrix: { scalar: 'f32'; byteOffset: number; componentCount: number };
+            }>();
         });
     });
 

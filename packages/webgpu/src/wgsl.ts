@@ -5,7 +5,7 @@ import {
 } from './internal';
 import {
     WgslArrayElementGeneric,
-    WgslGetWgslOptions,
+    WgslStructGetWgslOptions,
     WgslRuntimeArray,
     WgslSizedArray,
     WgslStruct,
@@ -25,7 +25,10 @@ export const struct = <Name extends string, Definition extends WgslStructDefinit
         bufferSize,
         viewConfig,
 
-        getWgsl: (options?: WgslGetWgslOptions) => '',
+        getWgsl: (options?: WgslStructGetWgslOptions) => {
+            console.log(options);
+            return '';
+        },
     };
 };
 
@@ -41,8 +44,6 @@ export const sizedArray = <Element extends WgslArrayElementGeneric, Size extends
 
         bufferSize,
         viewConfig,
-
-        getWgsl: (options?: WgslGetWgslOptions) => '',
     };
 };
 
@@ -58,7 +59,5 @@ export const runtimeArray = <Element extends WgslArrayElementGeneric>(
 
         bufferSize,
         viewConfig,
-
-        getWgsl: (options?: WgslGetWgslOptions) => '',
     };
 };

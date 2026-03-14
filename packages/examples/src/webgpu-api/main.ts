@@ -97,7 +97,7 @@ const ObjectUniforms = Wgsl.struct('ObjectUniforms', {
 
 // const FRAME_UNIFORM_SIZE = 160;
 const frameUniformBuffer = device.createBuffer({
-    size: FrameUniforms.byteSize,
+    size: FrameUniforms.bufferSize,
     usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
 });
 
@@ -108,11 +108,11 @@ const frameUniformBuffer = device.createBuffer({
 
 // const OBJECT_UNIFORM_SIZE = 80;
 const objectUniformBufferA = device.createBuffer({
-    size: ObjectUniforms.byteSize,
+    size: ObjectUniforms.bufferSize,
     usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
 });
 const objectUniformBufferB = device.createBuffer({
-    size: ObjectUniforms.byteSize,
+    size: ObjectUniforms.bufferSize,
     usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
 });
 
@@ -202,7 +202,7 @@ const frameBindGroupLayout = device.createBindGroupLayout({
         {
             binding: 0,
             visibility: GPUShaderStage.VERTEX | GPUShaderStage.FRAGMENT,
-            buffer: { type: 'uniform', minBindingSize: FrameUniforms.byteSize },
+            buffer: { type: 'uniform', minBindingSize: FrameUniforms.bufferSize },
         },
     ],
 });
@@ -212,7 +212,7 @@ const objectBindGroupLayout = device.createBindGroupLayout({
         {
             binding: 0,
             visibility: GPUShaderStage.VERTEX | GPUShaderStage.FRAGMENT,
-            buffer: { type: 'uniform', minBindingSize: ObjectUniforms.byteSize },
+            buffer: { type: 'uniform', minBindingSize: ObjectUniforms.bufferSize },
         },
     ],
 });
@@ -305,8 +305,8 @@ DomUtils.onResize({
     },
 });
 
-const frameUniformData = new Float32Array(FRAME_UNIFORM_SIZE / 4);
-const objectUniformData = new Float32Array(OBJECT_UNIFORM_SIZE / 4);
+const frameUniformData = new Float32Array(FrameUniforms.bufferSize / 4);
+const objectUniformData = new Float32Array(ObjectUniforms.bufferSize / 4);
 const model = Mat4.create();
 const translation = Mat4.create();
 const identity = Mat4.create();
