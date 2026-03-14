@@ -1,3 +1,7 @@
+/* eslint-disable @typescript-eslint/no-unsafe-assignment */
+/* eslint-disable @typescript-eslint/no-unsafe-member-access */
+/* eslint-disable @typescript-eslint/no-explicit-any */
+
 // uniforms
 
 import {
@@ -66,33 +70,105 @@ export type ViewConfig<Type> = Type extends WgslScalar
             ? ViewConfig<Element>[]
             : never;
 
+// Layout computation helpers
+
+const getScalar = (primitive: string): WgslScalar => {
+    if (primitive === 'f32' || primitive === 'i32' || primitive === 'u32') return primitive;
+    const idx = primitive.indexOf('<');
+    return primitive.substring(idx + 1, primitive.length - 1) as WgslScalar;
+};
+
+const getLayoutInfo = (value: any): { align: number; size: number } => {
+    if (typeof value === 'string') {
+        const entry = WGSL_LOOKUP_TABLE[value as keyof typeof WGSL_LOOKUP_TABLE];
+        return { align: entry.align, size: entry.size };
+    }
+    if (value.type === 'struct') {
+        let maxAlign = 0;
+        for (const key in value.definition) {
+            const info = getLayoutInfo(value.definition[key]);
+            if (info.align > maxAlign) maxAlign = info.align;
+        }
+        return { align: maxAlign, size: value.bufferSize };
+    }
+    // sized-array
+    const elemInfo = getLayoutInfo(value.element);
+    return { align: elemInfo.align, size: value.bufferSize };
+};
+
+const buildViewConfig = (value: any, baseOffset: number): unknown => {
+    if (typeof value === 'string') {
+        const entry = WGSL_LOOKUP_TABLE[value as keyof typeof WGSL_LOOKUP_TABLE];
+        return { scalar: getScalar(value), byteOffset: baseOffset, componentCount: entry.components };
+    }
+    if (value.type === 'struct') {
+        const result: Record<string, unknown> = {};
+        let offset = 0;
+        for (const key in value.definition) {
+            const member = value.definition[key];
+            const { align, size } = getLayoutInfo(member);
+            offset = roundUp(align, offset);
+            result[key] = buildViewConfig(member, baseOffset + offset);
+            offset += size;
+        }
+        return result;
+    }
+    // sized-array
+    const elemInfo = getLayoutInfo(value.element);
+    const stride = roundUp(elemInfo.align, elemInfo.size);
+    const result: unknown[] = [];
+    for (let i = 0; i < value.size; i++) {
+        result.push(buildViewConfig(value.element, baseOffset + i * stride));
+    }
+    return result;
+};
+
 export const getBufferSizeAndViewConfigForStruct = <Definition extends WgslStructDefinitionGeneric>(
     structDefinition: Definition,
-    viewConfig: Record<string, unknown> = {},
 ) => {
-    console.log({ structDefinition });
-    // TODO: compute final buffer size in bytes and recursively build the view config
-    return { bufferSize: 0, viewConfig: viewConfig as unknown as ViewConfig<WgslStruct<string, Definition>> };
+    const viewConfig: Record<string, unknown> = {};
+    let offset = 0;
+    let maxAlign = 0;
+
+    for (const key in structDefinition) {
+        const member = structDefinition[key];
+        const { align, size } = getLayoutInfo(member);
+        offset = roundUp(align, offset);
+        viewConfig[key] = buildViewConfig(member, offset);
+        if (align > maxAlign) maxAlign = align;
+        offset += size;
+    }
+
+    const bufferSize = maxAlign > 0 ? roundUp(maxAlign, offset) : 0;
+    return { bufferSize, viewConfig: viewConfig as unknown as ViewConfig<WgslStruct<string, Definition>> };
 };
 
 export const getBufferSizeAndViewConfigForSizedArray = <Element extends WgslArrayElementGeneric, Size extends number>(
     element: Element,
     size: Size,
-    viewConfig: unknown[] = [],
 ) => {
-    console.log({ element, size });
-    // TODO: compute final buffer size in bytes and recursively build the view config
-    return { bufferSize: 0, viewConfig: viewConfig as unknown as ViewConfig<WgslSizedArray<Element, Size>> };
+    const elemInfo = getLayoutInfo(element);
+    const stride = roundUp(elemInfo.align, elemInfo.size);
+    const bufferSize = size * stride;
+    const viewConfig: unknown[] = [];
+    for (let i = 0; i < size; i++) {
+        viewConfig.push(buildViewConfig(element, i * stride));
+    }
+    return { bufferSize, viewConfig: viewConfig as unknown as ViewConfig<WgslSizedArray<Element, Size>> };
 };
 
 export const getBufferSizeAndViewConfigForRuntimeArray = <Element extends WgslArrayElementGeneric>(
     element: Element,
     maxSize: number,
-    viewConfig: unknown[] = [],
 ) => {
-    console.log({ element, maxSize });
-    // TODO: compute final buffer size in bytes and recursively build the view config
-    return { bufferSize: 0, viewConfig: viewConfig as unknown as ViewConfig<WgslRuntimeArray<Element>> };
+    const elemInfo = getLayoutInfo(element);
+    const stride = roundUp(elemInfo.align, elemInfo.size);
+    const bufferSize = maxSize * stride;
+    const viewConfig: unknown[] = [];
+    for (let i = 0; i < maxSize; i++) {
+        viewConfig.push(buildViewConfig(element, i * stride));
+    }
+    return { bufferSize, viewConfig: viewConfig as unknown as ViewConfig<WgslRuntimeArray<Element>> };
 };
 
 // vertex
