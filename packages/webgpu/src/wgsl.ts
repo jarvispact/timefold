@@ -1,5 +1,11 @@
 import {
+    getBufferSizeAndViewConfigForRuntimeArray,
+    getBufferSizeAndViewConfigForSizedArray,
+    getBufferSizeAndViewConfigForStruct,
+} from './internal';
+import {
     WgslArrayElementGeneric,
+    WgslGetWgslOptions,
     WgslRuntimeArray,
     WgslSizedArray,
     WgslStruct,
@@ -10,12 +16,16 @@ export const struct = <Name extends string, Definition extends WgslStructDefinit
     name: Name,
     definition: Definition,
 ): WgslStruct<Name, Definition> => {
+    const { bufferSize, viewConfig } = getBufferSizeAndViewConfigForStruct(definition);
     return {
         type: 'struct',
         name,
         definition,
-        byteSize: 0, // TODO: compute byteSize
-        getWgsl: () => '',
+
+        bufferSize,
+        viewConfig,
+
+        getWgsl: (options?: WgslGetWgslOptions) => '',
     };
 };
 
@@ -23,12 +33,16 @@ export const sizedArray = <Element extends WgslArrayElementGeneric, Size extends
     element: Element,
     size: Size,
 ): WgslSizedArray<Element, Size> => {
+    const { bufferSize, viewConfig } = getBufferSizeAndViewConfigForSizedArray(element, size);
     return {
         type: 'sized-array',
         element,
         size,
-        byteSize: 0, // TODO: compute byteSize
-        getWgsl: () => '',
+
+        bufferSize,
+        viewConfig,
+
+        getWgsl: (options?: WgslGetWgslOptions) => '',
     };
 };
 
@@ -36,11 +50,15 @@ export const runtimeArray = <Element extends WgslArrayElementGeneric>(
     element: Element,
     maxSize: number,
 ): WgslRuntimeArray<Element> => {
+    const { bufferSize, viewConfig } = getBufferSizeAndViewConfigForRuntimeArray(element, maxSize);
     return {
         type: 'runtime-array',
         element,
         maxSize,
-        byteSize: 0, // TODO: compute byteSize
-        getWgsl: () => '',
+
+        bufferSize,
+        viewConfig,
+
+        getWgsl: (options?: WgslGetWgslOptions) => '',
     };
 };

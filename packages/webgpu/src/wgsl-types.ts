@@ -1,13 +1,13 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
-import { InvalidArrayType, WGSL_LOOKUP_TABLE } from './internal';
+import { InvalidArrayType, ViewConfig, WGSL_LOOKUP_TABLE } from './internal';
 
 // primitive
 
 type WgslLookupTable = typeof WGSL_LOOKUP_TABLE;
 export type WgslPrimitive = keyof WgslLookupTable;
 export type WgslArrayPrimitive = Exclude<WgslPrimitive, InvalidArrayType>;
-
+export type WgslScalar = 'f32' | 'i32' | 'u32';
 // struct
 
 type StructDefinitionValueGeneric =
@@ -17,14 +17,17 @@ type StructDefinitionValueGeneric =
 
 export type WgslStructDefinitionGeneric = Record<string, StructDefinitionValueGeneric>;
 
-export type WgslGetWgslParam = 'uniform-declaration' | 'struct-declaration';
+export type WgslGetWgslOptions = { expandNested?: boolean };
 
 export type WgslStruct<Name extends string, Definition extends WgslStructDefinitionGeneric> = {
     type: 'struct';
     name: Name;
     definition: Definition;
-    byteSize: number;
-    getWgsl: (which: WgslGetWgslParam) => string;
+
+    bufferSize: number;
+    viewConfig: ViewConfig<WgslStruct<Name, Definition>>;
+
+    getWgsl: (options?: WgslGetWgslOptions) => string;
 };
 
 // sized array
@@ -35,8 +38,11 @@ export type WgslSizedArray<Element extends WgslArrayElementGeneric, Size extends
     type: 'sized-array';
     element: Element;
     size: Size;
-    byteSize: number;
-    getWgsl: (which: WgslGetWgslParam) => string;
+
+    bufferSize: number;
+    viewConfig: ViewConfig<WgslSizedArray<Element, Size>>;
+
+    getWgsl: (options?: WgslGetWgslOptions) => string;
 };
 
 // runtime array
@@ -45,6 +51,9 @@ export type WgslRuntimeArray<Element extends WgslArrayElementGeneric> = {
     type: 'runtime-array';
     element: Element;
     maxSize: number;
-    byteSize: number;
-    getWgsl: (which: WgslGetWgslParam) => string;
+
+    bufferSize: number;
+    viewConfig: ViewConfig<WgslRuntimeArray<Element>>;
+
+    getWgsl: (options?: WgslGetWgslOptions) => string;
 };
