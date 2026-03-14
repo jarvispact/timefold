@@ -4,7 +4,7 @@
 
 import { Mat4, Vec3 } from '@timefold/math';
 import { DomUtils } from '@timefold/engine';
-import { WebgpuUtils } from '@timefold/webgpu';
+import { WebgpuUtils, Wgsl, Bgl } from '@timefold/webgpu';
 
 // --- GPU init ---------------------------------------------------------------
 
@@ -83,9 +83,21 @@ const VERTEX_STRIDE = 6 * 4; // 6 floats × 4 bytes
 //   vec3<f32>   viewPos       offset 144  size 12  align 16  (+4 bytes padding)
 //   Total: roundUp(16, 156) = 160 bytes
 
-const FRAME_UNIFORM_SIZE = 160;
+const FrameUniforms = Wgsl.struct('FrameUniforms', {
+    view: 'mat4x4<f32>',
+    projection: 'mat4x4<f32>',
+    lightPos: 'vec3<f32>',
+    viewPos: 'vec3<f32>',
+});
+
+const ObjectUniforms = Wgsl.struct('ObjectUniforms', {
+    model: 'mat4x4<f32>',
+    color: 'vec3<f32>',
+});
+
+// const FRAME_UNIFORM_SIZE = 160;
 const frameUniformBuffer = device.createBuffer({
-    size: FRAME_UNIFORM_SIZE,
+    size: FrameUniforms.byteSize,
     usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
 });
 
@@ -94,13 +106,13 @@ const frameUniformBuffer = device.createBuffer({
 //   vec3<f32>   color         offset 64   size 12  align 16  (+4 bytes padding)
 //   Total: roundUp(16, 76) = 80 bytes
 
-const OBJECT_UNIFORM_SIZE = 80;
+// const OBJECT_UNIFORM_SIZE = 80;
 const objectUniformBufferA = device.createBuffer({
-    size: OBJECT_UNIFORM_SIZE,
+    size: ObjectUniforms.byteSize,
     usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
 });
 const objectUniformBufferB = device.createBuffer({
-    size: OBJECT_UNIFORM_SIZE,
+    size: ObjectUniforms.byteSize,
     usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
 });
 
@@ -122,7 +134,6 @@ let depthTexture = device.createTexture({
 // This keeps WGSL and TS in sync and eliminates offset/alignment bugs.
 
 const shaderCode = /* wgsl */ `
-
 struct FrameUniforms {
   view:       mat4x4<f32>,
   projection: mat4x4<f32>,
@@ -179,12 +190,18 @@ const shaderModule = device.createShaderModule({ code: shaderCode });
 // the uniform struct metadata. The abstraction knows visibility from entry point usage,
 // buffer type from var<uniform> vs var<storage>, and minBindingSize from struct layout.
 
+const FrameBgl = Bgl.group([Bgl.uniform(FrameUniforms, 'frame')]);
+
+const ObjectBgl = Bgl.group([Bgl.uniform(ObjectUniforms, 'object')]);
+
+const Groups = Bgl.groups([FrameBgl, ObjectBgl]);
+
 const frameBindGroupLayout = device.createBindGroupLayout({
     entries: [
         {
             binding: 0,
             visibility: GPUShaderStage.VERTEX | GPUShaderStage.FRAGMENT,
-            buffer: { type: 'uniform', minBindingSize: FRAME_UNIFORM_SIZE },
+            buffer: { type: 'uniform', minBindingSize: FrameUniforms.byteSize },
         },
     ],
 });
@@ -194,7 +211,7 @@ const objectBindGroupLayout = device.createBindGroupLayout({
         {
             binding: 0,
             visibility: GPUShaderStage.VERTEX | GPUShaderStage.FRAGMENT,
-            buffer: { type: 'uniform', minBindingSize: OBJECT_UNIFORM_SIZE },
+            buffer: { type: 'uniform', minBindingSize: ObjectUniforms.byteSize },
         },
     ],
 });

@@ -6,7 +6,7 @@ import {
     CreateDeviceAndContextOptions,
     CreateDeviceAndContextResult,
     CreateDeviceOptions,
-} from './types';
+} from './util-types';
 
 const defaultAdapterOptions: GPURequestAdapterOptions = {
     powerPreference: 'high-performance',
