@@ -17,6 +17,7 @@
     "types": ["node"]
   },
   "include": [
-    "packages/*/vite.config.ts"
+    "packages/*/vite.config.ts",
+    "packages/*/vitest.config.ts"
   ]
 }

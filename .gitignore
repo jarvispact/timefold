@@ -4,3 +4,4 @@ packages/**/dist
 tsconfig.tsbuildinfo
 tsconfig.test.tsbuildinfo
 packages/examples/index.html
+packages/webgpu/.vitest-attachments

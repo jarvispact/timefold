@@ -57,7 +57,7 @@ export default [
   },
   {
     name: 'typescript-node',
-    files: ['**/vite.config.ts'],
+    files: ['**/vite.config.ts', '**/vitest.config.ts'],
     languageOptions: {
       parserOptions: {
         project: './tsconfig.node.json',

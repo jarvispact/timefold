@@ -23,5 +23,8 @@
     "test:run": "tsc -p ./tsconfig.test.json --noEmit && vitest run",
     "build": "rm -rf ./dist *.tsbuildinfo && tsc -b",
     "publish-to-npm": "npm publish"
+  },
+  "devDependencies": {
+    "@vitest/browser-playwright": "^4.1.0"
   }
 }
