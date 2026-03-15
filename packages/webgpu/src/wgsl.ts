@@ -1,14 +1,9 @@
-/* eslint-disable @typescript-eslint/no-unsafe-call */
-/* eslint-disable @typescript-eslint/no-unsafe-assignment */
-/* eslint-disable @typescript-eslint/no-unsafe-argument */
-/* eslint-disable @typescript-eslint/no-unsafe-return */
-/* eslint-disable @typescript-eslint/no-unsafe-member-access */
-/* eslint-disable @typescript-eslint/no-explicit-any */
-
 import {
     getBufferSizeAndViewConfigForRuntimeArray,
     getBufferSizeAndViewConfigForSizedArray,
     getBufferSizeAndViewConfigForStruct,
+    isSizedArray,
+    isStruct,
 } from './internal';
 import {
     WgslArrayElementGeneric,
@@ -19,29 +14,33 @@ import {
     WgslStructDefinitionGeneric,
 } from './wgsl-types';
 
-const getFieldTypeName = (value: any): string => {
+type GenericValue =
+    | string
+    | WgslStruct<string, WgslStructDefinitionGeneric>
+    | WgslSizedArray<WgslArrayElementGeneric, number>;
+
+const getValueString = (value: GenericValue): string => {
     if (typeof value === 'string') return value;
-    if (value.type === 'struct') return value.name;
-    // sized-array
-    return `array<${getFieldTypeName(value.element)}, ${value.size}>`;
+    if (isStruct(value)) return value.name;
+    return `array<${getValueString(value.element)}, ${value.size}>`;
 };
 
-const collectNestedStructs = (def: Record<string, any>, seen: Set<string>, declarations: string[]) => {
-    for (const key in def) {
-        const value = def[key];
-        if (typeof value === 'string') continue;
-        if (value.type === 'struct' && !seen.has(value.name)) {
-            collectNestedStructs(value.definition, seen, declarations);
-            seen.add(value.name);
-            declarations.push(value.getWgsl());
-        } else if (value.type === 'sized-array' && typeof value.element !== 'string') {
-            if (value.element.type === 'struct' && !seen.has(value.element.name)) {
-                collectNestedStructs(value.element.definition, seen, declarations);
-                seen.add(value.element.name);
-                declarations.push(value.element.getWgsl());
-            }
-        }
+const collectNestedStructs = (definition: WgslStructDefinitionGeneric, seen: Set<string>, result: string[]): void => {
+    for (const key of Object.keys(definition)) {
+        const value = definition[key] as GenericValue;
+        const nested = isStruct(value) ? value : isSizedArray(value) && isStruct(value.element) ? value.element : null;
+        if (nested === null || seen.has(nested.name)) continue;
+        seen.add(nested.name);
+        collectNestedStructs(nested.definition, seen, result);
+        result.push(nested.getWgsl());
     }
+};
+
+const getDeduplicatedNestedStructs = (structDefinition: WgslStructDefinitionGeneric): string[] => {
+    const seen = new Set<string>();
+    const result: string[] = [];
+    collectNestedStructs(structDefinition, seen, result);
+    return result;
 };
 
 export const struct = <Name extends string, Definition extends WgslStructDefinitionGeneric>(
@@ -58,25 +57,21 @@ export const struct = <Name extends string, Definition extends WgslStructDefinit
         viewConfig,
 
         getWgsl: (options?: WgslStructGetWgslOptions) => {
-            let result = '';
+            const indent = '    ';
+
+            const propertyLines = Object.keys(definition).map((key) => {
+                const value = definition[key];
+                return `${indent}${key}: ${getValueString(value)}`;
+            });
+
+            const toplevel = `struct ${name} {\n${propertyLines.join(',\n')}\n}`;
 
             if (options?.expandNested) {
-                const seen = new Set<string>();
-                const declarations: string[] = [];
-                collectNestedStructs(definition, seen, declarations);
-                for (let i = 0; i < declarations.length; i++) {
-                    result += declarations[i] + '\n\n';
-                }
+                const nestedStructs = getDeduplicatedNestedStructs(definition).join('\n\n');
+                return [nestedStructs, toplevel].join('\n\n');
             }
 
-            result += `struct ${name} {\n`;
-            const keys = Object.keys(definition);
-            for (let i = 0; i < keys.length; i++) {
-                result += `    ${keys[i]}: ${getFieldTypeName(definition[keys[i]])},\n`;
-            }
-            result += '}';
-
-            return result;
+            return toplevel;
         },
     };
 };

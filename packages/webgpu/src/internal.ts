@@ -171,6 +171,42 @@ export const getBufferSizeAndViewConfigForRuntimeArray = <Element extends WgslAr
     return { bufferSize, viewConfig: viewConfig as unknown as ViewConfig<WgslRuntimeArray<Element>> };
 };
 
+// helpers
+
+const isNil = (val: unknown): val is null | undefined => val === undefined || val === null;
+
+const isObjectWithKeys = <const Keys extends string[]>(
+    obj: unknown,
+    keys: Keys,
+): obj is Record<Keys[number], unknown> => {
+    if (typeof obj !== 'object') {
+        return false;
+    }
+
+    if (isNil(obj)) {
+        return false;
+    }
+
+    for (const key of keys) {
+        if (!(key in obj)) {
+            return false;
+        }
+    }
+
+    return true;
+};
+
+// type guards
+
+export const isStruct = (value: unknown): value is WgslStruct<string, WgslStructDefinitionGeneric> =>
+    isObjectWithKeys(value, ['type']) && typeof value.type === 'string' && value.type === 'struct';
+
+export const isSizedArray = (value: unknown): value is WgslSizedArray<WgslArrayElementGeneric, number> =>
+    isObjectWithKeys(value, ['type']) && typeof value.type === 'string' && value.type === 'sized-array';
+
+export const isRuntimeArray = (value: unknown): value is WgslRuntimeArray<WgslArrayElementGeneric> =>
+    isObjectWithKeys(value, ['type']) && typeof value.type === 'string' && value.type === 'runtime-array';
+
 // vertex
 
 export const VERTEX_LOOKUP_TABLE = {

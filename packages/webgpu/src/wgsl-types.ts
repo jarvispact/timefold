@@ -10,7 +10,7 @@ export type WgslArrayPrimitive = Exclude<WgslPrimitive, InvalidArrayType>;
 export type WgslScalar = 'f32' | 'i32' | 'u32';
 // struct
 
-type StructDefinitionValueGeneric =
+export type StructDefinitionValueGeneric =
     | WgslPrimitive
     | WgslSizedArray<WgslArrayElementGeneric, any>
     | WgslStruct<string, any>;
