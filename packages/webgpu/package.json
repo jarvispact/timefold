@@ -20,7 +20,11 @@
   "license": "MIT",
   "scripts": {
     "test": "vitest",
+    "test:unit": "vitest --project unit",
+    "test:browser": "vitest --project browser",
     "test:run": "tsc -p ./tsconfig.test.json --noEmit && vitest run",
+    "test:unit:run": "tsc -p ./tsconfig.test.json --noEmit && vitest run --project unit",
+    "test:browser:run": "tsc -p ./tsconfig.test.json --noEmit && vitest run --project browser",
     "build": "rm -rf ./dist *.tsbuildinfo && tsc -b",
     "publish-to-npm": "npm publish"
   },
