@@ -37,11 +37,8 @@ The timefold project uses a right-handed coordinate system ( -Z forward, +X righ
 Technical specifications are available in `docs/` for reference. Read these **on-demand** when working on related areas:
 
 - **`docs/webgpu-spec.md`** - Read when working on `@timefold/webgpu` renderer implementation, debugging GPU pipeline issues, implementing render passes, or understanding WebGPU resource lifecycle (buffers, textures, bind groups, command encoding).
-
 - **`docs/wgsl-spec.md`** - Read when writing or modifying shader code, implementing custom materials, debugging shader compilation errors, or understanding WGSL type system and built-in functions.
-
 - **`docs/gltf2-spec.md`** - Read when working on `@timefold/gltf2` loader/parser, implementing support for glTF extensions, debugging asset loading issues, or understanding glTF binary data layout (accessors, bufferViews).
-
 - **`docs/v8-internals.md`** - Read when optimizing performance-critical code (ECS systems, math operations, rendering loops, ...), investigating deoptimization issues, or implementing data structures that need to be JIT-friendly (avoid hidden class mutations).
 
 ## Coding Style
@@ -49,3 +46,4 @@ Technical specifications are available in `docs/` for reference. Read these **on
 - Never use classes. Use plain objects, functions, and closures instead.
 - Prefer regular `for` loops over `.forEach`, `.map`, `.filter`, etc. in all code.
 - Always use arrow function syntax ( `const fn = () => {}` ). Never regular function syntax ( `function fn {}` ).
+- Extract complex logic into small, focused helper functions instead of inlining it in larger functions.
