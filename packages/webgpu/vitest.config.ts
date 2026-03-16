@@ -27,6 +27,14 @@ export default defineConfig({
                         }),
                         instances: [{ browser: 'chromium' }],
                     },
+                    expect: {
+                        toMatchScreenshot: {
+                            comparatorOptions: {
+                                threshold: 0,
+                                allowedMismatchedPixelRatio: 0,
+                            },
+                        },
+                    },
                 },
             },
         ],
