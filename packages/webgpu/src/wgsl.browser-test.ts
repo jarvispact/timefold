@@ -45,6 +45,11 @@ afterAll(() => {
 
 // --- helpers ---
 
+const writeVec2 = (view: DataView, byteOffset: number, x: number, y: number) => {
+    view.setFloat32(byteOffset, x, true);
+    view.setFloat32(byteOffset + 4, y, true);
+};
+
 const writeVec3 = (view: DataView, byteOffset: number, x: number, y: number, z: number) => {
     view.setFloat32(byteOffset, x, true);
     view.setFloat32(byteOffset + 4, y, true);
@@ -280,5 +285,61 @@ describe('webgpu buffer alignment/padding rules', () => {
         ]);
         await render(shader, data);
         await expect.element(page.getByTestId('webgpu-canvas')).toMatchScreenshot('three-f32-then-three-vec3.png');
+    });
+
+    it('three vec2 + f32 pairs building up vertex colors', async () => {
+        const s = struct('SplitColors', {
+            rg0: 'vec2<f32>',
+            b0: 'f32',
+            rg1: 'vec2<f32>',
+            b1: 'f32',
+            rg2: 'vec2<f32>',
+            b2: 'f32',
+        });
+
+        // ==================================================================================
+        // Make sure that the buffer size and view config matches our expectations at runtime
+
+        expect(s.bufferSize).toEqual(48);
+        expect(s.viewConfig).toEqual({
+            rg0: { scalar: 'f32', byteOffset: 0, componentCount: 2 },
+            b0: { scalar: 'f32', byteOffset: 8, componentCount: 1 },
+            rg1: { scalar: 'f32', byteOffset: 16, componentCount: 2 },
+            b1: { scalar: 'f32', byteOffset: 24, componentCount: 1 },
+            rg2: { scalar: 'f32', byteOffset: 32, componentCount: 2 },
+            b2: { scalar: 'f32', byteOffset: 40, componentCount: 1 },
+        });
+
+        // =====================================================================
+        // Make sure that the viewConfig is correctly inferred on the type level
+
+        expectTypeOf<typeof s.viewConfig>().toEqualTypeOf<{
+            rg0: { scalar: 'f32'; byteOffset: number; componentCount: number };
+            b0: { scalar: 'f32'; byteOffset: number; componentCount: number };
+            rg1: { scalar: 'f32'; byteOffset: number; componentCount: number };
+            b1: { scalar: 'f32'; byteOffset: number; componentCount: number };
+            rg2: { scalar: 'f32'; byteOffset: number; componentCount: number };
+            b2: { scalar: 'f32'; byteOffset: number; componentCount: number };
+        }>();
+
+        // =================================================================
+        // Visual check that the values are correctly unpacked in the shader
+
+        const data = new ArrayBuffer(s.bufferSize);
+        const view = new DataView(data);
+        writeVec2(view, s.viewConfig.rg0.byteOffset, 1, 0); // top vertex: red
+        view.setFloat32(s.viewConfig.b0.byteOffset, 0, true);
+        writeVec2(view, s.viewConfig.rg1.byteOffset, 0, 1); // bottom left vertex: green
+        view.setFloat32(s.viewConfig.b1.byteOffset, 0, true);
+        writeVec2(view, s.viewConfig.rg2.byteOffset, 0, 0); // bottom right vertex: blue
+        view.setFloat32(s.viewConfig.b2.byteOffset, 1, true);
+
+        const shader = createShader(s.getWgsl(), s.name, [
+            'vec3(data.rg0, data.b0)',
+            'vec3(data.rg1, data.b1)',
+            'vec3(data.rg2, data.b2)',
+        ]);
+        await render(shader, data);
+        await expect.element(page.getByTestId('webgpu-canvas')).toMatchScreenshot('three-vec2-f32-pairs.png');
     });
 });
