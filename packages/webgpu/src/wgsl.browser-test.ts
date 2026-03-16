@@ -342,4 +342,45 @@ describe('webgpu buffer alignment/padding rules', () => {
         await render(shader, data);
         await expect.element(page.getByTestId('webgpu-canvas')).toMatchScreenshot('three-vec2-f32-pairs.png');
     });
+
+    it('three f32 as shared rgb for all vertices', async () => {
+        const s = struct('FlatColor', {
+            r: 'f32',
+            g: 'f32',
+            b: 'f32',
+        });
+
+        // ==================================================================================
+        // Make sure that the buffer size and view config matches our expectations at runtime
+
+        expect(s.bufferSize).toEqual(12);
+        expect(s.viewConfig).toEqual({
+            r: { scalar: 'f32', byteOffset: 0, componentCount: 1 },
+            g: { scalar: 'f32', byteOffset: 4, componentCount: 1 },
+            b: { scalar: 'f32', byteOffset: 8, componentCount: 1 },
+        });
+
+        // =====================================================================
+        // Make sure that the viewConfig is correctly inferred on the type level
+
+        expectTypeOf<typeof s.viewConfig>().toEqualTypeOf<{
+            r: { scalar: 'f32'; byteOffset: number; componentCount: number };
+            g: { scalar: 'f32'; byteOffset: number; componentCount: number };
+            b: { scalar: 'f32'; byteOffset: number; componentCount: number };
+        }>();
+
+        // =================================================================
+        // Visual check that the values are correctly unpacked in the shader
+
+        const data = new ArrayBuffer(s.bufferSize);
+        const view = new DataView(data);
+        view.setFloat32(s.viewConfig.r.byteOffset, 1, true);
+        view.setFloat32(s.viewConfig.g.byteOffset, 0, true);
+        view.setFloat32(s.viewConfig.b.byteOffset, 1, true);
+
+        const color = 'vec3(data.r, data.g, data.b)';
+        const shader = createShader(s.getWgsl(), s.name, [color, color, color]);
+        await render(shader, data);
+        await expect.element(page.getByTestId('webgpu-canvas')).toMatchScreenshot('three-f32-flat-color.png');
+    });
 });
