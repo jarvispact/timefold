@@ -225,4 +225,60 @@ describe('webgpu buffer alignment/padding rules', () => {
         await render(shader, data);
         await expect.element(page.getByTestId('webgpu-canvas')).toMatchScreenshot('f32-then-three-vec3.png');
     });
+
+    it('three f32 followed by three vec3 fields', async () => {
+        const s = struct('PerChannelScaledColors', {
+            s0: 'f32',
+            s1: 'f32',
+            s2: 'f32',
+            c0: 'vec3<f32>',
+            c1: 'vec3<f32>',
+            c2: 'vec3<f32>',
+        });
+
+        // ==================================================================================
+        // Make sure that the buffer size and view config matches our expectations at runtime
+
+        expect(s.bufferSize).toEqual(64);
+        expect(s.viewConfig).toEqual({
+            s0: { scalar: 'f32', byteOffset: 0, componentCount: 1 },
+            s1: { scalar: 'f32', byteOffset: 4, componentCount: 1 },
+            s2: { scalar: 'f32', byteOffset: 8, componentCount: 1 },
+            c0: { scalar: 'f32', byteOffset: 16, componentCount: 3 },
+            c1: { scalar: 'f32', byteOffset: 32, componentCount: 3 },
+            c2: { scalar: 'f32', byteOffset: 48, componentCount: 3 },
+        });
+
+        // =====================================================================
+        // Make sure that the viewConfig is correctly inferred on the type level
+
+        expectTypeOf<typeof s.viewConfig>().toEqualTypeOf<{
+            s0: { scalar: 'f32'; byteOffset: number; componentCount: number };
+            s1: { scalar: 'f32'; byteOffset: number; componentCount: number };
+            s2: { scalar: 'f32'; byteOffset: number; componentCount: number };
+            c0: { scalar: 'f32'; byteOffset: number; componentCount: number };
+            c1: { scalar: 'f32'; byteOffset: number; componentCount: number };
+            c2: { scalar: 'f32'; byteOffset: number; componentCount: number };
+        }>();
+
+        // =================================================================
+        // Visual check that the values are correctly unpacked in the shader
+
+        const data = new ArrayBuffer(s.bufferSize);
+        const view = new DataView(data);
+        view.setFloat32(s.viewConfig.s0.byteOffset, 1.0, true);
+        view.setFloat32(s.viewConfig.s1.byteOffset, 0.5, true);
+        view.setFloat32(s.viewConfig.s2.byteOffset, 0.25, true);
+        writeVec3(view, s.viewConfig.c0.byteOffset, 1, 0, 0); // top vertex: red
+        writeVec3(view, s.viewConfig.c1.byteOffset, 0, 1, 0); // bottom left: vertex green
+        writeVec3(view, s.viewConfig.c2.byteOffset, 0, 0, 1); // bottom right: vertex blue
+
+        const shader = createShader(s.getWgsl(), s.name, [
+            'data.c0 * data.s0',
+            'data.c1 * data.s1',
+            'data.c2 * data.s2',
+        ]);
+        await render(shader, data);
+        await expect.element(page.getByTestId('webgpu-canvas')).toMatchScreenshot('three-f32-then-three-vec3.png');
+    });
 });
