@@ -10,7 +10,7 @@ export type BglStorageTypeGeneric =
     | WgslSizedArray<any, number>
     | WgslRuntimeArray<any>;
 
-export type BglBufferOptions = Omit<GPUBufferBindingLayout, 'type'>;
+export type BglBufferOptions = Omit<GPUBufferBindingLayout, 'type' | 'minBindingSize'>;
 
 export type BglUniformEntry<Type extends BglUniformTypeGeneric, Name extends string> = {
     kind: 'uniform';
@@ -35,6 +35,12 @@ export type BglReadonlyStorageEntry<Type extends BglStorageTypeGeneric, Name ext
     visibility: number;
     options: BglBufferOptions;
 };
+
+export type BglUniformEntryKind = (
+    | BglUniformEntry<BglUniformTypeGeneric, string>
+    | BglStorageEntry<BglStorageTypeGeneric, string>
+    | BglReadonlyStorageEntry<BglStorageTypeGeneric, string>
+)['kind'];
 
 export type BglSamplerEntry<Name extends string> = {
     kind: 'sampler';
@@ -75,11 +81,8 @@ export type BglEntryGeneric =
 
 export type BglGroup<Entries extends BglEntryGeneric[]> = { entries: Entries };
 
-// TODO: Support for each group separately / support a single struct / ...
-export type BglGroupsGetWgslParam = 'struct-declarations' | 'uniform-declarations' | 'complete';
-
 export type BglGroups<Groups extends BglGroup<BglEntryGeneric[]>[]> = {
     groups: Groups;
-    getWgsl: (which: BglGroupsGetWgslParam) => string;
+    getWgsl: () => string;
     createPipelineLayout: (device: GPUDevice) => GPUPipelineLayout;
 };

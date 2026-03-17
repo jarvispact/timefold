@@ -8,6 +8,7 @@ type WgslLookupTable = typeof WGSL_LOOKUP_TABLE;
 export type WgslPrimitive = keyof WgslLookupTable;
 export type WgslArrayPrimitive = Exclude<WgslPrimitive, InvalidArrayType>;
 export type WgslScalar = 'f32' | 'i32' | 'u32';
+
 // struct
 
 export type StructDefinitionValueGeneric =
@@ -53,3 +54,11 @@ export type WgslRuntimeArray<Element extends WgslArrayElementGeneric> = {
     bufferSize: number;
     viewConfig: ViewConfig<WgslRuntimeArray<Element>>;
 };
+
+// misc
+
+export type GenericWgslType =
+    | WgslPrimitive
+    | WgslSizedArray<WgslArrayElementGeneric, any>
+    | WgslStruct<string, any>
+    | WgslRuntimeArray<WgslArrayElementGeneric>;

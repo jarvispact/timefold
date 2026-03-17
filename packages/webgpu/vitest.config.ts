@@ -9,6 +9,7 @@ export default defineConfig({
                     include: ['./src/**/*.test.ts'],
                     name: 'unit',
                     environment: 'node',
+                    setupFiles: ['./test-setup.ts'],
                 },
             },
             {
@@ -26,12 +27,12 @@ export default defineConfig({
                             },
                         }),
                         instances: [{ browser: 'chromium' }],
-                    },
-                    expect: {
-                        toMatchScreenshot: {
-                            comparatorOptions: {
-                                threshold: 0,
-                                allowedMismatchedPixelRatio: 0,
+                        expect: {
+                            toMatchScreenshot: {
+                                comparatorOptions: {
+                                    threshold: 0,
+                                    allowedMismatchedPixelRatio: 0,
+                                },
                             },
                         },
                     },

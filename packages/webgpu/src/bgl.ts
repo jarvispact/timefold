@@ -1,3 +1,4 @@
+import { createPipelineLayout, defaultVisibility, getWgsl, WithVisibility } from './bgl-helpers';
 import {
     BglBufferOptions,
     BglEntryGeneric,
@@ -13,10 +14,6 @@ import {
     BglUniformEntry,
     BglUniformTypeGeneric,
 } from './bgl-types';
-
-type WithVisibility<T> = T & { visibility?: GPUShaderStageFlags };
-
-const defaultVisibility = GPUShaderStage.VERTEX | GPUShaderStage.FRAGMENT;
 
 export const uniform = <Type extends BglUniformTypeGeneric, Name extends string>(
     type: Type,
@@ -119,6 +116,6 @@ export const group = <const Entries extends BglEntryGeneric[]>(entries: Entries)
 
 export const groups = <const Groups extends BglGroup<BglEntryGeneric[]>[]>(groups: Groups): BglGroups<Groups> => ({
     groups,
-    getWgsl: () => '',
-    createPipelineLayout: () => null as unknown as GPUPipelineLayout,
+    getWgsl: () => getWgsl(groups),
+    createPipelineLayout: (device) => createPipelineLayout(device, groups),
 });

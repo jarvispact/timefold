@@ -5,63 +5,12 @@
 import { Mat4, Vec3 } from '@timefold/math';
 import { DomUtils } from '@timefold/engine';
 import { WebgpuUtils, Wgsl, Bgl } from '@timefold/webgpu';
+import { cubeVertices } from './cube-data';
 
 // --- GPU init ---------------------------------------------------------------
 
 const canvas = DomUtils.getCanvasById('canvas');
 const { device, context, format } = await WebgpuUtils.createDeviceAndContext({ canvas });
-
-// --- Cube geometry ----------------------------------------------------------
-// Abstraction idea: `defineGeometry({ layout: [pos: vec3f, normal: vec3f], data })` that
-// auto-computes arrayStride, attribute offsets/formats, and returns typed GPUVertexBufferLayout + GPUBuffer.
-
-// prettier-ignore
-const cubeVertices = new Float32Array([
-  // pos (vec3)          normal (vec3)        — 6 floats per vertex, 36 vertices (no index buffer)
-  // Front face (+Z in right-handed, but we use -Z forward so this faces the camera)
-  // Face -Z (front, facing camera)
-  -1, -1, -1,   0,  0, -1,
-   1, -1, -1,   0,  0, -1,
-   1,  1, -1,   0,  0, -1,
-  -1, -1, -1,   0,  0, -1,
-   1,  1, -1,   0,  0, -1,
-  -1,  1, -1,   0,  0, -1,
-  // Face +Z (back)
-  -1, -1,  1,   0,  0,  1,
-   1,  1,  1,   0,  0,  1,
-   1, -1,  1,   0,  0,  1,
-  -1, -1,  1,   0,  0,  1,
-  -1,  1,  1,   0,  0,  1,
-   1,  1,  1,   0,  0,  1,
-  // Face +X (right)
-   1, -1, -1,   1,  0,  0,
-   1, -1,  1,   1,  0,  0,
-   1,  1,  1,   1,  0,  0,
-   1, -1, -1,   1,  0,  0,
-   1,  1,  1,   1,  0,  0,
-   1,  1, -1,   1,  0,  0,
-  // Face -X (left)
-  -1, -1, -1,  -1,  0,  0,
-  -1,  1,  1,  -1,  0,  0,
-  -1, -1,  1,  -1,  0,  0,
-  -1, -1, -1,  -1,  0,  0,
-  -1,  1, -1,  -1,  0,  0,
-  -1,  1,  1,  -1,  0,  0,
-  // Face +Y (top)
-  -1,  1, -1,   0,  1,  0,
-   1,  1, -1,   0,  1,  0,
-   1,  1,  1,   0,  1,  0,
-  -1,  1, -1,   0,  1,  0,
-   1,  1,  1,   0,  1,  0,
-  -1,  1,  1,   0,  1,  0,
-  // Face -Y (bottom)
-  -1, -1, -1,   0, -1,  0,
-   1, -1,  1,   0, -1,  0,
-   1, -1, -1,   0, -1,  0,
-  -1, -1, -1,   0, -1,  0,
-  -1, -1,  1,   0, -1,  0,
-   1, -1,  1,   0, -1,  0,
-]);
 
 const vertexBuffer = device.createBuffer({
     size: cubeVertices.byteLength,
@@ -70,18 +19,6 @@ const vertexBuffer = device.createBuffer({
 device.queue.writeBuffer(vertexBuffer, 0, cubeVertices);
 
 const VERTEX_STRIDE = 6 * 4; // 6 floats × 4 bytes
-
-// --- Uniform buffers --------------------------------------------------------
-// Abstraction idea: `defineUniformStruct({ ... })` that computes WGSL struct layout,
-// byte offsets per field (respecting alignment rules from spec), total padded size,
-// and returns a typed writer: `uniforms.set('lightPos', [2,5,3])`.
-
-// Per-frame uniforms (group 0) — written once per frame:
-//   mat4x4<f32> view          offset  0   size 64  align 16
-//   mat4x4<f32> projection    offset 64   size 64  align 16
-//   vec3<f32>   lightPos      offset 128  size 12  align 16  (+4 bytes padding)
-//   vec3<f32>   viewPos       offset 144  size 12  align 16  (+4 bytes padding)
-//   Total: roundUp(16, 156) = 160 bytes
 
 const FrameUniforms = Wgsl.struct('FrameUniforms', {
     view: 'mat4x4<f32>',
@@ -95,18 +32,11 @@ const ObjectUniforms = Wgsl.struct('ObjectUniforms', {
     color: 'vec3<f32>',
 });
 
-// const FRAME_UNIFORM_SIZE = 160;
 const frameUniformBuffer = device.createBuffer({
     size: FrameUniforms.bufferSize,
     usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
 });
 
-// Per-object uniforms (group 1) — written per draw call:
-//   mat4x4<f32> model         offset  0   size 64  align 16
-//   vec3<f32>   color         offset 64   size 12  align 16  (+4 bytes padding)
-//   Total: roundUp(16, 76) = 80 bytes
-
-// const OBJECT_UNIFORM_SIZE = 80;
 const objectUniformBufferA = device.createBuffer({
     size: ObjectUniforms.bufferSize,
     usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
@@ -126,28 +56,12 @@ let depthTexture = device.createTexture({
     usage: GPUTextureUsage.RENDER_ATTACHMENT,
 });
 
-// --- Shader -----------------------------------------------------------------
-// Abstraction idea: a shader builder that lets you declare structs once in TS and
-// generates both the WGSL source AND the matching JS layout metadata. e.g.:
-//   const Uniforms = wgslStruct('Uniforms', { model: mat4x4f, view: mat4x4f, ... });
-//   const shader = wgslModule`...${Uniforms}...`;  // embeds the struct declaration
-// This keeps WGSL and TS in sync and eliminates offset/alignment bugs.
+const FrameBgl = Bgl.group([Bgl.uniform(FrameUniforms, 'frame')]);
+const ObjectBgl = Bgl.group([Bgl.uniform(ObjectUniforms, 'object')]);
+const Groups = Bgl.groups([FrameBgl, ObjectBgl]);
 
 const shaderCode = /* wgsl */ `
-struct FrameUniforms {
-  view:       mat4x4<f32>,
-  projection: mat4x4<f32>,
-  lightPos:   vec3<f32>,      // align 16, size 12 + 4 bytes padding
-  viewPos:    vec3<f32>,      // align 16, size 12 + 4 bytes padding
-}
-
-struct ObjectUniforms {
-  model: mat4x4<f32>,
-  color: vec3<f32>,           // align 16, size 12 + 4 bytes padding
-}
-
-@group(0) @binding(0) var<uniform> frame:  FrameUniforms;
-@group(1) @binding(0) var<uniform> object: ObjectUniforms;
+${Groups.getWgsl()}
 
 struct VsOut {
   @builtin(position) pos:      vec4<f32>,
@@ -185,47 +99,7 @@ fn fs(in: VsOut) -> @location(0) vec4<f32> {
 
 const shaderModule = device.createShaderModule({ code: shaderCode });
 
-// --- Bind group layout & pipeline layout ------------------------------------
-// Abstraction idea: derive these from the shader's @group/@binding declarations and
-// the uniform struct metadata. The abstraction knows visibility from entry point usage,
-// buffer type from var<uniform> vs var<storage>, and minBindingSize from struct layout.
-
-const FrameBgl = Bgl.group([Bgl.uniform(FrameUniforms, 'frame')]);
-
-const ObjectBgl = Bgl.group([Bgl.uniform(ObjectUniforms, 'object')]);
-
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-const Groups = Bgl.groups([FrameBgl, ObjectBgl]);
-
-const frameBindGroupLayout = device.createBindGroupLayout({
-    entries: [
-        {
-            binding: 0,
-            visibility: GPUShaderStage.VERTEX | GPUShaderStage.FRAGMENT,
-            buffer: { type: 'uniform', minBindingSize: FrameUniforms.bufferSize },
-        },
-    ],
-});
-
-const objectBindGroupLayout = device.createBindGroupLayout({
-    entries: [
-        {
-            binding: 0,
-            visibility: GPUShaderStage.VERTEX | GPUShaderStage.FRAGMENT,
-            buffer: { type: 'uniform', minBindingSize: ObjectUniforms.bufferSize },
-        },
-    ],
-});
-
-const pipelineLayout = device.createPipelineLayout({
-    bindGroupLayouts: [frameBindGroupLayout, objectBindGroupLayout],
-});
-
-// --- Pipeline ---------------------------------------------------------------
-// Abstraction idea: `createRenderPipelineFrom({ shader, vertexLayout, depthFormat, ... })`
-// that derives the vertex buffer layout from the shader's @location attributes,
-// auto-matches fragment target format to the canvas, and fills in sensible defaults
-// for primitive/depthStencil/multisample. Cuts the descriptor from ~40 lines to ~5.
+const pipelineLayout = Groups.createPipelineLayout(device);
 
 const pipeline = device.createRenderPipeline({
     layout: pipelineLayout,
@@ -259,30 +133,20 @@ const pipeline = device.createRenderPipeline({
     },
 });
 
-// --- Bind groups ------------------------------------------------------------
-// Abstraction idea: auto-derive bind group from layout + named resource map:
-//   `createBindGroupFor(bindGroupLayout, { uniforms: uniformBuffer })`
-// Maps names → bindings using metadata from the layout definition.
-
 const frameBindGroup = device.createBindGroup({
-    layout: frameBindGroupLayout,
+    layout: pipeline.getBindGroupLayout(0),
     entries: [{ binding: 0, resource: { buffer: frameUniformBuffer } }],
 });
 
 const objectBindGroupA = device.createBindGroup({
-    layout: objectBindGroupLayout,
+    layout: pipeline.getBindGroupLayout(1),
     entries: [{ binding: 0, resource: { buffer: objectUniformBufferA } }],
 });
 
 const objectBindGroupB = device.createBindGroup({
-    layout: objectBindGroupLayout,
+    layout: pipeline.getBindGroupLayout(1),
     entries: [{ binding: 0, resource: { buffer: objectUniformBufferB } }],
 });
-
-// --- Render loop ------------------------------------------------------------
-// Abstraction idea for uniform writes: the struct abstraction from above could provide
-//   uniforms.write(device, { model: mat4RotateY(t), view, projection, lightPos, viewPos })
-// that packs fields at correct byte offsets into a single writeBuffer call.
 
 const projection = Mat4.create();
 const eye = Vec3.create(3, 5, -8);

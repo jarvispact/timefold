@@ -6,6 +6,7 @@
 
 import {
     WgslArrayElementGeneric,
+    WgslPrimitive,
     WgslRuntimeArray,
     WgslScalar,
     WgslSizedArray,
@@ -41,6 +42,11 @@ export const WGSL_LOOKUP_TABLE = {
     'mat4x3<f32>': { align: 16, size: 64, components: 12 }, // 4 × stride(vec3) = 4×16
     'mat4x4<f32>': { align: 16, size: 64, components: 16 }, // 4 × stride(vec4) = 4×16
 } as const;
+
+const WGSL_PRIMITIVES = Object.keys(WGSL_LOOKUP_TABLE);
+
+export const isWgslPrimitive = (candidate: unknown): candidate is WgslPrimitive =>
+    typeof candidate === 'string' && WGSL_PRIMITIVES.includes(candidate);
 
 export type InvalidArrayType = 'f32' | 'i32' | 'u32' | 'vec2<f32>' | 'vec2<i32>' | 'vec2<u32>';
 
@@ -206,6 +212,19 @@ export const isSizedArray = (value: unknown): value is WgslSizedArray<WgslArrayE
 
 export const isRuntimeArray = (value: unknown): value is WgslRuntimeArray<WgslArrayElementGeneric> =>
     isObjectWithKeys(value, ['type']) && typeof value.type === 'string' && value.type === 'runtime-array';
+
+// convert to wgsl helpers
+
+export type GenericValue =
+    | string
+    | WgslStruct<string, WgslStructDefinitionGeneric>
+    | WgslSizedArray<WgslArrayElementGeneric, number>;
+
+export const getTypeStructOrArrayString = (value: GenericValue): string => {
+    if (typeof value === 'string') return value;
+    if (isStruct(value)) return value.name;
+    return `array<${getTypeStructOrArrayString(value.element)}, ${value.size}>`;
+};
 
 // vertex
 
