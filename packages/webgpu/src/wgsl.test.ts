@@ -20,7 +20,7 @@ struct PointLight {
         );
     });
 
-    it('should generate a struct declaration without expanding nested structs', () => {
+    it('should generate a struct declaration with a reference to a nested struct', () => {
         const Material = struct('Material', {
             color: 'vec4<f32>',
             roughness: 'f32',
@@ -41,39 +41,7 @@ struct Mesh {
         );
     });
 
-    it('should deduplicate nested structs referenced multiple times', () => {
-        const RigidBody = struct('RigidBody', {
-            position: 'vec3<f32>',
-            velocity: 'vec3<f32>',
-            mass: 'f32',
-        });
-
-        const CollisionPair = struct('CollisionPair', {
-            bodyA: RigidBody,
-            bodyB: RigidBody,
-            contactNormal: 'vec3<f32>',
-            penetrationDepth: 'f32',
-        });
-
-        expect(CollisionPair.getWgsl({ expandNested: true })).toEqual(
-            `
-struct RigidBody {
-    position: vec3<f32>,
-    velocity: vec3<f32>,
-    mass: f32
-}
-
-struct CollisionPair {
-    bodyA: RigidBody,
-    bodyB: RigidBody,
-    contactNormal: vec3<f32>,
-    penetrationDepth: f32
-}
-`.trim(),
-        );
-    });
-
-    it('should generate a struct with a sized array field', () => {
+    it('should generate a struct with a sized array referencing another struct', () => {
         const Joint = struct('Joint', {
             transform: 'mat4x4<f32>',
             parentIndex: 'i32',
@@ -94,63 +62,72 @@ struct Skeleton {
         );
     });
 
-    it('should expand nested structs inside sized arrays', () => {
-        const Joint = struct('Joint', {
-            transform: 'mat4x4<f32>',
-            parentIndex: 'i32',
+    it('should generate a struct with a sized array of primitives', () => {
+        const S = struct('Weights', {
+            values: sizedArray('vec4<f32>', 16),
+            count: 'u32',
         });
 
-        const Skeleton = struct('Skeleton', {
-            joints: sizedArray(Joint, 64),
-            jointCount: 'u32',
-        });
-
-        expect(Skeleton.getWgsl({ expandNested: true })).toEqual(
+        expect(S.getWgsl()).toEqual(
             `
-struct Joint {
-    transform: mat4x4<f32>,
-    parentIndex: i32
-}
-
-struct Skeleton {
-    joints: array<Joint, 64>,
-    jointCount: u32
+struct Weights {
+    values: array<vec4<f32>, 16>,
+    count: u32
 }
 `.trim(),
         );
     });
 
-    it('should expand deeply nested structs in dependency order', () => {
-        const TextureInfo = struct('TextureInfo', {
-            uvOffset: 'vec2<f32>',
-            uvScale: 'vec2<f32>',
+    it('should generate a struct with a single field', () => {
+        const S = struct('Index', {
+            value: 'u32',
         });
 
+        expect(S.getWgsl()).toEqual(
+            `
+struct Index {
+    value: u32
+}
+`.trim(),
+        );
+    });
+
+    it('should generate a struct with a nested sized array', () => {
+        const S = struct('Grid', {
+            cells: sizedArray(sizedArray('vec4<f32>', 4), 8),
+            count: 'u32',
+        });
+
+        expect(S.getWgsl()).toEqual(
+            `
+struct Grid {
+    cells: array<array<vec4<f32>, 4>, 8>,
+    count: u32
+}
+`.trim(),
+        );
+    });
+
+    it('should generate a struct with mixed field types', () => {
         const Material = struct('Material', {
-            albedo: TextureInfo,
+            color: 'vec4<f32>',
             roughness: 'f32',
         });
 
-        const Mesh = struct('Mesh', {
+        const S = struct('DrawCall', {
             modelMatrix: 'mat4x4<f32>',
             material: Material,
+            boneWeights: sizedArray('vec4<f32>', 4),
+            instanceCount: 'u32',
         });
 
-        expect(Mesh.getWgsl({ expandNested: true })).toEqual(
+        expect(S.getWgsl()).toEqual(
             `
-struct TextureInfo {
-    uvOffset: vec2<f32>,
-    uvScale: vec2<f32>
-}
-
-struct Material {
-    albedo: TextureInfo,
-    roughness: f32
-}
-
-struct Mesh {
+struct DrawCall {
     modelMatrix: mat4x4<f32>,
-    material: Material
+    material: Material,
+    boneWeights: array<vec4<f32>, 4>,
+    instanceCount: u32
 }
 `.trim(),
         );

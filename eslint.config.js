@@ -5,7 +5,7 @@ import prettierConfig from 'eslint-config-prettier';
 import tseslint from 'typescript-eslint';
 
 export default [
-  { ignores: ['node_modules', '**/dist', '**/*.d.ts', 'eslint.config.js'] },
+  { ignores: ['node_modules', '**/dist', '**/*.d.ts', 'eslint.config.js', '**/test-setup.ts'] },
   js.configs.recommended,
   ...tseslint.configs.strictTypeChecked,
   {

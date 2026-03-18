@@ -32,19 +32,23 @@ const ObjectUniforms = Wgsl.struct('ObjectUniforms', {
     color: 'vec3<f32>',
 });
 
-const frameUniformBuffer = device.createBuffer({
-    size: FrameUniforms.bufferSize,
-    usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
-});
+const frameUniformBuffer = FrameUniforms.createBuffer(device);
+const objectUniformBufferA = ObjectUniforms.createBuffer(device);
+const objectUniformBufferB = ObjectUniforms.createBuffer(device);
 
-const objectUniformBufferA = device.createBuffer({
-    size: ObjectUniforms.bufferSize,
-    usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
-});
-const objectUniformBufferB = device.createBuffer({
-    size: ObjectUniforms.bufferSize,
-    usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
-});
+// const frameUniformBuffer = device.createBuffer({
+//     size: FrameUniforms.bufferSize,
+//     usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
+// });
+
+// const objectUniformBufferA = device.createBuffer({
+//     size: ObjectUniforms.bufferSize,
+//     usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
+// });
+// const objectUniformBufferB = device.createBuffer({
+//     size: ObjectUniforms.bufferSize,
+//     usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
+// });
 
 // --- Depth texture & resize -------------------------------------------------
 
@@ -133,20 +137,24 @@ const pipeline = device.createRenderPipeline({
     },
 });
 
-const frameBindGroup = device.createBindGroup({
-    layout: pipeline.getBindGroupLayout(0),
-    entries: [{ binding: 0, resource: { buffer: frameUniformBuffer } }],
-});
+// const frameBindGroup = device.createBindGroup({
+//     layout: pipeline.getBindGroupLayout(0),
+//     entries: [{ binding: 0, resource: { buffer: frameUniformBuffer } }],
+// });
+//
+// const objectBindGroupA = device.createBindGroup({
+//     layout: pipeline.getBindGroupLayout(1),
+//     entries: [{ binding: 0, resource: { buffer: objectUniformBufferA } }],
+// });
+//
+// const objectBindGroupB = device.createBindGroup({
+//     layout: pipeline.getBindGroupLayout(1),
+//     entries: [{ binding: 0, resource: { buffer: objectUniformBufferB } }],
+// });
 
-const objectBindGroupA = device.createBindGroup({
-    layout: pipeline.getBindGroupLayout(1),
-    entries: [{ binding: 0, resource: { buffer: objectUniformBufferA } }],
-});
-
-const objectBindGroupB = device.createBindGroup({
-    layout: pipeline.getBindGroupLayout(1),
-    entries: [{ binding: 0, resource: { buffer: objectUniformBufferB } }],
-});
+// Needs reference to BindGroupLayout and uniform buffer / sampler / texture
+// Should we use a record indexed by name of the entry instead of arrays?
+const frameBindGroup = FrameUniforms.createBindGroup(device, FrameBgl, []);
 
 const projection = Mat4.create();
 const eye = Vec3.create(3, 5, -8);
@@ -169,7 +177,9 @@ DomUtils.onResize({
     },
 });
 
-const frameUniformData = new Float32Array(FrameUniforms.bufferSize / 4);
+const frameUniformData = FrameUniforms.createData({ mode: 'array-buffer' });
+
+// const frameUniformData = new Float32Array(FrameUniforms.bufferSize / 4);
 const objectUniformData = new Float32Array(ObjectUniforms.bufferSize / 4);
 const model = Mat4.create();
 const translation = Mat4.create();
@@ -189,11 +199,11 @@ const frame = (t: number) => {
     const time = t * 0.001;
 
     // Pack per-frame uniforms (once)
-    frameUniformData.set(view as number[], 0); // offset 0:   view
-    frameUniformData.set(projection as number[], 16); // offset 64:  projection  (64 / 4 = 16 floats)
-    frameUniformData.set(lightPos as number[], 32); // offset 128: lightPos.xyz  (128 / 4 = 32 floats)
-    // frameUniformData[35] = 0;                     // padding already zero
-    frameUniformData.set(viewPos as number[], 36); // offset 144: viewPos.xyz   (144 / 4 = 36 floats)
+    // frameUniformData.set(view as number[], 0); // offset 0:   view
+    // frameUniformData.set(projection as number[], 16); // offset 64:  projection  (64 / 4 = 16 floats)
+    // frameUniformData.set(lightPos as number[], 32); // offset 128: lightPos.xyz  (128 / 4 = 32 floats)
+    // // frameUniformData[35] = 0;                     // padding already zero
+    // frameUniformData.set(viewPos as number[], 36); // offset 144: viewPos.xyz   (144 / 4 = 36 floats)
     // frameUniformData[39] = 0;                     // padding already zero
     device.queue.writeBuffer(frameUniformBuffer, 0, frameUniformData);
 

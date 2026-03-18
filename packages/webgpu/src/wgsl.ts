@@ -6,7 +6,6 @@ import {
 import { getStructWgsl } from './wgsl-helpers';
 import {
     WgslArrayElementGeneric,
-    WgslStructGetWgslOptions,
     WgslRuntimeArray,
     WgslSizedArray,
     WgslStruct,
@@ -26,7 +25,7 @@ export const struct = <Name extends string, Definition extends WgslStructDefinit
         bufferSize,
         viewConfig,
 
-        getWgsl: (options?: WgslStructGetWgslOptions) => getStructWgsl(name, definition, options),
+        getWgsl: () => getStructWgsl(name, definition),
     };
 };
 

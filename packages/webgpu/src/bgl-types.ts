@@ -1,14 +1,22 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
+import {
+    WgslArrayElementGeneric,
+    WgslPrimitive,
+    WgslRuntimeArray,
+    WgslSizedArray,
+    WgslStruct,
+    WgslStructDefinitionGeneric,
+} from './wgsl-types';
 
-import { WgslPrimitive, WgslRuntimeArray, WgslSizedArray, WgslStruct } from './wgsl-types';
-
-export type BglUniformTypeGeneric = WgslPrimitive | WgslStruct<string, any> | WgslSizedArray<any, number>;
+export type BglUniformTypeGeneric =
+    | WgslPrimitive
+    | WgslStruct<string, WgslStructDefinitionGeneric>
+    | WgslSizedArray<WgslArrayElementGeneric, number>;
 
 export type BglStorageTypeGeneric =
     | WgslPrimitive
-    | WgslStruct<string, any>
-    | WgslSizedArray<any, number>
-    | WgslRuntimeArray<any>;
+    | WgslStruct<string, WgslStructDefinitionGeneric>
+    | WgslSizedArray<WgslArrayElementGeneric, number>
+    | WgslRuntimeArray<WgslArrayElementGeneric>;
 
 export type BglBufferOptions = Omit<GPUBufferBindingLayout, 'type' | 'minBindingSize'>;
 
