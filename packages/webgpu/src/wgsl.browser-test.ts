@@ -2,7 +2,7 @@
 
 import { expect, describe, beforeAll, afterAll, afterEach, it, expectTypeOf } from 'vitest';
 import { page } from '@vitest/browser/context';
-import { sizedArray, struct } from './wgsl';
+import { runtimeArray, sizedArray, struct } from './wgsl';
 
 const WIDTH = 512;
 const HEIGHT = 512;
@@ -63,10 +63,15 @@ const writeVec4 = (view: DataView, byteOffset: number, x: number, y: number, z: 
     view.setFloat32(byteOffset + 12, w, true);
 };
 
-const createShader = (structWgsl: string, structName: string, colorExprs: [string, string, string]) => `
+const createShader = (
+    structWgsl: string,
+    structName: string,
+    colorExprs: [string, string, string],
+    varQualifier = 'uniform',
+) => `
 ${structWgsl}
 
-@group(0) @binding(0) var<uniform> data: ${structName};
+@group(0) @binding(0) var<${varQualifier}> data: ${structName};
 
 struct VertexOutput {
     @builtin(position) position: vec4<f32>,
@@ -99,16 +104,20 @@ fn fs(@location(0) color: vec3<f32>) -> @location(0) vec4<f32> {
 }
 `;
 
-const render = async (shaderCode: string, uniformData: ArrayBuffer): Promise<void> => {
+const render = async (
+    shaderCode: string,
+    bufferData: ArrayBuffer,
+    bufferUsage = GPUBufferUsage.UNIFORM,
+): Promise<void> => {
     const ctx = canvas.getContext('webgpu')!;
     const format = navigator.gpu.getPreferredCanvasFormat();
     ctx.configure({ device, format, alphaMode: 'opaque' });
 
-    const uniformBuffer = device.createBuffer({
-        size: uniformData.byteLength,
-        usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
+    const gpuBuffer = device.createBuffer({
+        size: bufferData.byteLength,
+        usage: bufferUsage | GPUBufferUsage.COPY_DST,
     });
-    device.queue.writeBuffer(uniformBuffer, 0, uniformData);
+    device.queue.writeBuffer(gpuBuffer, 0, bufferData);
 
     const module = device.createShaderModule({ code: shaderCode });
     const compilationInfo = await module.getCompilationInfo();
@@ -125,7 +134,7 @@ const render = async (shaderCode: string, uniformData: ArrayBuffer): Promise<voi
 
     const bindGroup = device.createBindGroup({
         layout: pipeline.getBindGroupLayout(0),
-        entries: [{ binding: 0, resource: { buffer: uniformBuffer } }],
+        entries: [{ binding: 0, resource: { buffer: gpuBuffer } }],
     });
 
     const encoder = device.createCommandEncoder();
@@ -146,7 +155,7 @@ const render = async (shaderCode: string, uniformData: ArrayBuffer): Promise<voi
     device.queue.submit([encoder.finish()]);
     await device.queue.onSubmittedWorkDone();
 
-    uniformBuffer.destroy();
+    gpuBuffer.destroy();
 };
 
 describe('webgpu buffer alignment/padding rules', () => {
@@ -850,6 +859,69 @@ describe('webgpu buffer alignment/padding rules', () => {
             ]);
             await render(shader, data);
             await expect.element(page.getByTestId('webgpu-canvas')).toMatchScreenshot('nested-array-array-struct.png');
+        });
+    });
+
+    describe('runtime array', () => {
+        it('runtime array of structs via storage buffer', async () => {
+            const vertex = struct('Vertex', {
+                color: 'vec3<f32>',
+                scale: 'f32',
+            });
+            const a = runtimeArray(vertex, 3);
+
+            // ==================================================================================
+            // Make sure that the buffer size and view config matches our expectations at runtime
+
+            // Vertex: vec3 at 0, f32 at 12 (tail reuse), size=16, align=16
+            // runtime array: stride=16, maxSize=3 → bufferSize=48
+            expect(vertex.bufferSize).toEqual(16);
+            expect(a.bufferSize).toEqual(48);
+            expect(a.viewConfig).toEqual([
+                {
+                    color: { scalar: 'f32', byteOffset: 0, componentCount: 3 },
+                    scale: { scalar: 'f32', byteOffset: 12, componentCount: 1 },
+                },
+                {
+                    color: { scalar: 'f32', byteOffset: 16, componentCount: 3 },
+                    scale: { scalar: 'f32', byteOffset: 28, componentCount: 1 },
+                },
+                {
+                    color: { scalar: 'f32', byteOffset: 32, componentCount: 3 },
+                    scale: { scalar: 'f32', byteOffset: 44, componentCount: 1 },
+                },
+            ]);
+
+            // =====================================================================
+            // Make sure that the viewConfig is correctly inferred on the type level
+
+            expectTypeOf<typeof a.viewConfig>().toEqualTypeOf<
+                {
+                    color: { scalar: 'f32'; byteOffset: number; componentCount: number };
+                    scale: { scalar: 'f32'; byteOffset: number; componentCount: number };
+                }[]
+            >();
+
+            // =================================================================
+            // Visual check that the values are correctly unpacked in the shader
+
+            const data = new ArrayBuffer(a.bufferSize);
+            const view = new DataView(data);
+            writeVec3(view, a.viewConfig[0].color.byteOffset, 1, 0, 0); // top vertex: red
+            view.setFloat32(a.viewConfig[0].scale.byteOffset, 1, true);
+            writeVec3(view, a.viewConfig[1].color.byteOffset, 0, 1, 0); // bottom left: green
+            view.setFloat32(a.viewConfig[1].scale.byteOffset, 0.5, true);
+            writeVec3(view, a.viewConfig[2].color.byteOffset, 0, 0, 1); // bottom right: blue
+            view.setFloat32(a.viewConfig[2].scale.byteOffset, 0.25, true);
+
+            const shader = createShader(
+                vertex.getWgsl(),
+                'array<Vertex>',
+                ['data[0].color * data[0].scale', 'data[1].color * data[1].scale', 'data[2].color * data[2].scale'],
+                'storage, read',
+            );
+            await render(shader, data, GPUBufferUsage.STORAGE);
+            await expect.element(page.getByTestId('webgpu-canvas')).toMatchScreenshot('runtime-array-struct.png');
         });
     });
 });
