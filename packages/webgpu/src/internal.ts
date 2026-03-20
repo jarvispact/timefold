@@ -70,8 +70,8 @@ export type ViewConfig<Type> = Type extends WgslScalar
       ? ViewConfigEntry<Scalar>
       : Type extends WgslStruct<string, infer Definition>
         ? { [K in keyof Definition]: ViewConfig<Definition[K]> }
-        : Type extends WgslSizedArray<infer Element, infer Size>
-          ? Tuple<ViewConfig<Element>, Size>
+        : Type extends WgslSizedArray<infer Element, number>
+          ? ViewConfig<Element>[]
           : Type extends WgslRuntimeArray<infer Element>
             ? ViewConfig<Element>[]
             : never;
@@ -218,11 +218,13 @@ export const isRuntimeArray = (value: unknown): value is WgslRuntimeArray<WgslAr
 export type GenericValue =
     | string
     | WgslStruct<string, WgslStructDefinitionGeneric>
-    | WgslSizedArray<WgslArrayElementGeneric, number>;
+    | WgslSizedArray<WgslArrayElementGeneric, number>
+    | WgslRuntimeArray<WgslArrayElementGeneric>;
 
 export const getTypeStructOrArrayString = (value: GenericValue): string => {
     if (typeof value === 'string') return value;
     if (isStruct(value)) return value.name;
+    if (isRuntimeArray(value)) return `array<${getTypeStructOrArrayString(value.element)}>`;
     return `array<${getTypeStructOrArrayString(value.element)}, ${value.size}>`;
 };
 
