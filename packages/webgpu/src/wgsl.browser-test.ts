@@ -56,6 +56,13 @@ const writeVec3 = (view: DataView, byteOffset: number, x: number, y: number, z: 
     view.setFloat32(byteOffset + 8, z, true);
 };
 
+const writeVec4 = (view: DataView, byteOffset: number, x: number, y: number, z: number, w: number) => {
+    view.setFloat32(byteOffset, x, true);
+    view.setFloat32(byteOffset + 4, y, true);
+    view.setFloat32(byteOffset + 8, z, true);
+    view.setFloat32(byteOffset + 12, w, true);
+};
+
 const createShader = (structWgsl: string, structName: string, colorExprs: [string, string, string]) => `
 ${structWgsl}
 
@@ -382,5 +389,93 @@ describe('webgpu buffer alignment/padding rules', () => {
         const shader = createShader(s.getWgsl(), s.name, [color, color, color]);
         await render(shader, data);
         await expect.element(page.getByTestId('webgpu-canvas')).toMatchScreenshot('three-f32-flat-color.png');
+    });
+
+    it('three consecutive vec4 fields', async () => {
+        const s = struct('Colors4', {
+            c0: 'vec4<f32>',
+            c1: 'vec4<f32>',
+            c2: 'vec4<f32>',
+        });
+
+        // ==================================================================================
+        // Make sure that the buffer size and view config matches our expectations at runtime
+
+        expect(s.bufferSize).toEqual(48);
+        expect(s.viewConfig).toEqual({
+            c0: { scalar: 'f32', byteOffset: 0, componentCount: 4 },
+            c1: { scalar: 'f32', byteOffset: 16, componentCount: 4 },
+            c2: { scalar: 'f32', byteOffset: 32, componentCount: 4 },
+        });
+
+        // =====================================================================
+        // Make sure that the viewConfig is correctly inferred on the type level
+
+        expectTypeOf<typeof s.viewConfig>().toEqualTypeOf<{
+            c0: { scalar: 'f32'; byteOffset: number; componentCount: number };
+            c1: { scalar: 'f32'; byteOffset: number; componentCount: number };
+            c2: { scalar: 'f32'; byteOffset: number; componentCount: number };
+        }>();
+
+        // =================================================================
+        // Visual check that the values are correctly unpacked in the shader
+
+        const data = new ArrayBuffer(s.bufferSize);
+        const view = new DataView(data);
+        writeVec4(view, s.viewConfig.c0.byteOffset, 1, 0, 0, 1); // top vertex: red
+        writeVec4(view, s.viewConfig.c1.byteOffset, 0, 1, 0, 1); // bottom left vertex: green
+        writeVec4(view, s.viewConfig.c2.byteOffset, 0, 0, 1, 1); // bottom right vertex: blue
+
+        const shader = createShader(s.getWgsl(), s.name, ['data.c0.rgb', 'data.c1.rgb', 'data.c2.rgb']);
+        await render(shader, data);
+        await expect.element(page.getByTestId('webgpu-canvas')).toMatchScreenshot('three-vec4.png');
+    });
+
+    it('mixed scalar types: f32, i32, u32 with vec2<i32>', async () => {
+        const s = struct('MixedTypes', {
+            red: 'f32',
+            green: 'i32',
+            blue: 'u32',
+            tint: 'vec2<i32>',
+        });
+
+        // ==================================================================================
+        // Make sure that the buffer size and view config matches our expectations at runtime
+
+        expect(s.bufferSize).toEqual(24);
+        expect(s.viewConfig).toEqual({
+            red: { scalar: 'f32', byteOffset: 0, componentCount: 1 },
+            green: { scalar: 'i32', byteOffset: 4, componentCount: 1 },
+            blue: { scalar: 'u32', byteOffset: 8, componentCount: 1 },
+            tint: { scalar: 'i32', byteOffset: 16, componentCount: 2 },
+        });
+
+        // =====================================================================
+        // Make sure that the viewConfig is correctly inferred on the type level
+
+        expectTypeOf<typeof s.viewConfig>().toEqualTypeOf<{
+            red: { scalar: 'f32'; byteOffset: number; componentCount: number };
+            green: { scalar: 'i32'; byteOffset: number; componentCount: number };
+            blue: { scalar: 'u32'; byteOffset: number; componentCount: number };
+            tint: { scalar: 'i32'; byteOffset: number; componentCount: number };
+        }>();
+
+        // =================================================================
+        // Visual check that the values are correctly unpacked in the shader
+
+        const data = new ArrayBuffer(s.bufferSize);
+        const view = new DataView(data);
+        view.setFloat32(s.viewConfig.red.byteOffset, 1, true);
+        view.setInt32(s.viewConfig.green.byteOffset, 0, true);
+        view.setUint32(s.viewConfig.blue.byteOffset, 1, true);
+        view.setInt32(s.viewConfig.tint.byteOffset, 1, true); // tint.x
+        view.setInt32(s.viewConfig.tint.byteOffset + 4, 1, true); // tint.y
+
+        // red=1.0, green=0, blue=1, tint=(1,1)
+        // color = (1.0, 0+1, 1-1) = (1, 1, 0) = yellow
+        const color = 'vec3(data.red, f32(data.green) + f32(data.tint.x), f32(data.blue) - f32(data.tint.y))';
+        const shader = createShader(s.getWgsl(), s.name, [color, color, color]);
+        await render(shader, data);
+        await expect.element(page.getByTestId('webgpu-canvas')).toMatchScreenshot('mixed-types-flat-color.png');
     });
 });
