@@ -722,4 +722,134 @@ describe('webgpu buffer alignment/padding rules', () => {
             await expect.element(page.getByTestId('webgpu-canvas')).toMatchScreenshot('array-padded-struct.png');
         });
     });
+
+    describe('nesting', () => {
+        it('struct holding an array of nested structs', async () => {
+            const inner = struct('VertexColor', {
+                color: 'vec3<f32>',
+                intensity: 'f32',
+            });
+            const outer = struct('Scene', {
+                ambient: 'f32',
+                vertices: sizedArray(inner, 3),
+            });
+
+            // ==================================================================================
+            // Make sure that the buffer size and view config matches our expectations at runtime
+
+            // VertexColor: vec3 at 0, f32 at 12 (tail reuse), size=16, align=16
+            // array<VertexColor, 3>: stride=16, size=48
+            // Scene: ambient f32 at 0, vertices at roundUp(16, 4)=16, total=64
+            expect(inner.bufferSize).toEqual(16);
+            expect(outer.bufferSize).toEqual(64);
+            expect(outer.viewConfig).toEqual({
+                ambient: { scalar: 'f32', byteOffset: 0, componentCount: 1 },
+                vertices: [
+                    {
+                        color: { scalar: 'f32', byteOffset: 16, componentCount: 3 },
+                        intensity: { scalar: 'f32', byteOffset: 28, componentCount: 1 },
+                    },
+                    {
+                        color: { scalar: 'f32', byteOffset: 32, componentCount: 3 },
+                        intensity: { scalar: 'f32', byteOffset: 44, componentCount: 1 },
+                    },
+                    {
+                        color: { scalar: 'f32', byteOffset: 48, componentCount: 3 },
+                        intensity: { scalar: 'f32', byteOffset: 60, componentCount: 1 },
+                    },
+                ],
+            });
+
+            // =====================================================================
+            // Make sure that the viewConfig is correctly inferred on the type level
+
+            expectTypeOf<typeof outer.viewConfig>().toEqualTypeOf<{
+                ambient: { scalar: 'f32'; byteOffset: number; componentCount: number };
+                vertices: {
+                    color: { scalar: 'f32'; byteOffset: number; componentCount: number };
+                    intensity: { scalar: 'f32'; byteOffset: number; componentCount: number };
+                }[];
+            }>();
+
+            // =================================================================
+            // Visual check that the values are correctly unpacked in the shader
+
+            const data = new ArrayBuffer(outer.bufferSize);
+            const view = new DataView(data);
+            view.setFloat32(outer.viewConfig.ambient.byteOffset, 0.5, true);
+
+            writeVec3(view, outer.viewConfig.vertices[0].color.byteOffset, 1, 0, 0);
+            view.setFloat32(outer.viewConfig.vertices[0].intensity.byteOffset, 1, true);
+            writeVec3(view, outer.viewConfig.vertices[1].color.byteOffset, 0, 1, 0);
+            view.setFloat32(outer.viewConfig.vertices[1].intensity.byteOffset, 1, true);
+            writeVec3(view, outer.viewConfig.vertices[2].color.byteOffset, 0, 0, 1);
+            view.setFloat32(outer.viewConfig.vertices[2].intensity.byteOffset, 1, true);
+
+            const shader = createShader(`${inner.getWgsl()}\n\n${outer.getWgsl()}`, 'Scene', [
+                'data.vertices[0].color * data.vertices[0].intensity * data.ambient',
+                'data.vertices[1].color * data.vertices[1].intensity * data.ambient',
+                'data.vertices[2].color * data.vertices[2].intensity * data.ambient',
+            ]);
+            await render(shader, data);
+            await expect.element(page.getByTestId('webgpu-canvas')).toMatchScreenshot('nested-struct-array-struct.png');
+        });
+
+        it('array of arrays of structs', async () => {
+            const tint = struct('Tint', {
+                color: 'vec3<f32>',
+            });
+            const a = sizedArray(sizedArray(tint, 2), 3);
+
+            // ==================================================================================
+            // Make sure that the buffer size and view config matches our expectations at runtime
+
+            // Tint: vec3 at 0, size=16, align=16
+            // array<Tint, 2>: stride=16, size=32
+            // array<array<Tint, 2>, 3>: stride=32, size=96
+            expect(tint.bufferSize).toEqual(16);
+            expect(a.bufferSize).toEqual(96);
+            expect(a.viewConfig).toEqual([
+                [
+                    { color: { scalar: 'f32', byteOffset: 0, componentCount: 3 } },
+                    { color: { scalar: 'f32', byteOffset: 16, componentCount: 3 } },
+                ],
+                [
+                    { color: { scalar: 'f32', byteOffset: 32, componentCount: 3 } },
+                    { color: { scalar: 'f32', byteOffset: 48, componentCount: 3 } },
+                ],
+                [
+                    { color: { scalar: 'f32', byteOffset: 64, componentCount: 3 } },
+                    { color: { scalar: 'f32', byteOffset: 80, componentCount: 3 } },
+                ],
+            ]);
+
+            // =====================================================================
+            // Make sure that the viewConfig is correctly inferred on the type level
+
+            expectTypeOf<typeof a.viewConfig>().toEqualTypeOf<
+                { color: { scalar: 'f32'; byteOffset: number; componentCount: number } }[][]
+            >();
+
+            // =================================================================
+            // Visual check that the values are correctly unpacked in the shader
+
+            const data = new ArrayBuffer(a.bufferSize);
+            const view = new DataView(data);
+            // each vertex blends two tints: data[i][0].color + data[i][1].color
+            writeVec3(view, a.viewConfig[0][0].color.byteOffset, 0.5, 0, 0); // top vertex: red
+            writeVec3(view, a.viewConfig[0][1].color.byteOffset, 0.5, 0, 0);
+            writeVec3(view, a.viewConfig[1][0].color.byteOffset, 0, 0.5, 0); // bottom left: green
+            writeVec3(view, a.viewConfig[1][1].color.byteOffset, 0, 0.5, 0);
+            writeVec3(view, a.viewConfig[2][0].color.byteOffset, 0, 0, 0.5); // bottom right: blue
+            writeVec3(view, a.viewConfig[2][1].color.byteOffset, 0, 0, 0.5);
+
+            const shader = createShader(tint.getWgsl(), 'array<array<Tint, 2>, 3>', [
+                'data[0][0].color + data[0][1].color',
+                'data[1][0].color + data[1][1].color',
+                'data[2][0].color + data[2][1].color',
+            ]);
+            await render(shader, data);
+            await expect.element(page.getByTestId('webgpu-canvas')).toMatchScreenshot('nested-array-array-struct.png');
+        });
+    });
 });
