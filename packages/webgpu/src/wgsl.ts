@@ -25,7 +25,7 @@ export const struct = <Name extends string, Definition extends WgslStructDefinit
         bufferSize,
         viewConfig,
 
-        getWgsl: () => getStructWgsl(name, definition),
+        wgsl: getStructWgsl(name, definition),
     };
 };
 

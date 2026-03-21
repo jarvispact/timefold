@@ -94,7 +94,7 @@ export const layout = <Definiton extends BglLayoutDefinitionGeneric>(
 ): BindgroupLayout<Definiton> => {
     return {
         definition,
-        getWgsl: () => getWgsl(definition),
+        wgsl: getWgsl(definition),
         createPipelineLayout: (device) => createPipelineLayout(device, definition),
     };
 };

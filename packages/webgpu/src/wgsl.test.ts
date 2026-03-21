@@ -1,7 +1,7 @@
 import { expect, it, describe } from 'vitest';
 import { struct, sizedArray } from './wgsl';
 
-describe('struct.getWgsl()', () => {
+describe('struct.wgsl', () => {
     it('should generate a struct declaration with primitive fields', () => {
         const S = struct('PointLight', {
             position: 'vec3<f32>',
@@ -9,7 +9,7 @@ describe('struct.getWgsl()', () => {
             intensity: 'f32',
         });
 
-        expect(S.getWgsl()).toEqual(
+        expect(S.wgsl).toEqual(
             `
 struct PointLight {
     position: vec3<f32>,
@@ -31,7 +31,7 @@ struct PointLight {
             material: Material,
         });
 
-        expect(S.getWgsl()).toEqual(
+        expect(S.wgsl).toEqual(
             `
 struct Mesh {
     modelMatrix: mat4x4<f32>,
@@ -52,7 +52,7 @@ struct Mesh {
             jointCount: 'u32',
         });
 
-        expect(Skeleton.getWgsl()).toEqual(
+        expect(Skeleton.wgsl).toEqual(
             `
 struct Skeleton {
     joints: array<Joint, 64>,
@@ -68,7 +68,7 @@ struct Skeleton {
             count: 'u32',
         });
 
-        expect(S.getWgsl()).toEqual(
+        expect(S.wgsl).toEqual(
             `
 struct Weights {
     values: array<vec4<f32>, 16>,
@@ -83,7 +83,7 @@ struct Weights {
             value: 'u32',
         });
 
-        expect(S.getWgsl()).toEqual(
+        expect(S.wgsl).toEqual(
             `
 struct Index {
     value: u32
@@ -98,7 +98,7 @@ struct Index {
             count: 'u32',
         });
 
-        expect(S.getWgsl()).toEqual(
+        expect(S.wgsl).toEqual(
             `
 struct Grid {
     cells: array<array<vec4<f32>, 4>, 8>,
@@ -121,7 +121,7 @@ struct Grid {
             instanceCount: 'u32',
         });
 
-        expect(S.getWgsl()).toEqual(
+        expect(S.wgsl).toEqual(
             `
 struct DrawCall {
     modelMatrix: mat4x4<f32>,

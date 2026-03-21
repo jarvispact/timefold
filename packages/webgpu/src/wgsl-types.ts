@@ -26,7 +26,7 @@ export type WgslStruct<Name extends string, Definition extends WgslStructDefinit
     bufferSize: number;
     viewConfig: ViewConfig<WgslStruct<Name, Definition>>;
 
-    getWgsl: () => string;
+    wgsl: string;
 };
 
 // sized array

@@ -144,7 +144,7 @@ export const getWgsl = (definition: BglLayoutDefinitionGeneric): string => {
         }
     }
 
-    const deduplicatedStructs = structs.map((struct) => struct.getWgsl()).join('\n\n');
+    const deduplicatedStructs = structs.map((struct) => struct.wgsl).join('\n\n');
 
     const declarations: string[] = [];
     for (let groupIdx = 0; groupIdx < groupKeys.length; groupIdx++) {

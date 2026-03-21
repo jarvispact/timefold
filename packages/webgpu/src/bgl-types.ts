@@ -84,6 +84,6 @@ export type BglLayoutDefinitionGeneric = Record<string, Record<string, BglEntryG
 
 export type BindgroupLayout<Definiton extends BglLayoutDefinitionGeneric> = {
     definition: Definiton;
-    getWgsl: () => string;
+    wgsl: string;
     createPipelineLayout: (device: GPUDevice) => GPUPipelineLayout;
 };

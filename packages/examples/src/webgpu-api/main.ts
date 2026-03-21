@@ -32,6 +32,15 @@ const ObjectUniforms = Wgsl.struct('ObjectUniforms', {
     color: 'vec3<f32>',
 });
 
+const Layout = Bgl.layout({
+    per_frame: {
+        frame: Bgl.uniform(FrameUniforms),
+    },
+    per_object: {
+        object: Bgl.uniform(ObjectUniforms),
+    },
+});
+
 const frameUniformBuffer = FrameUniforms.createBuffer(device);
 const objectUniformBufferA = ObjectUniforms.createBuffer(device);
 const objectUniformBufferB = ObjectUniforms.createBuffer(device);
@@ -60,12 +69,8 @@ let depthTexture = device.createTexture({
     usage: GPUTextureUsage.RENDER_ATTACHMENT,
 });
 
-const FrameBgl = Bgl.group([Bgl.uniform(FrameUniforms, 'frame')]);
-const ObjectBgl = Bgl.group([Bgl.uniform(ObjectUniforms, 'object')]);
-const Groups = Bgl.groups([FrameBgl, ObjectBgl]);
-
 const shaderCode = /* wgsl */ `
-${Groups.getWgsl()}
+${Layout.wgsl()}
 
 struct VsOut {
   @builtin(position) pos:      vec4<f32>,
@@ -103,7 +108,7 @@ fn fs(in: VsOut) -> @location(0) vec4<f32> {
 
 const shaderModule = device.createShaderModule({ code: shaderCode });
 
-const pipelineLayout = Groups.createPipelineLayout(device);
+const pipelineLayout = Layout.createPipelineLayout(device);
 
 const pipeline = device.createRenderPipeline({
     layout: pipelineLayout,

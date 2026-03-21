@@ -2,7 +2,7 @@ import { expect, it, describe } from 'vitest';
 import * as Wgsl from './wgsl';
 import * as Bgl from './bgl';
 
-describe('Bgl.layout().getWgsl()', () => {
+describe('Bgl.layout().wgsl', () => {
     it('should generate a single group with a single binding', () => {
         const Camera = Wgsl.struct('Camera', {
             view_proj: 'mat4x4<f32>',
@@ -14,7 +14,7 @@ describe('Bgl.layout().getWgsl()', () => {
             },
         });
 
-        expect(Layout.getWgsl()).toEqual(
+        expect(Layout.wgsl).toEqual(
             `
 struct Camera {
     view_proj: mat4x4<f32>
@@ -37,7 +37,7 @@ struct Camera {
             },
         });
 
-        expect(Layout.getWgsl()).toEqual(
+        expect(Layout.wgsl).toEqual(
             `
 struct Transform {
     model_matrix: mat4x4<f32>
@@ -63,7 +63,7 @@ struct Transform {
             },
         });
 
-        expect(Layout.getWgsl()).toEqual(
+        expect(Layout.wgsl).toEqual(
             `
 struct Transform {
     model_matrix: mat4x4<f32>
@@ -92,7 +92,7 @@ struct Transform {
             },
         });
 
-        expect(Layout.getWgsl()).toEqual(
+        expect(Layout.wgsl).toEqual(
             `
 struct Material {
     color: vec4<f32>,
@@ -130,7 +130,7 @@ struct Mesh {
             },
         });
 
-        expect(Layout.getWgsl()).toEqual(
+        expect(Layout.wgsl).toEqual(
             `
 struct Inner {
     value: vec4<f32>
@@ -173,7 +173,7 @@ struct Outer {
             },
         });
 
-        expect(Layout.getWgsl()).toEqual(
+        expect(Layout.wgsl).toEqual(
             `
 struct Material {
     color: vec4<f32>
@@ -208,7 +208,7 @@ struct MeshB {
             },
         });
 
-        expect(Layout.getWgsl()).toEqual(
+        expect(Layout.wgsl).toEqual(
             `
 struct Particle {
     position: vec3<f32>,
@@ -229,7 +229,7 @@ struct Particle {
             },
         });
 
-        expect(Layout.getWgsl()).toEqual(
+        expect(Layout.wgsl).toEqual(
             `
 @group(0) @binding(0) var diffuse_tex: texture_2d<f32>;
 @group(0) @binding(1) var diffuse_sampler: sampler;
@@ -252,7 +252,7 @@ struct Particle {
             },
         });
 
-        expect(Layout.getWgsl()).toEqual(
+        expect(Layout.wgsl).toEqual(
             `
 struct Camera {
     view_proj: mat4x4<f32>
@@ -271,7 +271,7 @@ struct Camera {
                 time: Bgl.uniform('f32'),
             },
         });
-        expect(Layout.getWgsl()).toEqual(`@group(0) @binding(0) var<uniform> time: f32;`);
+        expect(Layout.wgsl).toEqual(`@group(0) @binding(0) var<uniform> time: f32;`);
     });
 
     it('should handle uniform with a sized array type', () => {
@@ -280,7 +280,7 @@ struct Camera {
                 palette: Bgl.uniform(Wgsl.sizedArray('vec4<f32>', 64)),
             },
         });
-        expect(Layout.getWgsl()).toEqual(`@group(0) @binding(0) var<uniform> palette: array<vec4<f32>, 64>;`);
+        expect(Layout.wgsl).toEqual(`@group(0) @binding(0) var<uniform> palette: array<vec4<f32>, 64>;`);
     });
 
     it('should handle storage with a runtime array type', () => {
@@ -295,7 +295,7 @@ struct Camera {
             },
         });
 
-        expect(Layout.getWgsl()).toEqual(
+        expect(Layout.wgsl).toEqual(
             `
 struct Particle {
     position: vec3<f32>,
@@ -367,7 +367,7 @@ struct Particle {
             },
         });
 
-        expect(Layout.getWgsl()).toEqual(
+        expect(Layout.wgsl).toEqual(
             `
 struct Camera {
     view_proj: mat4x4<f32>

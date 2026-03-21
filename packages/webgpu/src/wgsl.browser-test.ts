@@ -195,7 +195,7 @@ describe('webgpu buffer alignment/padding rules', () => {
             writeVec3(view, s.viewConfig.c1.byteOffset, 0, 1, 0); // bottom left: vertex green
             writeVec3(view, s.viewConfig.c2.byteOffset, 0, 0, 1); // bottom right: vertex blue
 
-            const shader = createShader(s.getWgsl(), s.name, ['data.c0', 'data.c1', 'data.c2']);
+            const shader = createShader(s.wgsl, s.name, ['data.c0', 'data.c1', 'data.c2']);
             await render(shader, data);
             await expect.element(page.getByTestId('webgpu-canvas')).toMatchScreenshot('three-vec3.png');
         });
@@ -239,7 +239,7 @@ describe('webgpu buffer alignment/padding rules', () => {
             writeVec3(view, s.viewConfig.c1.byteOffset, 0, 1, 0); // bottom left: vertex green
             writeVec3(view, s.viewConfig.c2.byteOffset, 0, 0, 1); // bottom right: vertex blue
 
-            const shader = createShader(s.getWgsl(), s.name, [
+            const shader = createShader(s.wgsl, s.name, [
                 'data.c0 * data.scale',
                 'data.c1 * data.scale',
                 'data.c2 * data.scale',
@@ -295,7 +295,7 @@ describe('webgpu buffer alignment/padding rules', () => {
             writeVec3(view, s.viewConfig.c1.byteOffset, 0, 1, 0); // bottom left: vertex green
             writeVec3(view, s.viewConfig.c2.byteOffset, 0, 0, 1); // bottom right: vertex blue
 
-            const shader = createShader(s.getWgsl(), s.name, [
+            const shader = createShader(s.wgsl, s.name, [
                 'data.c0 * data.s0',
                 'data.c1 * data.s1',
                 'data.c2 * data.s2',
@@ -351,7 +351,7 @@ describe('webgpu buffer alignment/padding rules', () => {
             writeVec2(view, s.viewConfig.rg2.byteOffset, 0, 0); // bottom right vertex: blue
             view.setFloat32(s.viewConfig.b2.byteOffset, 1, true);
 
-            const shader = createShader(s.getWgsl(), s.name, [
+            const shader = createShader(s.wgsl, s.name, [
                 'vec3(data.rg0, data.b0)',
                 'vec3(data.rg1, data.b1)',
                 'vec3(data.rg2, data.b2)',
@@ -396,7 +396,7 @@ describe('webgpu buffer alignment/padding rules', () => {
             view.setFloat32(s.viewConfig.b.byteOffset, 1, true);
 
             const color = 'vec3(data.r, data.g, data.b)';
-            const shader = createShader(s.getWgsl(), s.name, [color, color, color]);
+            const shader = createShader(s.wgsl, s.name, [color, color, color]);
             await render(shader, data);
             await expect.element(page.getByTestId('webgpu-canvas')).toMatchScreenshot('three-f32-flat-color.png');
         });
@@ -436,7 +436,7 @@ describe('webgpu buffer alignment/padding rules', () => {
             writeVec4(view, s.viewConfig.c1.byteOffset, 0, 1, 0, 1); // bottom left vertex: green
             writeVec4(view, s.viewConfig.c2.byteOffset, 0, 0, 1, 1); // bottom right vertex: blue
 
-            const shader = createShader(s.getWgsl(), s.name, ['data.c0.rgb', 'data.c1.rgb', 'data.c2.rgb']);
+            const shader = createShader(s.wgsl, s.name, ['data.c0.rgb', 'data.c1.rgb', 'data.c2.rgb']);
             await render(shader, data);
             await expect.element(page.getByTestId('webgpu-canvas')).toMatchScreenshot('three-vec4.png');
         });
@@ -484,7 +484,7 @@ describe('webgpu buffer alignment/padding rules', () => {
             // red=1.0, green=0, blue=1, tint=(1,1)
             // color = (1.0, 0+1, 1-1) = (1, 1, 0) = yellow
             const color = 'vec3(data.red, f32(data.green) + f32(data.tint.x), f32(data.blue) - f32(data.tint.y))';
-            const shader = createShader(s.getWgsl(), s.name, [color, color, color]);
+            const shader = createShader(s.wgsl, s.name, [color, color, color]);
             await render(shader, data);
             await expect.element(page.getByTestId('webgpu-canvas')).toMatchScreenshot('mixed-types-flat-color.png');
         });
@@ -662,7 +662,7 @@ describe('webgpu buffer alignment/padding rules', () => {
             writeVec3(view, a.viewConfig[2].color.byteOffset, 0, 0, 1);
             view.setFloat32(a.viewConfig[2].intensity.byteOffset, 0.25, true);
 
-            const shader = createShader(inner.getWgsl(), 'array<Vertex, 3>', [
+            const shader = createShader(inner.wgsl, 'array<Vertex, 3>', [
                 'data[0].color * data[0].intensity',
                 'data[1].color * data[1].intensity',
                 'data[2].color * data[2].intensity',
@@ -722,7 +722,7 @@ describe('webgpu buffer alignment/padding rules', () => {
             view.setFloat32(a.viewConfig[2].scale.byteOffset, 0.25, true);
             writeVec3(view, a.viewConfig[2].color.byteOffset, 0, 0, 1);
 
-            const shader = createShader(inner.getWgsl(), 'array<ScaledColor, 3>', [
+            const shader = createShader(inner.wgsl, 'array<ScaledColor, 3>', [
                 'data[0].color * data[0].scale',
                 'data[1].color * data[1].scale',
                 'data[2].color * data[2].scale',
@@ -794,7 +794,7 @@ describe('webgpu buffer alignment/padding rules', () => {
             writeVec3(view, outer.viewConfig.vertices[2].color.byteOffset, 0, 0, 1);
             view.setFloat32(outer.viewConfig.vertices[2].intensity.byteOffset, 1, true);
 
-            const shader = createShader(`${inner.getWgsl()}\n\n${outer.getWgsl()}`, 'Scene', [
+            const shader = createShader(`${inner.wgsl}\n\n${outer.wgsl}`, 'Scene', [
                 'data.vertices[0].color * data.vertices[0].intensity * data.ambient',
                 'data.vertices[1].color * data.vertices[1].intensity * data.ambient',
                 'data.vertices[2].color * data.vertices[2].intensity * data.ambient',
@@ -852,7 +852,7 @@ describe('webgpu buffer alignment/padding rules', () => {
             writeVec3(view, a.viewConfig[2][0].color.byteOffset, 0, 0, 0.5); // bottom right: blue
             writeVec3(view, a.viewConfig[2][1].color.byteOffset, 0, 0, 0.5);
 
-            const shader = createShader(tint.getWgsl(), 'array<array<Tint, 2>, 3>', [
+            const shader = createShader(tint.wgsl, 'array<array<Tint, 2>, 3>', [
                 'data[0][0].color + data[0][1].color',
                 'data[1][0].color + data[1][1].color',
                 'data[2][0].color + data[2][1].color',
@@ -915,7 +915,7 @@ describe('webgpu buffer alignment/padding rules', () => {
             view.setFloat32(a.viewConfig[2].scale.byteOffset, 0.25, true);
 
             const shader = createShader(
-                vertex.getWgsl(),
+                vertex.wgsl,
                 'array<Vertex>',
                 ['data[0].color * data[0].scale', 'data[1].color * data[1].scale', 'data[2].color * data[2].scale'],
                 'storage, read',
