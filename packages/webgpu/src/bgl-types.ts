@@ -20,77 +20,70 @@ export type BglStorageTypeGeneric =
 
 export type BglBufferOptions = Omit<GPUBufferBindingLayout, 'type' | 'minBindingSize'>;
 
-export type BglUniformEntry<Type extends BglUniformTypeGeneric, Name extends string> = {
+export type BglUniformEntry<Type extends BglUniformTypeGeneric> = {
     kind: 'uniform';
     type: Type;
-    name: Name;
     visibility: number;
     options: BglBufferOptions;
 };
 
-export type BglStorageEntry<Type extends BglStorageTypeGeneric, Name extends string> = {
+export type BglStorageEntry<Type extends BglStorageTypeGeneric> = {
     kind: 'storage';
     type: Type;
-    name: Name;
     visibility: number;
     options: BglBufferOptions;
 };
 
-export type BglReadonlyStorageEntry<Type extends BglStorageTypeGeneric, Name extends string> = {
+export type BglReadonlyStorageEntry<Type extends BglStorageTypeGeneric> = {
     kind: 'read-only-storage';
     type: Type;
-    name: Name;
     visibility: number;
     options: BglBufferOptions;
 };
 
 export type BglUniformEntryKind = (
-    | BglUniformEntry<BglUniformTypeGeneric, string>
-    | BglStorageEntry<BglStorageTypeGeneric, string>
-    | BglReadonlyStorageEntry<BglStorageTypeGeneric, string>
+    | BglUniformEntry<BglUniformTypeGeneric>
+    | BglStorageEntry<BglStorageTypeGeneric>
+    | BglReadonlyStorageEntry<BglStorageTypeGeneric>
 )['kind'];
 
-export type BglSamplerEntry<Name extends string> = {
+export type BglSamplerEntry = {
     kind: 'sampler';
-    name: Name;
     visibility: number;
     options: GPUSamplerBindingLayout;
 };
 
-export type BglTextureEntry<Name extends string> = {
+export type BglTextureEntry = {
     kind: 'texture';
-    name: Name;
     visibility: number;
     options: GPUTextureBindingLayout;
 };
 
-export type BglStorageTextureEntry<Name extends string> = {
+export type BglStorageTextureEntry = {
     kind: 'storage-texture';
-    name: Name;
     visibility: number;
     options: GPUStorageTextureBindingLayout;
 };
 
-export type BglExternalTextureEntry<Name extends string> = {
+export type BglExternalTextureEntry = {
     kind: 'external-texture';
-    name: Name;
     visibility: number;
     options: GPUExternalTextureBindingLayout;
 };
 
 export type BglEntryGeneric =
-    | BglUniformEntry<BglUniformTypeGeneric, string>
-    | BglStorageEntry<BglStorageTypeGeneric, string>
-    | BglReadonlyStorageEntry<BglStorageTypeGeneric, string>
-    | BglSamplerEntry<string>
-    | BglTextureEntry<string>
-    | BglStorageTextureEntry<string>
-    | BglExternalTextureEntry<string>;
+    | BglUniformEntry<BglUniformTypeGeneric>
+    | BglStorageEntry<BglStorageTypeGeneric>
+    | BglReadonlyStorageEntry<BglStorageTypeGeneric>
+    | BglSamplerEntry
+    | BglTextureEntry
+    | BglStorageTextureEntry
+    | BglExternalTextureEntry;
 
-export type BglGroup<Entries extends BglEntryGeneric[]> = { entries: Entries };
+export type BglLayoutDefinitionGeneric = Record<string, Record<string, BglEntryGeneric>>;
 
-export type BglGroups<Groups extends BglGroup<BglEntryGeneric[]>[]> = {
-    groups: Groups;
+export type BindgroupLayout<Definiton extends BglLayoutDefinitionGeneric> = {
+    definition: Definiton;
     getWgsl: () => string;
     createPipelineLayout: (device: GPUDevice) => GPUPipelineLayout;
 };

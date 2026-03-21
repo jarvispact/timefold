@@ -1,10 +1,8 @@
 import { createPipelineLayout, defaultVisibility, getWgsl, WithVisibility } from './bgl-helpers';
 import {
     BglBufferOptions,
-    BglEntryGeneric,
     BglExternalTextureEntry,
-    BglGroup,
-    BglGroups,
+    BglLayoutDefinitionGeneric,
     BglReadonlyStorageEntry,
     BglSamplerEntry,
     BglStorageEntry,
@@ -13,109 +11,90 @@ import {
     BglTextureEntry,
     BglUniformEntry,
     BglUniformTypeGeneric,
+    BindgroupLayout,
 } from './bgl-types';
 
-export const uniform = <Type extends BglUniformTypeGeneric, Name extends string>(
+export const uniform = <Type extends BglUniformTypeGeneric>(
     type: Type,
-    name: Name,
     options?: WithVisibility<BglBufferOptions>,
-): BglUniformEntry<Type, Name> => {
+): BglUniformEntry<Type> => {
     const { visibility, ...remainingOptions } = options ?? {};
     return {
         kind: 'uniform',
         type,
-        name,
         visibility: visibility ?? defaultVisibility,
         options: remainingOptions,
     };
 };
 
-export const storage = <Type extends BglStorageTypeGeneric, Name extends string>(
+export const storage = <Type extends BglStorageTypeGeneric>(
     type: Type,
-    name: Name,
     options?: WithVisibility<BglBufferOptions>,
-): BglStorageEntry<Type, Name> => {
+): BglStorageEntry<Type> => {
     const { visibility, ...remainingOptions } = options ?? {};
     return {
         kind: 'storage',
         type,
-        name,
         visibility: visibility ?? defaultVisibility,
         options: remainingOptions,
     };
 };
 
-export const readOnlyStorage = <Type extends BglStorageTypeGeneric, Name extends string>(
+export const readOnlyStorage = <Type extends BglStorageTypeGeneric>(
     type: Type,
-    name: Name,
     options?: WithVisibility<BglBufferOptions>,
-): BglReadonlyStorageEntry<Type, Name> => {
+): BglReadonlyStorageEntry<Type> => {
     const { visibility, ...remainingOptions } = options ?? {};
     return {
         kind: 'read-only-storage',
         type,
-        name,
         visibility: visibility ?? defaultVisibility,
         options: remainingOptions,
     };
 };
 
-export const sampler = <Name extends string>(
-    name: Name,
-    options?: WithVisibility<GPUSamplerBindingLayout>,
-): BglSamplerEntry<Name> => {
+export const sampler = (options?: WithVisibility<GPUSamplerBindingLayout>): BglSamplerEntry => {
     const { visibility, ...remainingOptions } = options ?? {};
     return {
         kind: 'sampler',
-        name,
         visibility: visibility ?? defaultVisibility,
         options: remainingOptions,
     };
 };
 
-export const texture = <Name extends string>(
-    name: Name,
-    options?: WithVisibility<GPUTextureBindingLayout>,
-): BglTextureEntry<Name> => {
+export const texture = (options?: WithVisibility<GPUTextureBindingLayout>): BglTextureEntry => {
     const { visibility, ...remainingOptions } = options ?? {};
     return {
         kind: 'texture',
-        name,
         visibility: visibility ?? defaultVisibility,
         options: remainingOptions,
     };
 };
 
-export const storageTexture = <Name extends string>(
-    name: Name,
-    options: WithVisibility<GPUStorageTextureBindingLayout>,
-): BglStorageTextureEntry<Name> => {
+export const storageTexture = (options: WithVisibility<GPUStorageTextureBindingLayout>): BglStorageTextureEntry => {
     const { visibility, ...remainingOptions } = options;
     return {
         kind: 'storage-texture',
-        name,
         visibility: visibility ?? defaultVisibility,
         options: remainingOptions,
     };
 };
 
-export const externalTexture = <Name extends string>(
-    name: Name,
-    options?: WithVisibility<GPUExternalTextureBindingLayout>,
-): BglExternalTextureEntry<Name> => {
+export const externalTexture = (options?: WithVisibility<GPUExternalTextureBindingLayout>): BglExternalTextureEntry => {
     const { visibility, ...remainingOptions } = options ?? {};
     return {
         kind: 'external-texture',
-        name,
         visibility: visibility ?? defaultVisibility,
         options: remainingOptions,
     };
 };
 
-export const group = <const Entries extends BglEntryGeneric[]>(entries: Entries): BglGroup<Entries> => ({ entries });
-
-export const groups = <const Groups extends BglGroup<BglEntryGeneric[]>[]>(groups: Groups): BglGroups<Groups> => ({
-    groups,
-    getWgsl: () => getWgsl(groups),
-    createPipelineLayout: (device) => createPipelineLayout(device, groups),
-});
+export const layout = <Definiton extends BglLayoutDefinitionGeneric>(
+    definition: Definiton,
+): BindgroupLayout<Definiton> => {
+    return {
+        definition,
+        getWgsl: () => getWgsl(definition),
+        createPipelineLayout: (device) => createPipelineLayout(device, definition),
+    };
+};

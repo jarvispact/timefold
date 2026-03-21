@@ -1,7 +1,7 @@
 import {
     BglBufferOptions,
     BglEntryGeneric,
-    BglGroup,
+    BglLayoutDefinitionGeneric,
     BglSamplerEntry,
     BglStorageTextureEntry,
     BglTextureEntry,
@@ -34,24 +34,24 @@ const sampleTypeToWgslComponent = (sampleType: string): string => {
     return 'f32';
 };
 
-const samplerToDeclaration = (entry: BglSamplerEntry<string>): string => {
+const samplerToDeclaration = (name: string, entry: BglSamplerEntry): string => {
     const type = entry.options.type === 'comparison' ? 'sampler_comparison' : 'sampler';
-    return `var ${entry.name}: ${type}`;
+    return `var ${name}: ${type}`;
 };
 
-const textureToDeclaration = (entry: BglTextureEntry<string>): string => {
+const textureToDeclaration = (name: string, entry: BglTextureEntry): string => {
     const sampleType = entry.options.sampleType ?? 'float';
     const viewDimension = viewDimensionToWgsl(entry.options.viewDimension ?? '2d');
     const multisampled = entry.options.multisampled ?? false;
 
     if (sampleType === 'depth') {
         const suffix = multisampled ? 'multisampled_2d' : viewDimension;
-        return `var ${entry.name}: texture_depth_${suffix}`;
+        return `var ${name}: texture_depth_${suffix}`;
     }
 
     const component = sampleTypeToWgslComponent(sampleType);
-    if (multisampled) return `var ${entry.name}: texture_multisampled_2d<${component}>`;
-    return `var ${entry.name}: texture_${viewDimension}<${component}>`;
+    if (multisampled) return `var ${name}: texture_multisampled_2d<${component}>`;
+    return `var ${name}: texture_${viewDimension}<${component}>`;
 };
 
 const storageTextureAccessToWgsl = (access: string): string => {
@@ -60,28 +60,28 @@ const storageTextureAccessToWgsl = (access: string): string => {
     return 'read_write';
 };
 
-const storageTextureToDeclaration = (entry: BglStorageTextureEntry<string>): string => {
+const storageTextureToDeclaration = (name: string, entry: BglStorageTextureEntry): string => {
     const viewDimension = viewDimensionToWgsl(entry.options.viewDimension ?? '2d');
     const access = storageTextureAccessToWgsl(entry.options.access ?? 'write-only');
-    return `var ${entry.name}: texture_storage_${viewDimension}<${entry.options.format}, ${access}>`;
+    return `var ${name}: texture_storage_${viewDimension}<${entry.options.format}, ${access}>`;
 };
 
-const entryToDeclaration = (entry: BglEntryGeneric): string => {
+const entryToDeclaration = (name: string, entry: BglEntryGeneric): string => {
     switch (entry.kind) {
         case 'uniform':
-            return `var<uniform> ${entry.name}: ${getTypeStructOrArrayString(entry.type)}`;
+            return `var<uniform> ${name}: ${getTypeStructOrArrayString(entry.type)}`;
         case 'storage':
-            return `var<storage, read_write> ${entry.name}: ${getTypeStructOrArrayString(entry.type)}`;
+            return `var<storage, read_write> ${name}: ${getTypeStructOrArrayString(entry.type)}`;
         case 'read-only-storage':
-            return `var<storage, read> ${entry.name}: ${getTypeStructOrArrayString(entry.type)}`;
+            return `var<storage, read> ${name}: ${getTypeStructOrArrayString(entry.type)}`;
         case 'sampler':
-            return samplerToDeclaration(entry);
+            return samplerToDeclaration(name, entry);
         case 'texture':
-            return textureToDeclaration(entry);
+            return textureToDeclaration(name, entry);
         case 'storage-texture':
-            return storageTextureToDeclaration(entry);
+            return storageTextureToDeclaration(name, entry);
         case 'external-texture':
-            return `var ${entry.name}: texture_external`;
+            return `var ${name}: texture_external`;
     }
 };
 
@@ -130,12 +130,15 @@ const collectStructs = (
     result.push(type);
 };
 
-export const getWgsl = (groups: BglGroup<BglEntryGeneric[]>[]): string => {
+export const getWgsl = (definition: BglLayoutDefinitionGeneric): string => {
     const seen = new Set<string>();
     const structs: WgslStruct<string, WgslStructDefinitionGeneric>[] = [];
+    const groupKeys = Object.keys(definition);
 
-    for (const group of groups) {
-        for (const entry of group.entries) {
+    for (const groupKey of groupKeys) {
+        const bindings = definition[groupKey];
+        for (const bindingName in bindings) {
+            const entry = bindings[bindingName];
             if (!hasBufferType(entry)) continue;
             collectStructs(entry.type, seen, structs);
         }
@@ -143,21 +146,32 @@ export const getWgsl = (groups: BglGroup<BglEntryGeneric[]>[]): string => {
 
     const deduplicatedStructs = structs.map((struct) => struct.getWgsl()).join('\n\n');
 
-    const groupsAndBindings = groups
-        .flatMap((group, groupIdx) => {
-            return group.entries.map(
-                (entry, bindingIdx) => `@group(${groupIdx}) @binding(${bindingIdx}) ${entryToDeclaration(entry)};`,
+    const declarations: string[] = [];
+    for (let groupIdx = 0; groupIdx < groupKeys.length; groupIdx++) {
+        const bindings = definition[groupKeys[groupIdx]];
+        const bindingNames = Object.keys(bindings);
+        for (let bindingIdx = 0; bindingIdx < bindingNames.length; bindingIdx++) {
+            const entry = bindings[bindingNames[bindingIdx]];
+            declarations.push(
+                `@group(${groupIdx}) @binding(${bindingIdx}) ${entryToDeclaration(bindingNames[bindingIdx], entry)};`,
             );
-        })
-        .join('\n');
+        }
+    }
+
+    const groupsAndBindings = declarations.join('\n');
 
     return [deduplicatedStructs, groupsAndBindings].filter((s) => s.length > 0).join('\n\n');
 };
 
-export const createPipelineLayout = (device: GPUDevice, groups: BglGroup<BglEntryGeneric[]>[]): GPUPipelineLayout => {
-    const bindGroupLayouts = groups.map((group) => {
+export const createPipelineLayout = (device: GPUDevice, definition: BglLayoutDefinitionGeneric): GPUPipelineLayout => {
+    const groupKeys = Object.keys(definition);
+
+    const bindGroupLayouts = groupKeys.map((groupKey) => {
+        const bindings = definition[groupKey];
+        const bindingNames = Object.keys(bindings);
         return device.createBindGroupLayout({
-            entries: group.entries.map((entry, entryIdx) => {
+            entries: bindingNames.map((bindingName, entryIdx) => {
+                const entry = bindings[bindingName];
                 return {
                     binding: entryIdx,
                     visibility: entry.visibility,
@@ -167,9 +181,7 @@ export const createPipelineLayout = (device: GPUDevice, groups: BglGroup<BglEntr
         });
     });
 
-    const layout = device.createPipelineLayout({
+    return device.createPipelineLayout({
         bindGroupLayouts,
     });
-
-    return layout;
 };

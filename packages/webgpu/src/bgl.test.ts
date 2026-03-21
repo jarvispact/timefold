@@ -2,13 +2,17 @@ import { expect, it, describe } from 'vitest';
 import * as Wgsl from './wgsl';
 import * as Bgl from './bgl';
 
-describe('Bgl.groups().getWgsl()', () => {
+describe('Bgl.layout().getWgsl()', () => {
     it('should generate a single group with a single binding', () => {
         const Camera = Wgsl.struct('Camera', {
             view_proj: 'mat4x4<f32>',
         });
 
-        const Layout = Bgl.groups([Bgl.group([Bgl.uniform(Camera, 'camera')])]);
+        const Layout = Bgl.layout({
+            scene: {
+                camera: Bgl.uniform(Camera),
+            },
+        });
 
         expect(Layout.getWgsl()).toEqual(
             `
@@ -26,9 +30,12 @@ struct Camera {
             model_matrix: 'mat4x4<f32>',
         });
 
-        const Layout = Bgl.groups([
-            Bgl.group([Bgl.uniform(Transform, 'transform_a'), Bgl.uniform(Transform, 'transform_b')]),
-        ]);
+        const Layout = Bgl.layout({
+            transforms: {
+                transform_a: Bgl.uniform(Transform),
+                transform_b: Bgl.uniform(Transform),
+            },
+        });
 
         expect(Layout.getWgsl()).toEqual(
             `
@@ -47,10 +54,14 @@ struct Transform {
             model_matrix: 'mat4x4<f32>',
         });
 
-        const Layout = Bgl.groups([
-            Bgl.group([Bgl.uniform(Transform, 'transform_a')]),
-            Bgl.group([Bgl.uniform(Transform, 'transform_b')]),
-        ]);
+        const Layout = Bgl.layout({
+            group_a: {
+                transform_a: Bgl.uniform(Transform),
+            },
+            group_b: {
+                transform_b: Bgl.uniform(Transform),
+            },
+        });
 
         expect(Layout.getWgsl()).toEqual(
             `
@@ -75,7 +86,11 @@ struct Transform {
             material: Material,
         });
 
-        const Layout = Bgl.groups([Bgl.group([Bgl.uniform(Mesh, 'mesh')])]);
+        const Layout = Bgl.layout({
+            object: {
+                mesh: Bgl.uniform(Mesh),
+            },
+        });
 
         expect(Layout.getWgsl()).toEqual(
             `
@@ -109,7 +124,11 @@ struct Mesh {
             position: 'vec3<f32>',
         });
 
-        const Layout = Bgl.groups([Bgl.group([Bgl.uniform(Outer, 'data')])]);
+        const Layout = Bgl.layout({
+            data: {
+                data: Bgl.uniform(Outer),
+            },
+        });
 
         expect(Layout.getWgsl()).toEqual(
             `
@@ -147,7 +166,12 @@ struct Outer {
             scale: 'f32',
         });
 
-        const Layout = Bgl.groups([Bgl.group([Bgl.uniform(MeshA, 'mesh_a'), Bgl.uniform(MeshB, 'mesh_b')])]);
+        const Layout = Bgl.layout({
+            meshes: {
+                mesh_a: Bgl.uniform(MeshA),
+                mesh_b: Bgl.uniform(MeshB),
+            },
+        });
 
         expect(Layout.getWgsl()).toEqual(
             `
@@ -177,9 +201,12 @@ struct MeshB {
             velocity: 'vec3<f32>',
         });
 
-        const Layout = Bgl.groups([
-            Bgl.group([Bgl.storage(Particle, 'particles'), Bgl.readOnlyStorage(Particle, 'prev_particles')]),
-        ]);
+        const Layout = Bgl.layout({
+            simulation: {
+                particles: Bgl.storage(Particle),
+                prev_particles: Bgl.readOnlyStorage(Particle),
+            },
+        });
 
         expect(Layout.getWgsl()).toEqual(
             `
@@ -195,7 +222,12 @@ struct Particle {
     });
 
     it('should generate sampler and texture binding declarations', () => {
-        const Layout = Bgl.groups([Bgl.group([Bgl.texture('diffuse_tex'), Bgl.sampler('diffuse_sampler')])]);
+        const Layout = Bgl.layout({
+            material: {
+                diffuse_tex: Bgl.texture(),
+                diffuse_sampler: Bgl.sampler(),
+            },
+        });
 
         expect(Layout.getWgsl()).toEqual(
             `
@@ -210,10 +242,15 @@ struct Particle {
             view_proj: 'mat4x4<f32>',
         });
 
-        const Layout = Bgl.groups([
-            Bgl.group([Bgl.uniform(Camera, 'camera')]),
-            Bgl.group([Bgl.texture('albedo'), Bgl.sampler('tex_sampler')]),
-        ]);
+        const Layout = Bgl.layout({
+            per_frame: {
+                camera: Bgl.uniform(Camera),
+            },
+            material: {
+                albedo: Bgl.texture(),
+                tex_sampler: Bgl.sampler(),
+            },
+        });
 
         expect(Layout.getWgsl()).toEqual(
             `
@@ -229,12 +266,20 @@ struct Camera {
     });
 
     it('should handle uniform with a primitive type (no struct declaration)', () => {
-        const Layout = Bgl.groups([Bgl.group([Bgl.uniform('f32', 'time')])]);
+        const Layout = Bgl.layout({
+            per_frame: {
+                time: Bgl.uniform('f32'),
+            },
+        });
         expect(Layout.getWgsl()).toEqual(`@group(0) @binding(0) var<uniform> time: f32;`);
     });
 
     it('should handle uniform with a sized array type', () => {
-        const Layout = Bgl.groups([Bgl.group([Bgl.uniform(Wgsl.sizedArray('vec4<f32>', 64), 'palette')])]);
+        const Layout = Bgl.layout({
+            per_frame: {
+                palette: Bgl.uniform(Wgsl.sizedArray('vec4<f32>', 64)),
+            },
+        });
         expect(Layout.getWgsl()).toEqual(`@group(0) @binding(0) var<uniform> palette: array<vec4<f32>, 64>;`);
     });
 
@@ -244,7 +289,11 @@ struct Camera {
             velocity: 'vec3<f32>',
         });
 
-        const Layout = Bgl.groups([Bgl.group([Bgl.storage(Wgsl.runtimeArray(Particle, 1024), 'particles')])]);
+        const Layout = Bgl.layout({
+            simulation: {
+                particles: Bgl.storage(Wgsl.runtimeArray(Particle, 1024)),
+            },
+        });
 
         expect(Layout.getWgsl()).toEqual(
             `
@@ -263,63 +312,60 @@ struct Particle {
             view_proj: 'mat4x4<f32>',
         });
 
-        const Layout = Bgl.groups([
-            // Group 0: uniform with struct, primitive, and sized array
-            Bgl.group([
-                Bgl.uniform(Camera, 'camera'),
-                Bgl.uniform('f32', 'time'),
-                Bgl.uniform(Wgsl.sizedArray('vec4<f32>', 16), 'palette'),
-            ]),
-            // Group 1: storage and read-only-storage
-            Bgl.group([
-                Bgl.storage(Camera, 'output_data'),
-                Bgl.readOnlyStorage(Camera, 'input_data'),
-                Bgl.storage('f32', 'counter'),
-                Bgl.readOnlyStorage(Wgsl.runtimeArray(Camera, 1024), 'instances'),
-            ]),
-            // Group 2: sampler types
-            Bgl.group([Bgl.sampler('filtering_sampler'), Bgl.sampler('comparison_sampler', { type: 'comparison' })]),
-            // Group 3: texture types (float sample type with each view dimension)
-            Bgl.group([
-                Bgl.texture('tex_2d'),
-                Bgl.texture('tex_2d_array', { viewDimension: '2d-array' }),
-                Bgl.texture('tex_3d', { viewDimension: '3d' }),
-                Bgl.texture('tex_cube', { viewDimension: 'cube' }),
-                Bgl.texture('tex_cube_array', { viewDimension: 'cube-array' }),
-                Bgl.texture('tex_multisampled', { multisampled: true }),
-            ]),
-            // Group 4: texture types (sint, uint sample types)
-            Bgl.group([
-                Bgl.texture('tex_sint', { sampleType: 'sint' }),
-                Bgl.texture('tex_uint', { sampleType: 'uint' }),
-            ]),
-            // Group 5: depth texture types
-            Bgl.group([
-                Bgl.texture('tex_depth_2d', { sampleType: 'depth' }),
-                Bgl.texture('tex_depth_2d_array', { sampleType: 'depth', viewDimension: '2d-array' }),
-                Bgl.texture('tex_depth_cube', { sampleType: 'depth', viewDimension: 'cube' }),
-                Bgl.texture('tex_depth_cube_array', { sampleType: 'depth', viewDimension: 'cube-array' }),
-                Bgl.texture('tex_depth_multisampled', { sampleType: 'depth', multisampled: true }),
-            ]),
-            // Group 6: storage textures
-            Bgl.group([
-                Bgl.storageTexture('st_write', { format: 'rgba8unorm', access: 'write-only' }),
-                Bgl.storageTexture('st_read', { format: 'r32float', access: 'read-only' }),
-                Bgl.storageTexture('st_readwrite', { format: 'rgba16float', access: 'read-write' }),
-                Bgl.storageTexture('st_2d_array', {
+        const Layout = Bgl.layout({
+            uniforms: {
+                camera: Bgl.uniform(Camera),
+                time: Bgl.uniform('f32'),
+                palette: Bgl.uniform(Wgsl.sizedArray('vec4<f32>', 16)),
+            },
+            storage: {
+                output_data: Bgl.storage(Camera),
+                input_data: Bgl.readOnlyStorage(Camera),
+                counter: Bgl.storage('f32'),
+                instances: Bgl.readOnlyStorage(Wgsl.runtimeArray(Camera, 1024)),
+            },
+            samplers: {
+                filtering_sampler: Bgl.sampler(),
+                comparison_sampler: Bgl.sampler({ type: 'comparison' }),
+            },
+            textures_float: {
+                tex_2d: Bgl.texture(),
+                tex_2d_array: Bgl.texture({ viewDimension: '2d-array' }),
+                tex_3d: Bgl.texture({ viewDimension: '3d' }),
+                tex_cube: Bgl.texture({ viewDimension: 'cube' }),
+                tex_cube_array: Bgl.texture({ viewDimension: 'cube-array' }),
+                tex_multisampled: Bgl.texture({ multisampled: true }),
+            },
+            textures_int: {
+                tex_sint: Bgl.texture({ sampleType: 'sint' }),
+                tex_uint: Bgl.texture({ sampleType: 'uint' }),
+            },
+            textures_depth: {
+                tex_depth_2d: Bgl.texture({ sampleType: 'depth' }),
+                tex_depth_2d_array: Bgl.texture({ sampleType: 'depth', viewDimension: '2d-array' }),
+                tex_depth_cube: Bgl.texture({ sampleType: 'depth', viewDimension: 'cube' }),
+                tex_depth_cube_array: Bgl.texture({ sampleType: 'depth', viewDimension: 'cube-array' }),
+                tex_depth_multisampled: Bgl.texture({ sampleType: 'depth', multisampled: true }),
+            },
+            storage_textures: {
+                st_write: Bgl.storageTexture({ format: 'rgba8unorm', access: 'write-only' }),
+                st_read: Bgl.storageTexture({ format: 'r32float', access: 'read-only' }),
+                st_readwrite: Bgl.storageTexture({ format: 'rgba16float', access: 'read-write' }),
+                st_2d_array: Bgl.storageTexture({
                     format: 'rgba32float',
                     access: 'write-only',
                     viewDimension: '2d-array',
                 }),
-                Bgl.storageTexture('st_3d', {
+                st_3d: Bgl.storageTexture({
                     format: 'rgba8unorm',
                     access: 'write-only',
                     viewDimension: '3d',
                 }),
-            ]),
-            // Group 7: external texture
-            Bgl.group([Bgl.externalTexture('video_frame')]),
-        ]);
+            },
+            external: {
+                video_frame: Bgl.externalTexture(),
+            },
+        });
 
         expect(Layout.getWgsl()).toEqual(
             `

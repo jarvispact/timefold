@@ -16,9 +16,7 @@ const defaultAdapterOptions: GPURequestAdapterOptions = {
 export const createDevice = async (options: CreateDeviceOptions = {}): Promise<GPUDevice> => {
     const adapterOptions = { ...defaultAdapterOptions, ...options.adapter };
     const adapter = await navigator.gpu.requestAdapter(adapterOptions);
-    if (!adapter) {
-        throw new Error('Webgpu not available');
-    }
+    if (!adapter) throw new Error('Webgpu not available');
 
     const device = await adapter.requestDevice(options.device);
     return device;
@@ -26,9 +24,7 @@ export const createDevice = async (options: CreateDeviceOptions = {}): Promise<G
 
 export const createContext = (options: CreateContextOptions): GPUCanvasContext => {
     const context = options.canvas.getContext('webgpu');
-    if (!context) {
-        throw new Error('Webgpu not available');
-    }
+    if (!context) throw new Error('Webgpu not available');
 
     const format = navigator.gpu.getPreferredCanvasFormat();
 
