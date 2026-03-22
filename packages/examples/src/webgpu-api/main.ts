@@ -1,7 +1,3 @@
-// ============================================================================
-// WebGPU Phong-Lit Cube — raw API, zero abstractions
-// ============================================================================
-
 import { Mat4, Vec3 } from '@timefold/math';
 import { DomUtils } from '@timefold/engine';
 import { WebgpuUtils, Wgsl, Bgl } from '@timefold/webgpu';
@@ -41,6 +37,10 @@ const Layout = Bgl.layout({
     },
 });
 
+const data1 = FrameUniforms.create();
+const data2 = FrameUniforms.create('array-buffer');
+const data3 = FrameUniforms.create('shared-array-buffer');
+
 const frameUniformBuffer = FrameUniforms.createBuffer(device);
 const objectUniformBufferA = ObjectUniforms.createBuffer(device);
 const objectUniformBufferB = ObjectUniforms.createBuffer(device);
@@ -70,7 +70,7 @@ let depthTexture = device.createTexture({
 });
 
 const shaderCode = /* wgsl */ `
-${Layout.wgsl()}
+${Layout.wgsl}
 
 struct VsOut {
   @builtin(position) pos:      vec4<f32>,

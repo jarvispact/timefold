@@ -3,12 +3,15 @@ import {
     getBufferSizeAndViewConfigForSizedArray,
     getBufferSizeAndViewConfigForStruct,
 } from './internal';
-import { getStructWgsl } from './wgsl-helpers';
+import { BufferMode, getStructWgsl } from './wgsl-helpers';
 import {
     WgslArrayElementGeneric,
     WgslRuntimeArray,
+    WgslRuntimeArrayCreateResult,
     WgslSizedArray,
+    WgslSizedArrayCreateResult,
     WgslStruct,
+    WgslStructCreateResult,
     WgslStructDefinitionGeneric,
 } from './wgsl-types';
 
@@ -26,6 +29,13 @@ export const struct = <Name extends string, Definition extends WgslStructDefinit
         viewConfig,
 
         wgsl: getStructWgsl(name, definition),
+
+        create: <Mode extends BufferMode = 'array-buffer'>(
+            mode?: Mode,
+        ): WgslStructCreateResult<WgslStruct<Name, Definition>, Mode> => {
+            console.log(mode);
+            return null as never;
+        },
     };
 };
 
@@ -41,6 +51,13 @@ export const sizedArray = <Element extends WgslArrayElementGeneric, Size extends
 
         bufferSize,
         viewConfig,
+
+        create: <Mode extends BufferMode = 'array-buffer'>(
+            mode?: Mode,
+        ): WgslSizedArrayCreateResult<WgslSizedArray<Element, Size>, Mode> => {
+            console.log(mode);
+            return null as never;
+        },
     };
 };
 
@@ -56,5 +73,12 @@ export const runtimeArray = <Element extends WgslArrayElementGeneric>(
 
         bufferSize,
         viewConfig,
+
+        create: <Mode extends BufferMode = 'array-buffer'>(
+            mode?: Mode,
+        ): WgslRuntimeArrayCreateResult<WgslRuntimeArray<Element>, Mode> => {
+            console.log(mode);
+            return null as never;
+        },
     };
 };

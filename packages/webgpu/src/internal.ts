@@ -4,6 +4,7 @@
 
 // uniforms
 
+import { BufferMode, TypedArrayForScalarAndMode } from './wgsl-helpers';
 import {
     WgslArrayElementGeneric,
     WgslPrimitive,
@@ -61,8 +62,10 @@ type ViewConfigEntry<Scalar extends WgslScalar> = {
     componentCount: number;
 };
 
-type _TupleOf<T, N extends number, R extends unknown[]> = R['length'] extends N ? R : _TupleOf<T, N, [T, ...R]>;
-export type Tuple<T, N extends number> = N extends N ? (number extends N ? T[] : _TupleOf<T, N, []>) : never;
+export type Prettify<T extends Record<string, unknown>> = { [K in keyof T]: T[K] } & {};
+
+// type _TupleOf<T, N extends number, R extends unknown[]> = R['length'] extends N ? R : _TupleOf<T, N, [T, ...R]>;
+// export type Tuple<T, N extends number> = N extends N ? (number extends N ? T[] : _TupleOf<T, N, []>) : never;
 
 export type ViewConfig<Type> = Type extends WgslScalar
     ? ViewConfigEntry<Type>
@@ -74,6 +77,18 @@ export type ViewConfig<Type> = Type extends WgslScalar
           ? ViewConfig<Element>[]
           : Type extends WgslRuntimeArray<infer Element>
             ? ViewConfig<Element>[]
+            : never;
+
+export type Views<Type, Mode extends BufferMode> = Type extends WgslScalar
+    ? TypedArrayForScalarAndMode<Type, Mode>
+    : Type extends `${string}<${infer Scalar extends WgslScalar}>`
+      ? TypedArrayForScalarAndMode<Scalar, Mode>
+      : Type extends WgslStruct<string, infer Definition>
+        ? { [K in keyof Definition]: Views<Definition[K], Mode> }
+        : Type extends WgslSizedArray<infer Element, number>
+          ? Views<Element, Mode>[]
+          : Type extends WgslRuntimeArray<infer Element>
+            ? Views<Element, Mode>[]
             : never;
 
 // Layout computation helpers

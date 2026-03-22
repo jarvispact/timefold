@@ -1,6 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
-import { InvalidArrayType, ViewConfig, WGSL_LOOKUP_TABLE } from './internal';
+import { InvalidArrayType, Prettify, ViewConfig, Views, WGSL_LOOKUP_TABLE } from './internal';
+import { BufferMode, CreateModeToBufferInstance } from './wgsl-helpers';
 
 // primitive
 
@@ -18,6 +19,14 @@ export type StructDefinitionValueGeneric =
 
 export type WgslStructDefinitionGeneric = Record<string, StructDefinitionValueGeneric>;
 
+export type WgslStructCreateResult<
+    Struct extends WgslStruct<string, WgslStructDefinitionGeneric>,
+    Mode extends BufferMode,
+> = {
+    data: CreateModeToBufferInstance[Mode];
+    views: Views<Struct, Mode>;
+};
+
 export type WgslStruct<Name extends string, Definition extends WgslStructDefinitionGeneric> = {
     type: 'struct';
     name: Name;
@@ -27,9 +36,21 @@ export type WgslStruct<Name extends string, Definition extends WgslStructDefinit
     viewConfig: ViewConfig<WgslStruct<Name, Definition>>;
 
     wgsl: string;
+
+    create: <Mode extends BufferMode = 'array-buffer'>(
+        mode?: Mode,
+    ) => Prettify<WgslStructCreateResult<WgslStruct<Name, Definition>, Mode>>;
 };
 
 // sized array
+
+export type WgslSizedArrayCreateResult<
+    SizedArray extends WgslSizedArray<WgslArrayElementGeneric, number>,
+    Mode extends BufferMode,
+> = {
+    data: CreateModeToBufferInstance[Mode];
+    views: Views<SizedArray, Mode>;
+};
 
 export type WgslArrayElementGeneric = WgslArrayPrimitive | WgslSizedArray<any, any> | WgslStruct<string, any>;
 
@@ -40,9 +61,18 @@ export type WgslSizedArray<Element extends WgslArrayElementGeneric, Size extends
 
     bufferSize: number;
     viewConfig: ViewConfig<WgslSizedArray<Element, Size>>;
+
+    create: <Mode extends BufferMode = 'array-buffer'>(
+        mode?: Mode,
+    ) => Prettify<WgslSizedArrayCreateResult<WgslSizedArray<Element, Size>, Mode>>;
 };
 
 // runtime array
+
+export type WgslRuntimeArrayCreateResult<RuntimeArray extends WgslRuntimeArray<any>, Mode extends BufferMode> = {
+    data: CreateModeToBufferInstance[Mode];
+    views: Views<RuntimeArray, Mode>;
+};
 
 export type WgslRuntimeArray<Element extends WgslArrayElementGeneric> = {
     type: 'runtime-array';
@@ -51,6 +81,10 @@ export type WgslRuntimeArray<Element extends WgslArrayElementGeneric> = {
 
     bufferSize: number;
     viewConfig: ViewConfig<WgslRuntimeArray<Element>>;
+
+    create: <Mode extends BufferMode = 'array-buffer'>(
+        mode?: Mode,
+    ) => Prettify<WgslRuntimeArrayCreateResult<WgslRuntimeArray<Element>, Mode>>;
 };
 
 // misc
