@@ -48,6 +48,11 @@ let depthTexture = device.createTexture({
 const shaderCode = /* wgsl */ `
 ${Layout.wgsl}
 
+struct VsIn {
+  @location(0) position: vec3<f32>,
+  @location(1) normal:   vec3<f32>,
+}
+
 struct VsOut {
   @builtin(position) pos:      vec4<f32>,
   @location(0)       worldPos: vec3<f32>,
@@ -55,14 +60,14 @@ struct VsOut {
 }
 
 @vertex
-fn vs(@location(0) position: vec3<f32>, @location(1) normal: vec3<f32>) -> VsOut {
-  let worldPos = object.model * vec4(position, 1.0);
+fn vs(in: VsIn) -> VsOut {
+  let worldPos = object.model * vec4(in.position, 1.0);
   var out: VsOut;
   out.pos      = frame.projection * frame.view * worldPos;
   out.worldPos = worldPos.xyz;
   // Normal transform: for uniform scale, model matrix suffices.
   // For non-uniform scale you'd need the inverse-transpose — skip for now.
-  out.normal   = (object.model * vec4(normal, 0.0)).xyz;
+  out.normal   = (object.model * vec4(in.normal, 0.0)).xyz;
   return out;
 }
 
