@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-non-null-assertion */
 import {
     BglBufferOptions,
     BglEntryGeneric,
@@ -163,10 +164,12 @@ export const getWgsl = (definition: BglLayoutDefinitionGeneric): string => {
     return [deduplicatedStructs, groupsAndBindings].filter((s) => s.length > 0).join('\n\n');
 };
 
-export const createPipelineLayout = (device: GPUDevice, definition: BglLayoutDefinitionGeneric): GPUPipelineLayout => {
+export const createBindGroupLayouts = (
+    device: GPUDevice,
+    definition: BglLayoutDefinitionGeneric,
+): GPUBindGroupLayout[] => {
     const groupKeys = Object.keys(definition);
-
-    const bindGroupLayouts = groupKeys.map((groupKey) => {
+    return groupKeys.map((groupKey) => {
         const bindings = definition[groupKey];
         const bindingNames = Object.keys(bindings);
         return device.createBindGroupLayout({
@@ -180,8 +183,58 @@ export const createPipelineLayout = (device: GPUDevice, definition: BglLayoutDef
             }),
         });
     });
+};
 
-    return device.createPipelineLayout({
-        bindGroupLayouts,
+// export const createPipelineLayout = (device: GPUDevice, definition: BglLayoutDefinitionGeneric): GPUPipelineLayout => {
+//     const bindGroupLayouts = createBindGroupLayouts(device, definition);
+//     return device.createPipelineLayout({ bindGroupLayouts });
+// };
+
+const isBufferEntry = (entry: BglEntryGeneric): boolean =>
+    entry.kind === 'uniform' || entry.kind === 'storage' || entry.kind === 'read-only-storage';
+
+const getBufferUsage = (kind: string): number =>
+    kind === 'uniform'
+        ? GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST
+        : GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST;
+
+const getBufferSizeForEntry = (type: GenericWgslType): number =>
+    isWgslPrimitive(type) ? WGSL_LOOKUP_TABLE[type].size : type.bufferSize;
+
+export const createGroupImpl = (
+    device: GPUDevice,
+    groupDefinition: Record<string, BglEntryGeneric>,
+    bindGroupLayout: GPUBindGroupLayout,
+    index: number,
+    resources?: Record<string, GPUTextureView | GPUSampler | GPUExternalTexture>,
+): { buffers: Record<string, GPUBuffer>; bindGroup: GPUBindGroup; index: number } => {
+    const entryNames = Object.keys(groupDefinition);
+    const buffers: Record<string, GPUBuffer> = {};
+    const bindGroupEntries: GPUBindGroupEntry[] = [];
+
+    for (let i = 0; i < entryNames.length; i++) {
+        const name = entryNames[i];
+        const entry = groupDefinition[name];
+
+        if (isBufferEntry(entry)) {
+            const typedEntry = entry as { type: GenericWgslType };
+            const buffer = device.createBuffer({
+                size: getBufferSizeForEntry(typedEntry.type),
+                usage: getBufferUsage(entry.kind),
+            });
+            buffers[name] = buffer;
+            bindGroupEntries.push({ binding: i, resource: { buffer } });
+        } else if (entry.kind === 'sampler') {
+            bindGroupEntries.push({ binding: i, resource: resources![name] as GPUSampler });
+        } else {
+            bindGroupEntries.push({ binding: i, resource: resources![name] as GPUTextureView | GPUExternalTexture });
+        }
+    }
+
+    const bindGroup = device.createBindGroup({
+        layout: bindGroupLayout,
+        entries: bindGroupEntries,
     });
+
+    return { buffers, bindGroup, index };
 };

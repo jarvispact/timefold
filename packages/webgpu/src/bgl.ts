@@ -1,4 +1,4 @@
-import { createPipelineLayout, defaultVisibility, getWgsl, WithVisibility } from './bgl-helpers';
+import { createBindGroupLayouts, createGroupImpl, defaultVisibility, getWgsl, WithVisibility } from './bgl-helpers';
 import {
     BglBufferOptions,
     BglExternalTextureEntry,
@@ -12,6 +12,7 @@ import {
     BglUniformEntry,
     BglUniformTypeGeneric,
     BindgroupLayout,
+    CreateGroup,
 } from './bgl-types';
 
 export const uniform = <Type extends BglUniformTypeGeneric>(
@@ -95,6 +96,24 @@ export const layout = <Definiton extends BglLayoutDefinitionGeneric>(
     return {
         definition,
         wgsl: getWgsl(definition),
-        createPipelineLayout: (device) => createPipelineLayout(device, definition),
+        init: (device) => {
+            const bindGroupLayouts = createBindGroupLayouts(device, definition);
+            const pipelineLayout = device.createPipelineLayout({ bindGroupLayouts });
+            const groupKeys = Object.keys(definition);
+
+            return {
+                pipelineLayout,
+                createGroup: ((groupName: string, ...args: unknown[]) => {
+                    const index = groupKeys.indexOf(groupName);
+                    return createGroupImpl(
+                        device,
+                        definition[groupName],
+                        bindGroupLayouts[index],
+                        index,
+                        args[0] as Record<string, GPUTextureView | GPUSampler | GPUExternalTexture> | undefined,
+                    );
+                }) as CreateGroup<Definiton>,
+            };
+        },
     };
 };

@@ -35,28 +35,6 @@ const Layout = Bgl.layout({
     },
 });
 
-const data1 = FrameUniforms.create();
-const data2 = FrameUniforms.create('array-buffer');
-const data3 = FrameUniforms.create('shared-array-buffer');
-
-const frameUniformBuffer = FrameUniforms.createBuffer(device);
-const objectUniformBufferA = ObjectUniforms.createBuffer(device);
-const objectUniformBufferB = ObjectUniforms.createBuffer(device);
-
-// const frameUniformBuffer = device.createBuffer({
-//     size: FrameUniforms.bufferSize,
-//     usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
-// });
-
-// const objectUniformBufferA = device.createBuffer({
-//     size: ObjectUniforms.bufferSize,
-//     usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
-// });
-// const objectUniformBufferB = device.createBuffer({
-//     size: ObjectUniforms.bufferSize,
-//     usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
-// });
-
 // --- Depth texture & resize -------------------------------------------------
 
 const DEPTH_FORMAT = 'depth24plus' as const;
@@ -106,10 +84,10 @@ fn fs(in: VsOut) -> @location(0) vec4<f32> {
 
 const shaderModule = device.createShaderModule({ code: shaderCode });
 
-const pipelineLayout = Layout.createPipelineLayout(device);
+const gpu = Layout.init(device);
 
 const pipeline = device.createRenderPipeline({
-    layout: pipelineLayout,
+    layout: gpu.pipelineLayout,
     vertex: {
         module: shaderModule,
         entryPoint: 'vs',
@@ -140,24 +118,9 @@ const pipeline = device.createRenderPipeline({
     },
 });
 
-// const frameBindGroup = device.createBindGroup({
-//     layout: pipeline.getBindGroupLayout(0),
-//     entries: [{ binding: 0, resource: { buffer: frameUniformBuffer } }],
-// });
-//
-// const objectBindGroupA = device.createBindGroup({
-//     layout: pipeline.getBindGroupLayout(1),
-//     entries: [{ binding: 0, resource: { buffer: objectUniformBufferA } }],
-// });
-//
-// const objectBindGroupB = device.createBindGroup({
-//     layout: pipeline.getBindGroupLayout(1),
-//     entries: [{ binding: 0, resource: { buffer: objectUniformBufferB } }],
-// });
-
-// Needs reference to BindGroupLayout and uniform buffer / sampler / texture
-// Should we use a record indexed by name of the entry instead of arrays?
-const frameBindGroup = FrameUniforms.createBindGroup(device, FrameBgl, []);
+const perFrame = gpu.createGroup('per_frame');
+const perObjectA = gpu.createGroup('per_object');
+const perObjectB = gpu.createGroup('per_object');
 
 const projection = Mat4.create();
 const eye = Vec3.create(3, 5, -8);
@@ -180,10 +143,8 @@ DomUtils.onResize({
     },
 });
 
-const frameUniformData = FrameUniforms.createData({ mode: 'array-buffer' });
-
-// const frameUniformData = new Float32Array(FrameUniforms.bufferSize / 4);
-const objectUniformData = new Float32Array(ObjectUniforms.bufferSize / 4);
+const frameData = FrameUniforms.create();
+const objectData = ObjectUniforms.create();
 const model = Mat4.create();
 const translation = Mat4.create();
 const identity = Mat4.create();
@@ -191,36 +152,32 @@ const identity = Mat4.create();
 const colorA = Vec3.create(0.9, 0.3, 0.1); // orange
 const colorB = Vec3.create(0.1, 0.4, 0.9); // blue
 
-const writeObjectUniforms = (buffer: GPUBuffer, modelMat: typeof model, color: typeof colorA) => {
-    objectUniformData.set(modelMat as number[], 0); // offset 0:  model
-    objectUniformData.set(color as number[], 16); // offset 64: color.xyz  (64 / 4 = 16 floats)
-    // objectUniformData[19] = 0;                   // padding already zero
-    device.queue.writeBuffer(buffer, 0, objectUniformData);
+const writeObjectUniforms = (group: typeof perObjectA, modelMat: typeof model, color: typeof colorA) => {
+    objectData.views.model.set(modelMat as number[]);
+    objectData.views.color.set(color as number[]);
+    device.queue.writeBuffer(group.buffers.object, 0, objectData.data);
 };
 
 const frame = (t: number) => {
     const time = t * 0.001;
 
-    // Pack per-frame uniforms (once)
-    // frameUniformData.set(view as number[], 0); // offset 0:   view
-    // frameUniformData.set(projection as number[], 16); // offset 64:  projection  (64 / 4 = 16 floats)
-    // frameUniformData.set(lightPos as number[], 32); // offset 128: lightPos.xyz  (128 / 4 = 32 floats)
-    // // frameUniformData[35] = 0;                     // padding already zero
-    // frameUniformData.set(viewPos as number[], 36); // offset 144: viewPos.xyz   (144 / 4 = 36 floats)
-    // frameUniformData[39] = 0;                     // padding already zero
-    device.queue.writeBuffer(frameUniformBuffer, 0, frameUniformData);
+    frameData.views.view.set(view as number[]);
+    frameData.views.projection.set(projection as number[]);
+    frameData.views.lightPos.set(lightPos as number[]);
+    frameData.views.viewPos.set(viewPos as number[]);
+    device.queue.writeBuffer(perFrame.buffers.frame, 0, frameData.data);
 
     // Object A — left, slow rotation
     Mat4.fromTranslation(translation, Vec3.create(-2, 0, 0));
     Mat4.rotationY(model, identity, time * 0.5);
     Mat4.multiply(model, translation, model);
-    writeObjectUniforms(objectUniformBufferA, model, colorA);
+    writeObjectUniforms(perObjectA, model, colorA);
 
     // Object B — right, fast rotation
     Mat4.fromTranslation(translation, Vec3.create(2, 0, 0));
     Mat4.rotationY(model, identity, time * 2.0);
     Mat4.multiply(model, translation, model);
-    writeObjectUniforms(objectUniformBufferB, model, colorB);
+    writeObjectUniforms(perObjectB, model, colorB);
 
     const encoder = device.createCommandEncoder();
     const pass = encoder.beginRenderPass({
@@ -241,15 +198,15 @@ const frame = (t: number) => {
     });
 
     pass.setPipeline(pipeline);
-    pass.setBindGroup(0, frameBindGroup);
+    pass.setBindGroup(perFrame.index, perFrame.bindGroup);
     pass.setVertexBuffer(0, vertexBuffer);
 
     // Draw object A
-    pass.setBindGroup(1, objectBindGroupA);
+    pass.setBindGroup(perObjectA.index, perObjectA.bindGroup);
     pass.draw(36);
 
     // Draw object B
-    pass.setBindGroup(1, objectBindGroupB);
+    pass.setBindGroup(perObjectB.index, perObjectB.bindGroup);
     pass.draw(36);
 
     pass.end();

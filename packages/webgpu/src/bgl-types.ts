@@ -82,8 +82,56 @@ export type BglEntryGeneric =
 
 export type BglLayoutDefinitionGeneric = Record<string, Record<string, BglEntryGeneric>>;
 
+// --- createGroup types -------------------------------------------------------
+
+export type BglBufferEntry =
+    | BglUniformEntry<BglUniformTypeGeneric>
+    | BglStorageEntry<BglStorageTypeGeneric>
+    | BglReadonlyStorageEntry<BglStorageTypeGeneric>;
+
+type BglNonBufferResourceMap = {
+    sampler: GPUSampler;
+    texture: GPUTextureView;
+    'storage-texture': GPUTextureView;
+    'external-texture': GPUExternalTexture;
+};
+
+export type BufferKeysOf<Group extends Record<string, BglEntryGeneric>> = {
+    [K in keyof Group]: Group[K] extends BglBufferEntry ? K : never;
+}[keyof Group];
+
+type NonBufferKeysOf<Group extends Record<string, BglEntryGeneric>> = {
+    [K in keyof Group]: Group[K] extends BglBufferEntry ? never : K;
+}[keyof Group];
+
+type BglGroupResources<Group extends Record<string, BglEntryGeneric>> = {
+    [K in NonBufferKeysOf<Group>]: Group[K] extends { kind: infer Kind }
+        ? Kind extends keyof BglNonBufferResourceMap
+            ? BglNonBufferResourceMap[Kind]
+            : never
+        : never;
+};
+
+export type BglGroup<Group extends Record<string, BglEntryGeneric>> = {
+    buffers: { [K in BufferKeysOf<Group>]: GPUBuffer };
+    bindGroup: GPUBindGroup;
+    index: number;
+};
+
+export type CreateGroup<Def extends BglLayoutDefinitionGeneric> = <G extends string & keyof Def>(
+    groupName: G,
+    ...args: NonBufferKeysOf<Def[G]> extends never ? [] : [resources: BglGroupResources<Def[G]>]
+) => BglGroup<Def[G]>;
+
+export type BglInitResult<Definition extends BglLayoutDefinitionGeneric> = {
+    pipelineLayout: GPUPipelineLayout;
+    createGroup: CreateGroup<Definition>;
+};
+
+// --- layout ------------------------------------------------------------------
+
 export type BindgroupLayout<Definiton extends BglLayoutDefinitionGeneric> = {
     definition: Definiton;
     wgsl: string;
-    createPipelineLayout: (device: GPUDevice) => GPUPipelineLayout;
+    init: (device: GPUDevice) => BglInitResult<Definiton>;
 };
