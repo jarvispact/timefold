@@ -1,7 +1,7 @@
 import { Mat4, Vec3 } from '@timefold/math';
 import { DomUtils } from '@timefold/engine';
 import { WebgpuUtils, Wgsl, Bgl } from '@timefold/webgpu';
-import { cubeVertices } from './cube-data';
+import { cubeVertices, VERTEX_STRIDE } from './cube-data';
 
 // --- GPU init ---------------------------------------------------------------
 
@@ -13,8 +13,6 @@ const vertexBuffer = device.createBuffer({
     usage: GPUBufferUsage.VERTEX | GPUBufferUsage.COPY_DST,
 });
 device.queue.writeBuffer(vertexBuffer, 0, cubeVertices);
-
-const VERTEX_STRIDE = 6 * 4; // 6 floats × 4 bytes
 
 const FrameUniforms = Wgsl.struct('FrameUniforms', {
     view: 'mat4x4<f32>',

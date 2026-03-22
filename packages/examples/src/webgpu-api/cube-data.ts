@@ -49,3 +49,5 @@ export const cubeVertices = new Float32Array([
   -1, -1,  1,   0, -1,  0,
    1, -1,  1,   0, -1,  0,
 ]);
+
+export const VERTEX_STRIDE = 6 * 4; // 6 floats × 4 bytes
