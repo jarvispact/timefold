@@ -45,6 +45,7 @@ export const WGSL_LOOKUP_TABLE = {
 } as const;
 
 const WGSL_PRIMITIVES = Object.keys(WGSL_LOOKUP_TABLE);
+export const SCALARS = ['f32', 'i32', 'u32'];
 
 export const isWgslPrimitive = (candidate: unknown): candidate is WgslPrimitive =>
     typeof candidate === 'string' && WGSL_PRIMITIVES.includes(candidate);
@@ -56,7 +57,7 @@ export const roundUp = (alignment: number, value: number): number => {
     return (value + mask) & ~mask;
 };
 
-type ViewConfigEntry<Scalar extends WgslScalar> = {
+export type ViewConfigEntry<Scalar extends WgslScalar> = {
     scalar: Scalar;
     byteOffset: number;
     componentCount: number;

@@ -3,7 +3,7 @@ import {
     getBufferSizeAndViewConfigForSizedArray,
     getBufferSizeAndViewConfigForStruct,
 } from './internal';
-import { BufferMode, getStructWgsl } from './wgsl-helpers';
+import { BufferMode, buildViews, createBuffer, getStructWgsl } from './wgsl-helpers';
 import {
     WgslArrayElementGeneric,
     WgslRuntimeArray,
@@ -33,8 +33,10 @@ export const struct = <Name extends string, Definition extends WgslStructDefinit
         create: <Mode extends BufferMode = 'array-buffer'>(
             mode?: Mode,
         ): WgslStructCreateResult<WgslStruct<Name, Definition>, Mode> => {
-            console.log(mode);
-            return null as never;
+            const resolvedMode = (mode ?? 'array-buffer') as Mode;
+            const data = createBuffer(bufferSize, resolvedMode);
+            const views = buildViews(data, viewConfig);
+            return { data, views } as WgslStructCreateResult<WgslStruct<Name, Definition>, Mode>;
         },
     };
 };
@@ -55,8 +57,10 @@ export const sizedArray = <Element extends WgslArrayElementGeneric, Size extends
         create: <Mode extends BufferMode = 'array-buffer'>(
             mode?: Mode,
         ): WgslSizedArrayCreateResult<WgslSizedArray<Element, Size>, Mode> => {
-            console.log(mode);
-            return null as never;
+            const resolvedMode = (mode ?? 'array-buffer') as Mode;
+            const data = createBuffer(bufferSize, resolvedMode);
+            const views = buildViews(data, viewConfig);
+            return { data, views } as WgslSizedArrayCreateResult<WgslSizedArray<Element, Size>, Mode>;
         },
     };
 };
@@ -77,8 +81,10 @@ export const runtimeArray = <Element extends WgslArrayElementGeneric>(
         create: <Mode extends BufferMode = 'array-buffer'>(
             mode?: Mode,
         ): WgslRuntimeArrayCreateResult<WgslRuntimeArray<Element>, Mode> => {
-            console.log(mode);
-            return null as never;
+            const resolvedMode = (mode ?? 'array-buffer') as Mode;
+            const data = createBuffer(bufferSize, resolvedMode);
+            const views = buildViews(data, viewConfig);
+            return { data, views } as WgslRuntimeArrayCreateResult<WgslRuntimeArray<Element>, Mode>;
         },
     };
 };
