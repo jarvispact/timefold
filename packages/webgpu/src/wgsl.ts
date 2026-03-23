@@ -3,7 +3,17 @@ import {
     getBufferSizeAndViewConfigForSizedArray,
     getBufferSizeAndViewConfigForStruct,
 } from './internal';
-import { BufferMode, buildViews, createBuffer, getStructWgsl } from './wgsl-helpers';
+import {
+    BufferMode,
+    buildViews,
+    createBuffer,
+    createInterleavedBuffer,
+    createNonInterleavedBuffers,
+    getStructWgsl,
+    getVertexAttributeInfo,
+    getVertexBufferLayout,
+    getVertexStructWgsl,
+} from './wgsl-helpers';
 import {
     WgslArrayElementGeneric,
     WgslRuntimeArray,
@@ -13,6 +23,8 @@ import {
     WgslStruct,
     WgslStructCreateResult,
     WgslStructDefinitionGeneric,
+    WgslVertex,
+    WgslVertexDefinition,
 } from './wgsl-types';
 
 export const struct = <Name extends string, Definition extends WgslStructDefinitionGeneric>(
@@ -86,5 +98,27 @@ export const runtimeArray = <Element extends WgslArrayElementGeneric>(
             const views = buildViews(data, viewConfig);
             return { data, views } as WgslRuntimeArrayCreateResult<WgslRuntimeArray<Element>, Mode>;
         },
+    };
+};
+
+export const vertex = <Name extends string, Definition extends WgslVertexDefinition>(
+    name: Name,
+    definition: Definition,
+): WgslVertex<Name, Definition> => {
+    const { attributes, interleavedStride } = getVertexAttributeInfo(definition);
+    const bufferLayout = getVertexBufferLayout(attributes, interleavedStride);
+
+    return {
+        type: 'vertex',
+        name,
+        definition,
+
+        bufferLayout,
+
+        wgsl: getVertexStructWgsl(name, definition),
+
+        createInterleaved: (device, data, options) => createInterleavedBuffer(device, data, interleavedStride, options),
+        createNonInterleaved: (device, attribs, options) =>
+            createNonInterleavedBuffers(device, attribs as Record<string, ArrayBufferView>, attributes, options),
     };
 };

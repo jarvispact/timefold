@@ -1,18 +1,12 @@
 import { Mat4, Vec3 } from '@timefold/math';
 import { DomUtils } from '@timefold/engine';
 import { WebgpuUtils, Wgsl, Bgl } from '@timefold/webgpu';
-import { cubeVertices, VERTEX_STRIDE } from './cube-data';
+import { cubeVertices } from './cube-data';
 
 // --- GPU init ---------------------------------------------------------------
 
 const canvas = DomUtils.getCanvasById('canvas');
 const { device, context, format } = await WebgpuUtils.createDeviceAndContext({ canvas });
-
-const vertexBuffer = device.createBuffer({
-    size: cubeVertices.byteLength,
-    usage: GPUBufferUsage.VERTEX | GPUBufferUsage.COPY_DST,
-});
-device.queue.writeBuffer(vertexBuffer, 0, cubeVertices);
 
 const FrameUniforms = Wgsl.struct('FrameUniforms', {
     view: 'mat4x4<f32>',
@@ -35,6 +29,11 @@ const Layout = Bgl.layout({
     },
 });
 
+const Vertex = Wgsl.vertex('VsIn', {
+    position: 'float32x3',
+    normal: 'float32x3',
+});
+
 // --- Depth texture & resize -------------------------------------------------
 
 const DEPTH_FORMAT = 'depth24plus' as const;
@@ -48,10 +47,7 @@ let depthTexture = device.createTexture({
 const shaderCode = /* wgsl */ `
 ${Layout.wgsl}
 
-struct VsIn {
-  @location(0) position: vec3<f32>,
-  @location(1) normal:   vec3<f32>,
-}
+${Vertex.wgsl}
 
 struct VsOut {
   @builtin(position) pos:      vec4<f32>,
@@ -96,15 +92,7 @@ const pipeline = device.createRenderPipeline({
     vertex: {
         module: shaderModule,
         entryPoint: 'vs',
-        buffers: [
-            {
-                arrayStride: VERTEX_STRIDE,
-                attributes: [
-                    { shaderLocation: 0, offset: 0, format: 'float32x3' as GPUVertexFormat }, // position
-                    { shaderLocation: 1, offset: 12, format: 'float32x3' as GPUVertexFormat }, // normal
-                ],
-            },
-        ],
+        buffers: Vertex.bufferLayout.interleaved,
     },
     fragment: {
         module: shaderModule,
@@ -163,6 +151,8 @@ const writeObjectUniforms = (group: typeof perObjectA, modelMat: typeof model, c
     device.queue.writeBuffer(group.buffers.object, 0, objectData.data);
 };
 
+const vertex = Vertex.createInterleaved(device, cubeVertices.buffer);
+
 const frame = (t: number) => {
     const time = t * 0.001;
 
@@ -204,15 +194,15 @@ const frame = (t: number) => {
 
     pass.setPipeline(pipeline);
     pass.setBindGroup(perFrame.index, perFrame.bindGroup);
-    pass.setVertexBuffer(0, vertexBuffer);
+    pass.setVertexBuffer(vertex.slot, vertex.buffer);
 
     // Draw object A
     pass.setBindGroup(perObjectA.index, perObjectA.bindGroup);
-    pass.draw(36);
+    pass.draw(vertex.vertexCount);
 
     // Draw object B
     pass.setBindGroup(perObjectB.index, perObjectB.bindGroup);
-    pass.draw(36);
+    pass.draw(vertex.vertexCount);
 
     pass.end();
 

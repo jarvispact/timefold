@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
-import { InvalidArrayType, Prettify, ViewConfig, Views, WGSL_LOOKUP_TABLE } from './internal';
+import { InvalidArrayType, Prettify, VertexLookupTable, ViewConfig, Views, WGSL_LOOKUP_TABLE } from './internal';
 import { BufferMode, CreateModeToBufferInstance } from './wgsl-helpers';
 
 // primitive
@@ -94,3 +94,40 @@ export type GenericWgslType =
     | WgslSizedArray<WgslArrayElementGeneric, number>
     | WgslStruct<string, WgslStructDefinitionGeneric>
     | WgslRuntimeArray<WgslArrayElementGeneric>;
+
+// vertex
+
+export type WgslVertexFormat = keyof VertexLookupTable;
+export type WgslVertexPositionFormat = 'float32x2' | 'float32x3' | 'float32x4';
+
+export type WgslVertexDefinition = { position: WgslVertexPositionFormat } & Record<string, WgslVertexFormat>;
+
+type SlotAndBuffer = { slot: number; buffer: GPUBuffer };
+
+export type WgslVertexCreateOptions = Partial<Omit<GPUBufferDescriptor, 'size'>>;
+
+export type WgslVertex<Name extends string, Definition extends WgslVertexDefinition> = {
+    type: 'vertex';
+    name: Name;
+    definition: Definition;
+    bufferLayout: {
+        interleaved: GPUVertexBufferLayout[];
+        nonInterleaved: GPUVertexBufferLayout[];
+    };
+
+    wgsl: string;
+
+    createInterleaved: (
+        device: GPUDevice,
+        data: ArrayBuffer,
+        options?: WgslVertexCreateOptions,
+    ) => SlotAndBuffer & { vertexCount: number };
+
+    createNonInterleaved: (
+        device: GPUDevice,
+        attribs: {
+            [K in keyof Definition]: InstanceType<VertexLookupTable[Definition[K]]['View']>;
+        },
+        options?: WgslVertexCreateOptions,
+    ) => { attributes: SlotAndBuffer[]; vertexCount: number };
+};

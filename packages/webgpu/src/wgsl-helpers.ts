@@ -1,5 +1,5 @@
-import { getTypeStructOrArrayString, SCALARS, ViewConfigEntry } from './internal';
-import { WgslScalar, WgslStructDefinitionGeneric } from './wgsl-types';
+import { getTypeStructOrArrayString, getVertexFormatByteSize, SCALARS, VERTEX_LOOKUP_TABLE, ViewConfigEntry } from './internal';
+import { WgslScalar, WgslStructDefinitionGeneric, WgslVertexCreateOptions, WgslVertexFormat } from './wgsl-types';
 
 const createModeToBuffer = {
     'shared-array-buffer': SharedArrayBuffer,
@@ -90,4 +90,112 @@ export const buildViews = (buffer: ArrayBufferLike, viewConfig: unknown): unknow
     }
 
     return result;
+};
+
+// vertex helpers
+
+export const getVertexStructWgsl = (name: string, definition: Record<string, WgslVertexFormat>) => {
+    const indent = '    ';
+    const keys = Object.keys(definition);
+    const lines: string[] = [];
+
+    for (let i = 0; i < keys.length; i++) {
+        const wgslType = VERTEX_LOOKUP_TABLE[definition[keys[i]]].wgsl;
+        lines.push(`${indent}@location(${i}) ${keys[i]}: ${wgslType}`);
+    }
+
+    return `struct ${name} {\n${lines.join(',\n')}\n}`;
+};
+
+export type VertexAttributeInfo = { key: string; format: WgslVertexFormat; byteSize: number };
+
+export const getVertexAttributeInfo = (definition: Record<string, WgslVertexFormat>) => {
+    const keys = Object.keys(definition);
+    const attributes: VertexAttributeInfo[] = [];
+    let interleavedStride = 0;
+
+    for (let i = 0; i < keys.length; i++) {
+        const key = keys[i];
+        const format = definition[key];
+        const byteSize = getVertexFormatByteSize(format);
+        attributes.push({ key, format, byteSize });
+        interleavedStride += byteSize;
+    }
+
+    return { attributes, interleavedStride };
+};
+
+export const getVertexBufferLayout = (attributes: VertexAttributeInfo[], interleavedStride: number) => {
+    const interleavedAttrs: GPUVertexAttribute[] = [];
+    let offset = 0;
+    for (let i = 0; i < attributes.length; i++) {
+        interleavedAttrs.push({
+            shaderLocation: i,
+            offset,
+            format: attributes[i].format as GPUVertexFormat,
+        });
+        offset += attributes[i].byteSize;
+    }
+
+    const interleaved: GPUVertexBufferLayout[] = [{ arrayStride: interleavedStride, attributes: interleavedAttrs }];
+
+    const nonInterleaved: GPUVertexBufferLayout[] = [];
+    for (let i = 0; i < attributes.length; i++) {
+        nonInterleaved.push({
+            arrayStride: attributes[i].byteSize,
+            attributes: [
+                {
+                    shaderLocation: i,
+                    offset: 0,
+                    format: attributes[i].format as GPUVertexFormat,
+                },
+            ],
+        });
+    }
+
+    return { interleaved, nonInterleaved };
+};
+
+const DEFAULT_VERTEX_USAGE = GPUBufferUsage.VERTEX | GPUBufferUsage.COPY_DST;
+
+export const createInterleavedBuffer = (
+    device: GPUDevice,
+    data: ArrayBuffer,
+    interleavedStride: number,
+    options?: WgslVertexCreateOptions,
+) => {
+    const buffer = device.createBuffer({
+        ...options,
+        size: data.byteLength,
+        usage: options?.usage ?? DEFAULT_VERTEX_USAGE,
+    });
+    device.queue.writeBuffer(buffer, 0, data);
+    return { slot: 0, buffer, vertexCount: data.byteLength / interleavedStride };
+};
+
+export const createNonInterleavedBuffers = (
+    device: GPUDevice,
+    attribs: Record<string, ArrayBufferView>,
+    attributes: VertexAttributeInfo[],
+    options?: WgslVertexCreateOptions,
+) => {
+    const result: { slot: number; buffer: GPUBuffer }[] = [];
+    let vertexCount = 0;
+
+    for (let i = 0; i < attributes.length; i++) {
+        const typedArray = attribs[attributes[i].key];
+        const buffer = device.createBuffer({
+            ...options,
+            size: typedArray.byteLength,
+            usage: options?.usage ?? DEFAULT_VERTEX_USAGE,
+        });
+        device.queue.writeBuffer(buffer, 0, typedArray as never);
+        result.push({ slot: i, buffer });
+
+        if (i === 0) {
+            vertexCount = typedArray.byteLength / attributes[i].byteSize;
+        }
+    }
+
+    return { attributes: result, vertexCount };
 };
