@@ -1,3 +1,4 @@
+import { Prettify } from './internal';
 import {
     WgslArrayElementGeneric,
     WgslPrimitive,
@@ -121,7 +122,7 @@ export type BglGroup<Group extends Record<string, BglEntryGeneric>> = {
 export type CreateGroup<Def extends BglLayoutDefinitionGeneric> = <G extends string & keyof Def>(
     groupName: G,
     ...args: NonBufferKeysOf<Def[G]> extends never ? [] : [resources: BglGroupResources<Def[G]>]
-) => BglGroup<Def[G]>;
+) => Prettify<BglGroup<Def[G]>>;
 
 export type BglInitResult<Definition extends BglLayoutDefinitionGeneric> = {
     pipelineLayout: GPUPipelineLayout;
