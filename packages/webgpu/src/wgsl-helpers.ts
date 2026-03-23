@@ -1,4 +1,10 @@
-import { getTypeStructOrArrayString, getVertexFormatByteSize, SCALARS, VERTEX_LOOKUP_TABLE, ViewConfigEntry } from './internal';
+import {
+    getTypeStructOrArrayString,
+    getVertexFormatByteSize,
+    SCALARS,
+    VERTEX_LOOKUP_TABLE,
+    ViewConfigEntry,
+} from './internal';
 import { WgslScalar, WgslStructDefinitionGeneric, WgslVertexCreateOptions, WgslVertexFormat } from './wgsl-types';
 
 const createModeToBuffer = {
